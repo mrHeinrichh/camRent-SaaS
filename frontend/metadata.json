@@ -1,0 +1,8 @@
+{
+  "name": "CamRent SaaS",
+  "description": "A production-ready multitenant camera rental platform for store owners and renters.",
+  "requestFramePermissions": [
+    "camera",
+    "geolocation"
+  ]
+}
