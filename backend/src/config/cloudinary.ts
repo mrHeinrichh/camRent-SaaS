@@ -7,4 +7,10 @@ cloudinary.config({
   api_secret: env.cloudinaryApiSecret,
 });
 
+console.log('[cloudinary] configured', {
+  cloudName: env.cloudinaryCloudName || null,
+  hasApiKey: Boolean(env.cloudinaryApiKey),
+  hasApiSecret: Boolean(env.cloudinaryApiSecret),
+});
+
 export { cloudinary };

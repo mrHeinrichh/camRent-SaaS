@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react';
 import { addDays, format, parseISO } from 'date-fns';
 import { AlertCircle, Ban, CheckCircle2, FileDown, History, Package, RotateCcw, Clock, User } from 'lucide-react';
+import { PeriodCalendar } from '@/src/components/PeriodCalendar';
 import { api } from '@/src/lib/api';
+import { formatPHP } from '@/src/lib/currency';
 import { useAppStore } from '@/src/store';
 import type { AppPage } from '@/src/types/app';
 import type { OrderHistory } from '@/src/types/domain';
 import { Button, Card, cn } from '@/src/components/ui';
+import type { CalendarPeriodTone } from '@/src/components/PeriodCalendar';
 
 interface AccountPageProps {
   onNavigate: (page: AppPage) => void;
@@ -49,6 +52,20 @@ export function AccountPage({ onNavigate }: AccountPageProps) {
     completed: orders.filter((order) => order.status === 'COMPLETED').length,
     cancelled: orders.filter((order) => order.status === 'CANCELLED' || order.status === 'CANCELLED_BY_OWNER').length,
   };
+  const calendarPeriods = orders.flatMap((order) =>
+    order.items.map((item) => ({
+      id: `${order.id}-${item.id}-${item.start_date}-${item.end_date}`,
+      start: item.start_date,
+      end: item.end_date,
+      label: `${item.name} (${order.status.replace(/_/g, ' ')})`,
+      tone:
+        (order.status === 'PENDING_REVIEW'
+          ? 'pending'
+          : order.status === 'CANCELLED' || order.status === 'CANCELLED_BY_OWNER'
+            ? 'blocked'
+            : 'active') as CalendarPeriodTone,
+    })),
+  );
 
   return (
     <div className="container mx-auto px-4 py-12">
@@ -82,6 +99,11 @@ export function AccountPage({ onNavigate }: AccountPageProps) {
         <History className="h-5 w-5" /> Order History
       </h2>
 
+      <Card className="mb-8 p-4">
+        <h3 className="mb-3 text-lg font-bold">Rental Calendar (Period View)</h3>
+        <PeriodCalendar periods={calendarPeriods} />
+      </Card>
+
       <div className="space-y-6">
         {orders.map((order) => (
           <Card key={order.id} className="overflow-hidden">
@@ -98,6 +120,11 @@ export function AccountPage({ onNavigate }: AccountPageProps) {
                 <div>
                   <p className="text-xs font-bold uppercase text-muted-foreground">Store</p>
                   <p className="text-sm font-medium">{order.store_name}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-bold uppercase text-muted-foreground">Branch</p>
+                  <p className="text-sm font-medium">{order.store_branch_name || 'Main Branch'}</p>
+                  <p className="text-xs text-muted-foreground">{order.store_branch_address || 'No branch address provided'}</p>
                 </div>
               </div>
 
@@ -134,9 +161,10 @@ export function AccountPage({ onNavigate }: AccountPageProps) {
                       <p className="text-xs text-muted-foreground">
                         {item.start_date} to {item.end_date}
                       </p>
+                      <p className="text-xs text-muted-foreground">Quantity: {Math.max(1, item.quantity || 1)}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-bold">${item.daily_price}</p>
+                      <p className="text-sm font-bold">{formatPHP(item.daily_price)}</p>
                       <p className="text-[10px] text-muted-foreground">per day</p>
                     </div>
                   </div>
@@ -145,9 +173,20 @@ export function AccountPage({ onNavigate }: AccountPageProps) {
 
               <div className="mt-6 flex items-center justify-between border-t pt-4">
                 <div className="flex gap-4">
-                  <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => alert('Mock Agreement Download')}>
-                    <FileDown className="mr-1 h-3 w-3" /> Agreement
-                  </Button>
+                  {order.lease_agreement_submission_url ? (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 text-xs"
+                      onClick={() => window.open(order.lease_agreement_submission_url, '_blank', 'noopener,noreferrer')}
+                    >
+                      <FileDown className="mr-1 h-3 w-3" /> Submitted Lease
+                    </Button>
+                  ) : (
+                    <Button variant="ghost" size="sm" className="h-8 text-xs" disabled>
+                      <FileDown className="mr-1 h-3 w-3" /> No Lease File
+                    </Button>
+                  )}
                   {order.status === 'COMPLETED' && (
                     <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => handleReorder(order)}>
                       <RotateCcw className="mr-1 h-3 w-3" /> Reorder
@@ -157,7 +196,7 @@ export function AccountPage({ onNavigate }: AccountPageProps) {
 
                 <div className="text-right">
                   <p className="text-xs text-muted-foreground">Total Paid</p>
-                  <p className="text-xl font-bold">${order.total_amount}</p>
+                  <p className="text-xl font-bold">{formatPHP(order.total_amount)}</p>
                 </div>
               </div>
             </div>

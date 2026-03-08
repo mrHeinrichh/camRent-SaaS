@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { MapPin, Search } from 'lucide-react';
 import { api } from '@/src/lib/api';
+import { formatPHP } from '@/src/lib/currency';
 import { useAppStore } from '@/src/store';
 import type { Item, Store } from '@/src/types/domain';
 import { Button, Card, Input } from '@/src/components/ui';
@@ -12,6 +13,7 @@ interface StorePageProps {
 
 export function StorePage({ storeId, onNavigateItem }: StorePageProps) {
   const [store, setStore] = useState<(Store & { items: Item[] }) | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string>('All Gear');
   const [loading, setLoading] = useState(true);
   const { user } = useAppStore();
 
@@ -27,6 +29,8 @@ export function StorePage({ storeId, onNavigateItem }: StorePageProps) {
   if (user?.role === 'owner') return null;
   if (loading) return <div className="flex h-96 items-center justify-center">Loading store...</div>;
   if (!store) return <div>Store not found</div>;
+  const availableCategories = ['All Gear', ...Array.from(new Set(store.items.map((item) => item.category).filter(Boolean)))];
+  const visibleItems = selectedCategory === 'All Gear' ? store.items : store.items.filter((item) => item.category === selectedCategory);
 
   return (
     <div className="pb-20">
@@ -57,13 +61,26 @@ export function StorePage({ storeId, onNavigateItem }: StorePageProps) {
             <div>
               <h4 className="mb-3 font-semibold">Categories</h4>
               <div className="space-y-1">
-                {['All Gear', 'Cameras', 'Lenses', 'Lighting', 'Audio', 'Gimbals'].map((category) => (
-                  <Button key={category} variant="ghost" className="w-full justify-start font-normal">
+                {availableCategories.map((category) => (
+                  <Button key={category} variant={selectedCategory === category ? 'secondary' : 'ghost'} className="w-full justify-start font-normal" onClick={() => setSelectedCategory(category)}>
                     {category}
                   </Button>
                 ))}
               </div>
             </div>
+            {store.branches?.length ? (
+              <div>
+                <h4 className="mb-3 font-semibold">Branches</h4>
+                <div className="space-y-2 text-sm text-muted-foreground">
+                  {store.branches.map((branch) => (
+                    <div key={branch._id || branch.address} className="rounded border bg-muted/20 p-2">
+                      <p className="font-medium text-foreground">{branch.name || 'Branch'}</p>
+                      <p>{branch.address}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
           </aside>
 
           <main className="flex-1">
@@ -83,7 +100,7 @@ export function StorePage({ storeId, onNavigateItem }: StorePageProps) {
             </div>
 
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {store.items.map((item) => (
+              {visibleItems.map((item) => (
                 <Card key={item.id} className="group cursor-pointer overflow-hidden" onClick={() => onNavigateItem(item.id)}>
                   <div className="relative aspect-square overflow-hidden">
                     <img
@@ -99,8 +116,9 @@ export function StorePage({ storeId, onNavigateItem }: StorePageProps) {
                     <p className="mb-4 line-clamp-1 text-sm text-muted-foreground">{item.description}</p>
                     <div className="flex items-center justify-between">
                       <div>
-                        <span className="text-lg font-bold">${item.daily_price}</span>
+                        <span className="text-lg font-bold">{formatPHP(item.daily_price)}</span>
                         <span className="text-xs text-muted-foreground"> / day</span>
+                        <p className="text-xs text-muted-foreground">Stock: {Math.max(0, item.stock || 0)}</p>
                       </div>
                       <Button size="sm" variant="outline">
                         View Details

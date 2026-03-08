@@ -134,9 +134,17 @@ ownerRoutes.get('/dashboard/owner', authenticate, checkRole(['owner']), async (r
   const allOrderIds = orders.map((order) => order._id);
   const allDocs = await OrderDocument.find({ order_id: { $in: allOrderIds } }).lean();
   const docsByOrder = new Map<string, string[]>();
+  const docEntriesByOrder = new Map<string, Array<{ type: string; url: string }>>();
   for (const doc of allDocs) {
     const key = doc.order_id.toString();
     docsByOrder.set(key, [...(docsByOrder.get(key) || []), doc.document_type]);
+    docEntriesByOrder.set(key, [
+      ...(docEntriesByOrder.get(key) || []),
+      {
+        type: doc.document_type,
+        url: String((doc as any).file_url || '').trim(),
+      },
+    ]);
   }
 
   const allOrderItems = await OrderItem.find({ order_id: { $in: allOrderIds } }).lean();
@@ -153,7 +161,16 @@ ownerRoutes.get('/dashboard/owner', authenticate, checkRole(['owner']), async (r
 
   const customerMap = new Map<
     string,
-    { renter_name: string; renter_email: string; renter_phone: string; renter_address: string; transaction_count: number; id_types: string[]; gearCount: Map<string, number> }
+    {
+      renter_name: string;
+      renter_email: string;
+      renter_phone: string;
+      renter_address: string;
+      transaction_count: number;
+      id_types: string[];
+      requirement_docs: Map<string, string>;
+      gearCount: Map<string, number>;
+    }
   >();
   for (const order of orders) {
     const key = order.renter_email || `order-${order._id.toString()}`;
@@ -164,11 +181,18 @@ ownerRoutes.get('/dashboard/owner', authenticate, checkRole(['owner']), async (r
       renter_address: order.renter_address,
       transaction_count: 0,
       id_types: [],
+      requirement_docs: new Map<string, string>(),
       gearCount: new Map<string, number>(),
     };
     existing.transaction_count += 1;
     const orderDocTypes = docsByOrder.get(order._id.toString()) || [];
     existing.id_types = [...new Set([...existing.id_types, ...orderDocTypes])];
+    const orderDocEntries = docEntriesByOrder.get(order._id.toString()) || [];
+    for (const docEntry of orderDocEntries) {
+      if (docEntry.type && docEntry.url && !existing.requirement_docs.has(docEntry.type)) {
+        existing.requirement_docs.set(docEntry.type, docEntry.url);
+      }
+    }
     const orderItems = orderItemsByOrder.get(order._id.toString()) || [];
     for (const orderItem of orderItems) {
       const name = rentedItemById.get(orderItem.item_id.toString())?.name || 'Unknown Gear';
@@ -226,6 +250,7 @@ ownerRoutes.get('/dashboard/owner', authenticate, checkRole(['owner']), async (r
       renter_address: customer.renter_address,
       transaction_count: customer.transaction_count,
       id_types: customer.id_types,
+      requirements: [...customer.requirement_docs.entries()].map(([type, url]) => ({ type, url })),
       mostly_rented_gears: [...customer.gearCount.entries()]
         .sort((a, b) => b[1] - a[1])
         .slice(0, 3)

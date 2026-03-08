@@ -189,6 +189,7 @@ export interface OwnerDashboardData {
     renter_address?: string;
     transaction_count: number;
     id_types: string[];
+    requirements?: Array<{ type: string; url: string }>;
     mostly_rented_gears: Array<{ name: string; count: number }>;
   }>;
   ownerAnalytics?: {

@@ -1,4 +1,5 @@
 import { Calendar as CalendarIcon, ShoppingCart } from 'lucide-react';
+import { formatPHP } from '@/src/lib/currency';
 import { Button, Card } from '@/src/components/ui';
 import { useAppStore } from '@/src/store';
 
@@ -7,9 +8,8 @@ interface CartPageProps {
 }
 
 export function CartPage({ onCheckout }: CartPageProps) {
-  const { cart, removeFromCart, user } = useAppStore();
-  const rentalSubtotal = cart.reduce((sum, item) => sum + item.daily_price, 0);
-  const deposits = cart.reduce((sum, item) => sum + item.deposit_amount, 0);
+  const { cart, removeFromCart, updateCartQuantity, user } = useAppStore();
+  const rentalSubtotal = cart.reduce((sum, item) => sum + item.daily_price * Math.max(1, item.quantity || 1), 0);
 
   if (user?.role === 'owner') return null;
 
@@ -50,8 +50,33 @@ export function CartPage({ onCheckout }: CartPageProps) {
                 </div>
 
                 <div className="flex items-end justify-between">
-                  <span className="text-sm font-medium">Daily: ${item.daily_price}</span>
-                  <span className="text-sm font-medium">Deposit: ${item.deposit_amount}</span>
+                  <span className="text-sm font-medium">Daily: {formatPHP(item.daily_price)}</span>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => updateCartQuantity(item.id, item.startDate, item.endDate, Math.max(1, (item.quantity || 1) - 1))}
+                    >
+                      -
+                    </Button>
+                    <span className="text-sm font-medium">{Math.max(1, item.quantity || 1)}</span>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        updateCartQuantity(
+                          item.id,
+                          item.startDate,
+                          item.endDate,
+                          Math.min(Math.max(1, item.stock || 1), Math.max(1, (item.quantity || 1) + 1)),
+                        )
+                      }
+                    >
+                      +
+                    </Button>
+                  </div>
                 </div>
               </div>
             </Card>
@@ -64,15 +89,11 @@ export function CartPage({ onCheckout }: CartPageProps) {
             <div className="mb-6 space-y-2">
               <div className="flex justify-between text-sm">
                 <span>Rental Subtotal</span>
-                <span>${rentalSubtotal}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span>Security Deposits</span>
-                <span>${deposits}</span>
+                <span>{formatPHP(rentalSubtotal)}</span>
               </div>
               <div className="mt-2 flex justify-between border-t pt-2 text-lg font-bold">
                 <span>Total Due</span>
-                <span>${rentalSubtotal + deposits}</span>
+                <span>{formatPHP(rentalSubtotal)}</span>
               </div>
             </div>
             <Button className="h-12 w-full" onClick={onCheckout}>

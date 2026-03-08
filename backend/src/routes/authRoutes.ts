@@ -23,6 +23,13 @@ authRoutes.post('/register', async (req, res) => {
     store_banner_url,
     store_latitude,
     store_longitude,
+    facebook_url,
+    instagram_url,
+    payment_details,
+    delivery_modes,
+    store_branches,
+    lease_agreement_file_url,
+    security_deposit,
   } = req.body;
   try {
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -42,6 +49,28 @@ authRoutes.post('/register', async (req, res) => {
         return res.status(400).json({ error: 'Invalid store map location' });
       }
 
+      const branches = Array.isArray(store_branches)
+        ? store_branches
+            .map((branch: any) => ({
+              name: typeof branch?.name === 'string' ? branch.name.trim() : '',
+              address: typeof branch?.address === 'string' ? branch.address.trim() : '',
+              location_lat: Number(branch?.location_lat),
+              location_lng: Number(branch?.location_lng),
+            }))
+            .filter((branch: any) => branch.address)
+        : [];
+      if (!branches.length) {
+        return res.status(400).json({ error: 'At least one store branch is required' });
+      }
+      for (const branch of branches) {
+        if (!Number.isFinite(branch.location_lat) || !Number.isFinite(branch.location_lng)) {
+          return res.status(400).json({ error: 'Each branch must have a valid pin location (latitude and longitude)' });
+        }
+        if (branch.location_lat < -90 || branch.location_lat > 90 || branch.location_lng < -180 || branch.location_lng > 180) {
+          return res.status(400).json({ error: 'Each branch pin location must be within valid coordinate ranges' });
+        }
+      }
+
       const createdStore = await Store.create({
         owner_id: user._id,
         name: store_name || `${full_name || email}'s Store`,
@@ -53,6 +82,13 @@ authRoutes.post('/register', async (req, res) => {
         is_active: true,
         location_lat: hasLocation ? lat : null,
         location_lng: hasLocation ? lng : null,
+        facebook_url: facebook_url || '',
+        instagram_url: instagram_url || '',
+        payment_details: payment_details || '',
+        delivery_modes: Array.isArray(delivery_modes) ? delivery_modes.filter((mode) => typeof mode === 'string' && mode.trim()) : [],
+        branches,
+        lease_agreement_file_url: lease_agreement_file_url || '',
+        security_deposit: Number.isFinite(Number(security_deposit)) ? Number(security_deposit) : 0,
       });
 
       console.log('[auth] owner registered with store', {
@@ -86,6 +122,9 @@ authRoutes.post('/login', async (req, res) => {
   if (!user || !(await bcrypt.compare(password, user.password))) {
     console.warn('[auth] login failed', { email });
     return res.status(401).json({ error: 'Invalid credentials' });
+  }
+  if (user.is_active === false) {
+    return res.status(403).json({ error: 'Your account is disabled. Please contact support.' });
   }
 
   console.log('[auth] login success', {

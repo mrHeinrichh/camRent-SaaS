@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { addDays, format, isWithinInterval, parseISO } from 'date-fns';
 import { Calendar as CalendarIcon } from 'lucide-react';
 import { api } from '@/src/lib/api';
+import { formatPHP } from '@/src/lib/currency';
 import { useAppStore } from '@/src/store';
 import type { Item } from '@/src/types/domain';
 import { Button, Input, cn } from '@/src/components/ui';
@@ -15,6 +16,7 @@ export function ItemPage({ itemId }: ItemPageProps) {
   const [loading, setLoading] = useState(true);
   const [startDate, setStartDate] = useState(format(addDays(new Date(), 1), 'yyyy-MM-dd'));
   const [endDate, setEndDate] = useState(format(addDays(new Date(), 2), 'yyyy-MM-dd'));
+  const [quantity, setQuantity] = useState(1);
   const { addToCart, user } = useAppStore();
 
   useEffect(() => {
@@ -27,11 +29,13 @@ export function ItemPage({ itemId }: ItemPageProps) {
   const handleAddToCart = () => {
     if (!item) return;
     if (user?.role === 'owner') return alert('Store owners cannot rent items.');
+    if (item.is_available === false || (item.stock || 0) <= 0) return alert('This gear is currently unavailable.');
 
     addToCart({
       ...item,
       startDate,
       endDate,
+      quantity: Math.max(1, Math.min(quantity, item.stock || 1)),
     });
     alert('Added to cart!');
   };
@@ -58,11 +62,11 @@ export function ItemPage({ itemId }: ItemPageProps) {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Daily Rate</p>
-                <p className="text-3xl font-bold">${item.daily_price}</p>
+                <p className="text-3xl font-bold">{formatPHP(item.daily_price)}</p>
               </div>
               <div className="text-right">
-                <p className="text-sm text-muted-foreground">Security Deposit</p>
-                <p className="text-xl font-semibold text-primary">${item.deposit_amount}</p>
+                <p className="text-xs text-muted-foreground">Available Stock</p>
+                <p className="font-semibold">{Math.max(0, item.stock || 0)}</p>
               </div>
             </div>
 
@@ -77,8 +81,26 @@ export function ItemPage({ itemId }: ItemPageProps) {
               </div>
             </div>
 
-            <Button className="h-12 w-full text-lg" onClick={handleAddToCart} disabled={user?.role === 'owner'}>
-              {user?.role === 'owner' ? 'Owners Cannot Rent' : 'Add to Cart'}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Quantity</label>
+              <div className="flex items-center gap-2">
+                <Button type="button" variant="outline" size="sm" onClick={() => setQuantity((prev) => Math.max(1, prev - 1))}>
+                  -
+                </Button>
+                <div className="min-w-14 rounded-md border px-3 py-2 text-center text-sm font-semibold">{quantity}</div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setQuantity((prev) => Math.min(Math.max(1, item.stock || 1), prev + 1))}
+                >
+                  +
+                </Button>
+              </div>
+            </div>
+
+            <Button className="h-12 w-full text-lg" onClick={handleAddToCart} disabled={user?.role === 'owner' || item.is_available === false || (item.stock || 0) <= 0}>
+              {user?.role === 'owner' ? 'Owners Cannot Rent' : item.is_available === false || (item.stock || 0) <= 0 ? 'Currently Unavailable' : 'Add to Cart'}
             </Button>
           </div>
 

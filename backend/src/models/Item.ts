@@ -6,9 +6,11 @@ const itemSchema = new Schema(
     name: { type: String, required: true, trim: true },
     description: { type: String, default: '' },
     daily_price: { type: Number, required: true },
-    deposit_amount: { type: Number, required: true },
+    deposit_amount: { type: Number, default: 0 },
     image_url: { type: String, default: '' },
     category: { type: String, default: '' },
+    stock: { type: Number, default: 1, min: 0 },
+    is_available: { type: Boolean, default: true },
   },
   { timestamps: false },
 );

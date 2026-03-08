@@ -7,6 +7,7 @@ const orderItemSchema = new Schema(
     start_date: { type: String, required: true },
     end_date: { type: String, required: true },
     price_per_day: { type: Number, required: true },
+    quantity: { type: Number, default: 1, min: 1 },
   },
   { timestamps: false },
 );

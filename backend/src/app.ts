@@ -1,5 +1,7 @@
 import express from 'express';
 import { createServer } from 'http';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { Server } from 'socket.io';
 import { connectDatabase } from './config/database';
 import { env } from './config/env';
@@ -18,11 +20,14 @@ export async function startServer() {
   await seedDatabase();
 
   const app = express();
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+  const uploadsDir = path.resolve(__dirname, '../uploads');
   const httpServer = createServer(app);
   const io = new Server(httpServer, { cors: { origin: '*' } });
 
   app.locals.io = io;
   app.use(express.json({ limit: '10mb' }));
+  app.use('/uploads', express.static(uploadsDir));
 
   app.use('/docs', docsRoutes);
   app.use('/api/auth', authRoutes);
