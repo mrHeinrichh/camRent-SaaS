@@ -33,6 +33,12 @@ export const api = {
       method: 'POST',
       body: body instanceof FormData ? body : body ? JSON.stringify(body) : undefined,
     }),
+  patch: <T>(input: string, body?: unknown, init?: RequestInit) =>
+    request<T>(input, {
+      ...init,
+      method: 'PATCH',
+      body: body instanceof FormData ? body : body ? JSON.stringify(body) : undefined,
+    }),
   delete: <T>(input: string) =>
     request<T>(input, {
       method: 'DELETE',

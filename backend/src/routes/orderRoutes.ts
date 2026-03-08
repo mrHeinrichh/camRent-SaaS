@@ -13,7 +13,7 @@ import { hasBookingConflict } from '../services/bookingService';
 
 export const orderRoutes = Router();
 
-orderRoutes.post('/orders', authenticate, async (req: AuthedRequest, res) => {
+orderRoutes.post('/orders', authenticate, requireAuth, async (req: AuthedRequest, res) => {
   const { store_id, renter_name, renter_email, renter_phone, renter_address, delivery_mode, delivery_address, payment_mode, items, total_amount } = req.body;
 
   const fraudMatch = await FraudList.findOne({
@@ -28,9 +28,9 @@ orderRoutes.post('/orders', authenticate, async (req: AuthedRequest, res) => {
 
     const order = await Order.create({
       store_id: toId(store_id),
-      renter_id: req.user?.id ? toId(req.user.id) : null,
+      renter_id: toId(req.user!.id),
       renter_name,
-      renter_email,
+      renter_email: (renter_email || req.user!.email || '').toLowerCase(),
       renter_phone,
       renter_address,
       delivery_mode,
@@ -67,7 +67,13 @@ orderRoutes.post('/orders', authenticate, async (req: AuthedRequest, res) => {
 });
 
 orderRoutes.get('/account/orders', authenticate, requireAuth, async (req: AuthedRequest, res) => {
-  const orders = await Order.find({ renter_id: toId(req.user!.id) }).sort({ created_at: -1 }).lean();
+  const userId = toId(req.user!.id);
+  const email = (req.user!.email || '').toLowerCase();
+  const orders = await Order.find({
+    $or: [{ renter_id: userId }, ...(email ? [{ renter_email: email }] : [])],
+  })
+    .sort({ created_at: -1 })
+    .lean();
   const storeIds = orders.map((order) => order.store_id);
   const stores = await Store.find({ _id: { $in: storeIds } }).lean();
   const storesById = new Map(stores.map((store) => [store._id.toString(), store]));

@@ -19,7 +19,8 @@ itemRoutes.get('/', authenticate, async (req: AuthedRequest, res) => {
     return res.json(serializeMany(items as any[]));
   }
 
-  const items = await Item.find().lean();
+  const activeStores = await Store.find({ status: 'approved', is_active: true }).select('_id').lean();
+  const items = await Item.find({ store_id: { $in: activeStores.map((store) => store._id) } }).lean();
   res.json(serializeMany(items as any[]));
 });
 
@@ -27,6 +28,8 @@ itemRoutes.get('/:id', async (req, res) => {
   if (!Types.ObjectId.isValid(req.params.id)) return res.status(404).json({ error: 'Item not found' });
   const item = await Item.findById(req.params.id).lean();
   if (!item) return res.status(404).json({ error: 'Item not found' });
+  const store = await Store.findById(item.store_id).lean();
+  if (!store || store.status !== 'approved' || !store.is_active) return res.status(404).json({ error: 'Item not found' });
 
   const orderItems = await OrderItem.find({ item_id: item._id }).lean();
   const bookings = [];

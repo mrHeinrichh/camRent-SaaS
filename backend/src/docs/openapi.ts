@@ -27,6 +27,7 @@ export const openApiDocument = {
           email: { type: 'string' },
           role: { type: 'string', enum: ['renter', 'owner', 'admin'] },
           full_name: { type: 'string' },
+          avatar_url: { type: 'string' },
         },
       },
       Store: {
@@ -39,6 +40,9 @@ export const openApiDocument = {
           logo_url: { type: 'string' },
           banner_url: { type: 'string' },
           status: { type: 'string' },
+          is_active: { type: 'boolean' },
+          location_lat: { type: 'number', nullable: true },
+          location_lng: { type: 'number', nullable: true },
           rating: { type: 'number' },
         },
       },
@@ -73,9 +77,14 @@ export const openApiDocument = {
                   password: { type: 'string' },
                   role: { type: 'string', enum: ['renter', 'owner'] },
                   full_name: { type: 'string' },
+                  profile_image_url: { type: 'string' },
                   store_name: { type: 'string' },
                   store_address: { type: 'string' },
                   store_description: { type: 'string' },
+                  store_logo_url: { type: 'string' },
+                  store_banner_url: { type: 'string' },
+                  store_latitude: { type: 'number' },
+                  store_longitude: { type: 'number' },
                 },
               },
             },
@@ -197,6 +206,28 @@ export const openApiDocument = {
         responses: { '200': { description: 'Store approved' } },
       },
     },
+    '/api/admin/stores/{id}/active': {
+      post: {
+        summary: 'Set store active flag',
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['isActive'],
+                properties: {
+                  isActive: { type: 'boolean' },
+                },
+              },
+            },
+          },
+        },
+        responses: { '200': { description: 'Store active flag updated' } },
+      },
+    },
     '/api/admin/fraud-list': {
       get: {
         summary: 'Get fraud list',
@@ -215,6 +246,26 @@ export const openApiDocument = {
       post: {
         summary: 'Upload an image to Cloudinary',
         security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            'multipart/form-data': {
+              schema: {
+                type: 'object',
+                properties: {
+                  file: { type: 'string', format: 'binary' },
+                },
+                required: ['file'],
+              },
+            },
+          },
+        },
+        responses: { '200': { description: 'Uploaded image URL' } },
+      },
+    },
+    '/api/upload/public': {
+      post: {
+        summary: 'Upload an image for unauthenticated flows such as registration',
         requestBody: {
           required: true,
           content: {

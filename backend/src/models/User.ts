@@ -6,6 +6,7 @@ const userSchema = new Schema(
     password: { type: String, required: true },
     role: { type: String, enum: ['renter', 'owner', 'admin'], default: 'renter' },
     full_name: { type: String, default: '' },
+    avatar_url: { type: String, default: '' },
   },
   { timestamps: { createdAt: 'created_at', updatedAt: false } },
 );

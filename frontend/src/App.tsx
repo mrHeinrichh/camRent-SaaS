@@ -49,7 +49,7 @@ export default function App() {
             {page === 'store' && selectedStoreId && <StorePage storeId={selectedStoreId} onNavigateItem={navigateToItem} />}
             {page === 'item' && selectedItemId && <ItemPage itemId={selectedItemId} />}
             {page === 'cart' && <CartPage onCheckout={() => setPage('checkout')} />}
-            {page === 'checkout' && <CheckoutPage onComplete={() => setPage('success')} />}
+            {page === 'checkout' && <CheckoutPage onComplete={() => setPage('success')} onNavigate={setPage} />}
             {page === 'account' && <AccountPage onNavigate={setPage} />}
             {page === 'success' && <SuccessPage onBackHome={() => setPage('home')} />}
             {page === 'login' && <LoginPage onNavigate={setPage} />}

@@ -1,17 +1,19 @@
 import { useState, type FormEvent } from 'react';
 import { api } from '@/src/lib/api';
 import { useAppStore } from '@/src/store';
+import type { AppPage } from '@/src/types/app';
 import { Button, Card, Input } from '@/src/components/ui';
 
 interface CheckoutPageProps {
   onComplete: () => void;
+  onNavigate?: (page: AppPage) => void;
 }
 
-export function CheckoutPage({ onComplete }: CheckoutPageProps) {
-  const { cart, clearCart } = useAppStore();
+export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
+  const { cart, clearCart, user } = useAppStore();
   const [formData, setFormData] = useState({
     fullName: '',
-    email: '',
+    email: user?.email || '',
     phone: '',
     address: '',
     deliveryMode: 'pickup',
@@ -22,6 +24,7 @@ export function CheckoutPage({ onComplete }: CheckoutPageProps) {
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
+    if (!user) return alert('Please login first before submitting a rental application.');
     if (!formData.agree) return alert('Please agree to the terms');
 
     try {
@@ -53,6 +56,17 @@ export function CheckoutPage({ onComplete }: CheckoutPageProps) {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          {!user && (
+            <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+              You need to login as a renter to submit checkout.
+              {onNavigate && (
+                <button type="button" className="ml-2 font-semibold underline" onClick={() => onNavigate('login')}>
+                  Go to login
+                </button>
+              )}
+            </div>
+          )}
+
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <label className="text-sm font-medium">Full Name</label>
@@ -62,6 +76,17 @@ export function CheckoutPage({ onComplete }: CheckoutPageProps) {
               <label className="text-sm font-medium">Contact Number</label>
               <Input required value={formData.phone} onChange={(event) => setFormData({ ...formData, phone: event.target.value })} />
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Email</label>
+            <Input
+              type="email"
+              required
+              value={formData.email}
+              onChange={(event) => setFormData({ ...formData, email: event.target.value })}
+              disabled={Boolean(user?.email)}
+            />
           </div>
 
           <div className="space-y-2">
@@ -101,7 +126,7 @@ export function CheckoutPage({ onComplete }: CheckoutPageProps) {
             </p>
           </div>
 
-          <Button type="submit" className="h-12 w-full">
+          <Button type="submit" className="h-12 w-full" disabled={!user}>
             Submit Application
           </Button>
         </form>
