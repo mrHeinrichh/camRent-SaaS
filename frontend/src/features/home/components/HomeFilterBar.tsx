@@ -39,27 +39,27 @@ export function HomeFilterBar({
   onToggleNearMe,
 }: HomeFilterBarProps) {
   return (
-    <div className="mb-8 flex flex-wrap items-center gap-2 rounded-2xl border border-[var(--tone-border)] bg-[var(--tone-surface)] p-3">
+    <div className="mb-8 grid grid-cols-1 gap-2 rounded-2xl border border-[var(--tone-border)] bg-[var(--tone-surface)] p-3 sm:flex sm:flex-wrap sm:items-center">
       <Button
         variant={viewMode === 'gears' ? 'secondary' : 'outline'}
-        className={viewMode === 'gears' ? 'bg-[var(--tone-text)] text-[var(--color-primary-foreground)] hover:bg-[var(--tone-text)]' : 'border-[var(--tone-border)] bg-white text-[var(--tone-text)] hover:bg-[var(--tone-surface)]'}
+        className={`w-full sm:w-auto ${viewMode === 'gears' ? 'bg-[var(--tone-text)] text-[var(--color-primary-foreground)] hover:bg-[var(--tone-text)]' : 'border-[var(--tone-border)] bg-white text-[var(--tone-text)] hover:bg-[var(--tone-surface)]'}`}
         onClick={() => onViewModeChange('gears')}
       >
         Gears
       </Button>
       <Button
         variant={viewMode === 'stores' ? 'secondary' : 'outline'}
-        className={viewMode === 'stores' ? 'bg-[var(--tone-text)] text-[var(--color-primary-foreground)] hover:bg-[var(--tone-text)]' : 'border-[var(--tone-border)] bg-white text-[var(--tone-text)] hover:bg-[var(--tone-surface)]'}
+        className={`w-full sm:w-auto ${viewMode === 'stores' ? 'bg-[var(--tone-text)] text-[var(--color-primary-foreground)] hover:bg-[var(--tone-text)]' : 'border-[var(--tone-border)] bg-white text-[var(--tone-text)] hover:bg-[var(--tone-surface)]'}`}
         onClick={() => onViewModeChange('stores')}
       >
         Stores
       </Button>
-      <Button variant="outline" className="border-[var(--tone-border)] bg-white text-[var(--tone-text)] hover:bg-[var(--tone-surface)]" onClick={onClearSearch}>
+      <Button variant="outline" className="w-full border-[var(--tone-border)] bg-white text-[var(--tone-text)] hover:bg-[var(--tone-surface)] sm:w-auto" onClick={onClearSearch}>
         Clear Search
       </Button>
       {viewMode === 'gears' ? (
         <>
-          <select className="rounded-md border border-[var(--tone-border)] bg-white px-3 py-2 text-sm text-[var(--tone-text)]" value={selectedCategory} onChange={(event) => onCategoryChange(event.target.value)}>
+          <select className="w-full rounded-md border border-[var(--tone-border)] bg-white px-3 py-2 text-sm text-[var(--tone-text)] sm:w-auto" value={selectedCategory} onChange={(event) => onCategoryChange(event.target.value)}>
             {availableCategories.map((category) => (
               <option key={category} value={category}>
                 {category}
@@ -67,7 +67,7 @@ export function HomeFilterBar({
             ))}
           </select>
           <input
-            className="h-10 rounded-md border border-[var(--tone-border)] bg-white px-3 py-2 text-sm text-[var(--tone-text)]"
+            className="h-10 w-full rounded-md border border-[var(--tone-border)] bg-white px-3 py-2 text-sm text-[var(--tone-text)] sm:w-auto"
             list="homepage-brand-options"
             placeholder="Brand (choose or type custom)"
             value={selectedBrand}
@@ -80,13 +80,13 @@ export function HomeFilterBar({
           </datalist>
         </>
       ) : (
-        <select className="rounded-md border border-[var(--tone-border)] bg-white px-3 py-2 text-sm text-[var(--tone-text)]" value={sortMode} onChange={(event) => onSortModeChange(event.target.value as SortMode)}>
+        <select className="w-full rounded-md border border-[var(--tone-border)] bg-white px-3 py-2 text-sm text-[var(--tone-text)] sm:w-auto" value={sortMode} onChange={(event) => onSortModeChange(event.target.value as SortMode)}>
           <option value="default">Show all stores</option>
           <option value="store_az">Store name A-Z</option>
           <option value="store_za">Store name Z-A</option>
         </select>
       )}
-      <select className="rounded-md border border-[var(--tone-border)] bg-white px-3 py-2 text-sm text-[var(--tone-text)]" value={minRating} onChange={(event) => onMinRatingChange(event.target.value)}>
+      <select className="w-full rounded-md border border-[var(--tone-border)] bg-white px-3 py-2 text-sm text-[var(--tone-text)] sm:w-auto" value={minRating} onChange={(event) => onMinRatingChange(event.target.value)}>
         <option value="0">Filter by ratings</option>
         <option value="4.5">4.5+</option>
         <option value="4">4.0+</option>
@@ -95,7 +95,7 @@ export function HomeFilterBar({
       </select>
       <Button
         variant={nearMeOnly ? 'secondary' : 'outline'}
-        className={nearMeOnly ? 'bg-[var(--tone-text)] text-[var(--color-primary-foreground)] hover:bg-[var(--tone-text)]' : 'border-[var(--tone-border)] bg-white text-[var(--tone-text)] hover:bg-[var(--tone-surface)]'}
+        className={`w-full sm:w-auto ${nearMeOnly ? 'bg-[var(--tone-text)] text-[var(--color-primary-foreground)] hover:bg-[var(--tone-text)]' : 'border-[var(--tone-border)] bg-white text-[var(--tone-text)] hover:bg-[var(--tone-surface)]'}`}
         onClick={onToggleNearMe}
       >
         <MapPin className="mr-2 h-4 w-4" /> {locating ? 'Getting location...' : nearMeOnly ? 'Near me: ON' : 'Near me'}

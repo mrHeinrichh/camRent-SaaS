@@ -73,7 +73,6 @@ interface OwnerTabsProps {
   onFraudManualChange: (next: { full_name: string; email: string; contact_number: string }) => void;
   onFraudScopeChange: (value: 'internal' | 'global') => void;
   onFraudReasonChange: (value: string) => void;
-  onFraudEvidenceFileChange: (file: File | null) => void;
   onFraudRequirementFilesChange: (files: File[]) => void;
   onSubmitManualFraud: () => void;
   supportTickets: SupportTicket[];
@@ -142,7 +141,6 @@ export function OwnerTabs({
   onFraudManualChange,
   onFraudScopeChange,
   onFraudReasonChange,
-  onFraudEvidenceFileChange,
   onFraudRequirementFilesChange,
   onSubmitManualFraud,
   supportTickets,
@@ -1592,11 +1590,8 @@ export function OwnerTabs({
               </select>
               <Input placeholder="Reason" value={fraudReason} onChange={(event) => onFraudReasonChange(event.target.value)} />
               <div className="md:col-span-2">
-                <Input type="file" accept="image/*" onChange={(event) => onFraudEvidenceFileChange(event.target.files?.[0] ?? null)} />
-              </div>
-              <div className="md:col-span-2">
                 <Input type="file" accept=".pdf,image/*" multiple onChange={(event) => onFraudRequirementFilesChange(Array.from(event.target.files || []))} />
-                <p className="mt-1 text-xs text-muted-foreground">Requirements: upload up to 5 image/PDF files.</p>
+                <p className="mt-1 text-xs text-muted-foreground">Optional requirements: upload up to 5 image/PDF files.</p>
               </div>
               <div className="md:col-span-2">
                 <Button onClick={onSubmitManualFraud}>Add Fraud Person</Button>

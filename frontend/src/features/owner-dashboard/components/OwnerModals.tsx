@@ -36,7 +36,6 @@ interface OwnerModalsProps {
   fraudReason: string;
   onFraudScopeChange: (value: 'internal' | 'global') => void;
   onFraudReasonChange: (value: string) => void;
-  onFraudEvidenceFileChange: (file: File | null) => void;
   onFraudRequirementFilesChange: (files: File[]) => void;
   onCloseReportCustomer: () => void;
   onSubmitCustomerFraud: () => void;
@@ -71,7 +70,6 @@ export function OwnerModals({
   fraudReason,
   onFraudScopeChange,
   onFraudReasonChange,
-  onFraudEvidenceFileChange,
   onFraudRequirementFilesChange,
   onCloseReportCustomer,
   onSubmitCustomerFraud,
@@ -278,9 +276,8 @@ export function OwnerModals({
                   <option value="global">Global (admin approval)</option>
                 </select>
                 <Input placeholder="Reason" value={fraudReason} onChange={(event) => onFraudReasonChange(event.target.value)} />
-                <Input type="file" accept="image/*" onChange={(event) => onFraudEvidenceFileChange(event.target.files?.[0] ?? null)} />
                 <Input type="file" accept=".pdf,image/*" multiple onChange={(event) => onFraudRequirementFilesChange(Array.from(event.target.files || []))} />
-                <p className="text-xs text-muted-foreground">Requirements: upload up to 5 image/PDF files.</p>
+                <p className="text-xs text-muted-foreground">Optional requirements: upload up to 5 image/PDF files.</p>
                 <div className="flex justify-end gap-2">
                   <Button variant="outline" onClick={onCloseReportCustomer}>
                     Cancel

@@ -131,12 +131,12 @@ export function LoginPage({ onNavigate }: LoginPageProps) {
   };
 
   return (
-    <div className="min-h-[calc(100vh-64px)] bg-[var(--tone-bg)] px-4 py-10 md:px-8">
+    <div className="min-h-[calc(100vh-64px)] bg-[var(--tone-bg)] px-3 py-6 sm:px-4 sm:py-8 md:px-8 md:py-10">
       <div className="mx-auto w-full max-w-6xl rounded-sm border border-[var(--tone-border)] bg-[var(--tone-surface)] p-3 shadow-sm">
-        <div className="grid min-h-[680px] grid-cols-1 overflow-hidden rounded-sm bg-[var(--tone-surface-soft)] md:grid-cols-2">
-          <div className="flex items-center justify-center px-5 py-8 md:px-12">
+        <div className="grid min-h-[560px] grid-cols-1 overflow-hidden rounded-sm bg-[var(--tone-surface-soft)] md:min-h-[680px] md:grid-cols-2">
+          <div className="flex items-center justify-center px-3 py-5 sm:px-5 sm:py-8 md:px-12">
             <div className="w-full max-w-md animate-fade-up">
-              <h1 className="mb-2 text-4xl font-semibold tracking-tight text-[var(--tone-text)]">{isRegister ? siteTheme.login.titleRegister : siteTheme.login.titleLogin}</h1>
+              <h1 className="mb-2 text-3xl font-semibold tracking-tight text-[var(--tone-text)] sm:text-4xl">{isRegister ? siteTheme.login.titleRegister : siteTheme.login.titleLogin}</h1>
               <p className="mb-8 text-sm text-[var(--tone-text-muted)]">{isRegister ? siteTheme.login.subtitleRegister : siteTheme.login.subtitleLogin}</p>
 
               {isRegister ? (

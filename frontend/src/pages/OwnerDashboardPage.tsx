@@ -80,7 +80,6 @@ export function OwnerDashboardPage() {
   } | null>(null);
   const [fraudScope, setFraudScope] = useState<'internal' | 'global'>('internal');
   const [fraudReason, setFraudReason] = useState('');
-  const [fraudEvidenceFile, setFraudEvidenceFile] = useState<File | null>(null);
   const [fraudRequirementFiles, setFraudRequirementFiles] = useState<File[]>([]);
   const [fraudManual, setFraudManual] = useState({
     full_name: '',
@@ -446,14 +445,7 @@ export function OwnerDashboardPage() {
   const submitCustomerFraud = async () => {
     if (!reportCustomer) return;
     if (fraudScope === 'internal' && !fraudReason.trim()) return alert('Reason is required for internal fraud flagging');
-    if (fraudScope === 'global' && !fraudReason.trim() && !fraudEvidenceFile) return alert('For global scope, add a reason or attach evidence image');
-    let evidenceUrl = '';
-    if (fraudEvidenceFile) {
-      const formData = new FormData();
-      formData.append('file', fraudEvidenceFile);
-      const uploadResult = await api.post<UploadResponse>('/api/upload/public', formData);
-      evidenceUrl = uploadResult.url;
-    }
+    if (fraudScope === 'global' && !fraudReason.trim()) return alert('Reason is required for global fraud request');
     const uploadedRequirementFiles: Array<{ type: string; url: string }> = [];
     for (let i = 0; i < fraudRequirementFiles.length; i += 1) {
       const file = fraudRequirementFiles[i];
@@ -471,28 +463,19 @@ export function OwnerDashboardPage() {
           requirement_files: [...(reportCustomer.requirements || []), ...uploadedRequirementFiles],
           reason: fraudReason,
           scope: fraudScope,
-          evidence_image_url: evidenceUrl,
         }),
       fraudScope === 'global' ? 'Global fraud request submitted for admin approval' : 'Customer flagged in internal fraud list',
     );
     setReportCustomer(null);
     setFraudScope('internal');
     setFraudReason('');
-    setFraudEvidenceFile(null);
     setFraudRequirementFiles([]);
   };
 
   const submitManualFraud = async () => {
     if (!fraudManual.full_name.trim() || !fraudManual.email.trim()) return alert('Name and email are required');
     if (fraudScope === 'internal' && !fraudReason.trim()) return alert('Reason is required for internal fraud flagging');
-    if (fraudScope === 'global' && !fraudReason.trim() && !fraudEvidenceFile) return alert('For global scope, add a reason or attach evidence image');
-    let evidenceUrl = '';
-    if (fraudEvidenceFile) {
-      const formData = new FormData();
-      formData.append('file', fraudEvidenceFile);
-      const uploadResult = await api.post<UploadResponse>('/api/upload/public', formData);
-      evidenceUrl = uploadResult.url;
-    }
+    if (fraudScope === 'global' && !fraudReason.trim()) return alert('Reason is required for global fraud request');
     const uploadedRequirementFiles: Array<{ type: string; url: string }> = [];
     for (let i = 0; i < fraudRequirementFiles.length; i += 1) {
       const file = fraudRequirementFiles[i];
@@ -508,14 +491,12 @@ export function OwnerDashboardPage() {
           requirement_files: uploadedRequirementFiles,
           reason: fraudReason,
           scope: fraudScope,
-          evidence_image_url: evidenceUrl,
         }),
       fraudScope === 'global' ? 'Global fraud request submitted for admin approval' : 'Fraud entry added',
     );
     setFraudManual({ full_name: '', email: '', contact_number: '' });
     setFraudReason('');
     setFraudScope('internal');
-    setFraudEvidenceFile(null);
     setFraudRequirementFiles([]);
   };
 
@@ -583,6 +564,11 @@ export function OwnerDashboardPage() {
     return null;
   }, [data]);
 
+  const pendingApplicationsCount = useMemo(
+    () => applications.filter((application) => String(application.status || '').toUpperCase() === 'PENDING_REVIEW').length,
+    [applications],
+  );
+
   if (loading) return <div className="p-12 text-center">Loading dashboard...</div>;
   if (error) {
     return (
@@ -604,11 +590,11 @@ export function OwnerDashboardPage() {
   }
 
   return (
-    <div className="relative flex min-h-[calc(100vh-64px)] overflow-hidden bg-gradient-to-br from-slate-50 via-cyan-50/40 to-emerald-50/40">
+    <div className="relative flex min-h-[calc(100vh-64px)] flex-col overflow-hidden bg-gradient-to-br from-slate-50 via-cyan-50/40 to-emerald-50/40 md:flex-row">
       <div className="pointer-events-none absolute -left-28 top-24 h-72 w-72 rounded-full bg-cyan-300/25 blur-3xl animate-float-soft" />
       <div className="pointer-events-none absolute right-0 top-1/3 h-80 w-80 rounded-full bg-emerald-300/20 blur-3xl animate-pulse-soft" />
-      <OwnerSidebar activeTab={activeTab} onChangeTab={setActiveTab} />
-      <main className="relative z-10 flex-1 overflow-auto p-8 animate-fade-up">
+      <OwnerSidebar activeTab={activeTab} onChangeTab={setActiveTab} pendingApplicationsCount={pendingApplicationsCount} />
+      <main className="relative z-10 flex-1 overflow-auto p-4 animate-fade-up sm:p-6 md:p-8">
         {ownerNotice ? (
           <div className="mb-6 rounded-xl border border-amber-300 bg-amber-50 p-4 shadow-sm animate-fade-up-delay">
             <div className="flex items-start justify-between gap-4">
@@ -672,7 +658,6 @@ export function OwnerDashboardPage() {
           onFraudManualChange={setFraudManual}
           onFraudScopeChange={setFraudScope}
           onFraudReasonChange={setFraudReason}
-          onFraudEvidenceFileChange={setFraudEvidenceFile}
           onFraudRequirementFilesChange={handleFraudRequirementFilesChange}
           onSubmitManualFraud={submitManualFraud}
           supportTickets={supportTickets}
@@ -705,7 +690,6 @@ export function OwnerDashboardPage() {
           fraudReason={fraudReason}
           onFraudScopeChange={setFraudScope}
           onFraudReasonChange={setFraudReason}
-          onFraudEvidenceFileChange={setFraudEvidenceFile}
           onFraudRequirementFilesChange={handleFraudRequirementFilesChange}
           onCloseReportCustomer={() => setReportCustomer(null)}
           onSubmitCustomerFraud={submitCustomerFraud}

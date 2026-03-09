@@ -174,7 +174,7 @@ export function HomePage({ onNavigate }: HomePageProps) {
           <div className="grid items-center gap-8 md:grid-cols-[0.8fr_1.2fr]">
             <div className="space-y-5 animate-fade-up">
               <p className="inline-block border-2 border-[var(--tone-text-muted)] px-3 py-1 text-4xl font-bold tracking-tight text-[var(--tone-text-muted)]">{siteTheme.home.badge}</p>
-              <h1 className="max-w-xs text-3xl font-semibold leading-tight text-[var(--tone-text)] md:text-4xl">{siteTheme.home.title}</h1>
+              <h1 className="max-w-sm text-2xl font-semibold leading-tight text-[var(--tone-text)] sm:text-3xl md:text-4xl">{siteTheme.home.title}</h1>
               <p className="max-w-sm text-sm leading-relaxed text-[var(--tone-text-muted)]">{siteTheme.home.subtitle}</p>
               <div className="flex gap-3 text-xs text-[var(--tone-text-muted)]">
                 <span>{stores.length} Stores</span>
@@ -183,7 +183,7 @@ export function HomePage({ onNavigate }: HomePageProps) {
               </div>
             </div>
 
-            <div className="relative h-[330px] animate-fade-up-delay md:h-[420px]">
+            <div className="relative h-[250px] animate-fade-up-delay sm:h-[300px] md:h-[420px]">
               <div className="absolute right-[12%] top-2 h-[78%] w-[72%] overflow-hidden rounded-sm border border-[var(--tone-border)] bg-white shadow-lg">
                 <img
                   src={siteTheme.home.heroImages[0]}
@@ -280,25 +280,25 @@ export function HomePage({ onNavigate }: HomePageProps) {
           </div>
         )}
 
-        <div className="mt-8 flex items-center justify-between gap-4 rounded-2xl border border-[var(--tone-border)] bg-[var(--tone-surface)] p-3">
+        <div className="mt-8 flex flex-col items-start justify-between gap-3 rounded-2xl border border-[var(--tone-border)] bg-[var(--tone-surface)] p-3 sm:flex-row sm:items-center">
           <p className="text-sm text-[var(--tone-text-muted)]">
             Showing {activeTotal ? (currentPage - 1) * 30 + 1 : 0}-{Math.min(currentPage * 30, activeTotal)} of {activeTotal}
           </p>
-          <div className="flex items-center gap-2">
+          <div className="flex w-full items-center gap-2 sm:w-auto">
             <Button
               variant="outline"
-              className="border-[var(--tone-border)] bg-white text-[var(--tone-text)] hover:bg-[var(--tone-surface)]"
+              className="flex-1 border-[var(--tone-border)] bg-white text-[var(--tone-text)] hover:bg-[var(--tone-surface)] sm:flex-none"
               disabled={currentPage <= 1}
               onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
             >
               Previous
             </Button>
-            <span className="text-sm text-[var(--tone-text-muted)]">
+            <span className="min-w-20 text-center text-sm text-[var(--tone-text-muted)]">
               Page {currentPage} / {totalPages}
             </span>
             <Button
               variant="outline"
-              className="border-[var(--tone-border)] bg-white text-[var(--tone-text)] hover:bg-[var(--tone-surface)]"
+              className="flex-1 border-[var(--tone-border)] bg-white text-[var(--tone-text)] hover:bg-[var(--tone-surface)] sm:flex-none"
               disabled={currentPage >= totalPages}
               onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
             >
