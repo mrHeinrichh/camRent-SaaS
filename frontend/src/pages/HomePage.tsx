@@ -40,7 +40,45 @@ interface GearFeedItem {
 type SortMode = 'default' | 'store_az' | 'store_za';
 type ViewMode = 'gears' | 'stores';
 
-const BRAND_OPTIONS = ['All Brands', 'Canon', 'Nikon', 'Sony', 'Go Pro', 'Fujifilm', 'Panasonic', 'DJI', 'Sigma', 'Tamron', 'Others'] as const;
+const BRAND_OPTIONS = [
+  'All Brands',
+  'Canon',
+  'Nikon',
+  'Sony',
+  'Fujifilm',
+  'Panasonic',
+  'Olympus',
+  'OM System',
+  'Leica',
+  'Pentax',
+  'Hasselblad',
+  'Phase One',
+  'Ricoh',
+  'Kodak',
+  'Polaroid',
+  'GoPro',
+  'DJI',
+  'Blackmagic',
+  'RED',
+  'ARRI',
+  'Z CAM',
+  'Insta360',
+  'YI',
+  'Sigma',
+  'Tamron',
+  'Tokina',
+  'Samyang',
+  'Rokinon',
+  'Viltrox',
+  'Laowa',
+  'Zeiss',
+  'Voigtlander',
+  'Meike',
+  'TTArtisan',
+  '7Artisans',
+  'Mitakon',
+  'Others',
+] as const;
 
 export function HomePage({ onNavigate }: HomePageProps) {
   const [stores, setStores] = useState<Store[]>([]);
@@ -49,7 +87,7 @@ export function HomePage({ onNavigate }: HomePageProps) {
   const [activeAnnouncement, setActiveAnnouncement] = useState(0);
   const [viewMode, setViewMode] = useState<ViewMode>('gears');
   const [selectedCategory, setSelectedCategory] = useState('All Gear');
-  const [selectedBrand, setSelectedBrand] = useState('All Brands');
+  const [selectedBrand, setSelectedBrand] = useState('');
   const [minRating, setMinRating] = useState('0');
   const [sortMode, setSortMode] = useState<SortMode>('default');
   const [nearMeOnly, setNearMeOnly] = useState(false);
@@ -96,6 +134,7 @@ export function HomePage({ onNavigate }: HomePageProps) {
   }, [gears]);
 
   const normalizedBrand = (value: string) => (value || 'Others').toLowerCase().replace(/\s+/g, '');
+  const knownBrandSet = useMemo(() => new Set(BRAND_OPTIONS.filter((brand) => brand !== 'All Brands' && brand !== 'Others').map((brand) => normalizedBrand(String(brand)))), []);
 
   const filteredGears = useMemo(() => {
     const ratingFloor = Number(minRating) || 0;
@@ -107,9 +146,11 @@ export function HomePage({ onNavigate }: HomePageProps) {
         `${gear.name} ${gear.description || ''} ${gear.category || ''} ${brand} ${gear.store.name || ''}`.toLowerCase().includes(query);
       const matchesCategory = selectedCategory === 'All Gear' || String(gear.category || '').toLowerCase() === selectedCategory.toLowerCase();
       const matchesBrand =
-        selectedBrand === 'All Brands' ||
-        normalizedBrand(brand) === normalizedBrand(selectedBrand) ||
-        (selectedBrand === 'Go Pro' && normalizedBrand(brand) === 'gopro');
+        selectedBrand === 'All Brands'
+          ? true
+          : selectedBrand === 'Others'
+            ? !knownBrandSet.has(normalizedBrand(brand)) || normalizedBrand(brand) === 'others'
+            : normalizedBrand(brand).includes(normalizedBrand(selectedBrand));
       const matchesRating = Number(gear.store.rating || 0) >= ratingFloor;
 
       let matchesNearMe = true;
@@ -129,7 +170,7 @@ export function HomePage({ onNavigate }: HomePageProps) {
       }
       return matchesSearch && matchesCategory && matchesBrand && matchesRating && matchesNearMe;
     });
-  }, [gears, homeSearchQuery, minRating, nearMeOnly, selectedCategory, selectedBrand, userLocation]);
+  }, [gears, homeSearchQuery, minRating, nearMeOnly, selectedCategory, selectedBrand, userLocation, knownBrandSet]);
 
   const filteredStores = useMemo(() => {
     const ratingFloor = Number(minRating) || 0;
@@ -232,13 +273,18 @@ export function HomePage({ onNavigate }: HomePageProps) {
                 </option>
               ))}
             </select>
-            <select className="rounded-md border border-input bg-transparent px-3 py-2 text-sm" value={selectedBrand} onChange={(event) => setSelectedBrand(event.target.value)}>
+            <input
+              className="h-10 rounded-md border border-input bg-transparent px-3 py-2 text-sm"
+              list="homepage-brand-options"
+              placeholder="Brand ex. Sony, Canon..."
+              value={selectedBrand}
+              onChange={(event) => setSelectedBrand(event.target.value)}
+            />
+            <datalist id="homepage-brand-options">
               {BRAND_OPTIONS.map((brand) => (
-                <option key={brand} value={brand}>
-                  {brand}
-                </option>
+                <option key={brand} value={brand} />
               ))}
-            </select>
+            </datalist>
           </>
         ) : (
           <select className="rounded-md border border-input bg-transparent px-3 py-2 text-sm" value={sortMode} onChange={(event) => setSortMode(event.target.value as SortMode)}>
@@ -407,9 +453,83 @@ export function HomePage({ onNavigate }: HomePageProps) {
         </div>
       </div>
 
-      <footer className="mt-16 border-t pt-6 text-center text-sm text-muted-foreground">
-        <p>CamRent Marketplace</p>
-        <p className="mt-1">Find gear faster. Rent safer.</p>
+      <footer className="mt-16 border-t bg-muted/20">
+        <div className="container mx-auto grid grid-cols-1 gap-8 px-4 py-10 md:grid-cols-2 lg:grid-cols-5">
+          <div className="space-y-3">
+            <p className="text-base font-extrabold  ">CamRent PH</p>
+            <p className="text-sm text-muted-foreground">
+              Camera rental workflow platform built for inventory management, renter history, and fraud monitoring for rental businesses.
+            </p>
+          </div>
+
+          <div className="space-y-3">
+            <h4 className="text-sm font-bold uppercase tracking-wide">About Us</h4>
+            <div className="space-y-2 text-sm text-muted-foreground">
+              <button type="button" className="block hover:text-foreground" onClick={() => setPage('about')}>
+                Who We Are
+              </button>
+              <button type="button" className="block hover:text-foreground" onClick={() => setPage('about')}>
+                Founder
+              </button>
+              <button type="button" className="block hover:text-foreground" onClick={() => setPage('about')}>
+                Mission
+              </button>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <h4 className="text-sm font-bold uppercase tracking-wide">Policies</h4>
+            <div className="space-y-2 text-sm text-muted-foreground">
+              <button type="button" className="block hover:text-foreground" onClick={() => setPage('policies')}>
+                Terms & Conditions
+              </button>
+              <button type="button" className="block hover:text-foreground" onClick={() => setPage('policies')}>
+                Privacy Policy
+              </button>
+              <button type="button" className="block hover:text-foreground" onClick={() => setPage('policies')}>
+                Data & Security Notice
+              </button>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <h4 className="text-sm font-bold uppercase tracking-wide">Useful Links</h4>
+            <div className="space-y-2 text-sm text-muted-foreground">
+              <button type="button" className="block hover:text-foreground" onClick={() => setPage('policies')}>
+                Helps & FAQ
+              </button>
+              <button
+                type="button"
+                className="block hover:text-foreground"
+                onClick={() => {
+                  alert('You must login to add feedback.');
+                  setPage('login');
+                }}
+              >
+                Feedback
+              </button>
+              <button type="button" className="block hover:text-foreground" onClick={() => setPage('policies')}>
+                Rental Guide
+              </button>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <h4 className="text-sm font-bold uppercase tracking-wide">Follow Us</h4>
+            <div className="space-y-2 text-sm text-muted-foreground">
+              <a href="#" className="block hover:text-foreground">
+                Facebook
+              </a>
+              <a href="#" className="block hover:text-foreground">
+                Instagram
+              </a>
+              <a href="#" className="block hover:text-foreground">
+                TikTok
+              </a>
+            </div>
+          </div>
+        </div>
+        <div className="border-t py-4 text-center text-xs text-muted-foreground">© {new Date().getFullYear()} CamRent PH. All rights reserved.</div>
       </footer>
     </div>
   );

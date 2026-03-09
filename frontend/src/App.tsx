@@ -10,6 +10,8 @@ import { HomePage } from '@/src/pages/HomePage';
 import { ItemPage } from '@/src/pages/ItemPage';
 import { LoginPage } from '@/src/pages/LoginPage';
 import { OwnerDashboardPage } from '@/src/pages/OwnerDashboardPage';
+import { AboutPage } from '@/src/pages/AboutPage';
+import { PoliciesPage } from '@/src/pages/PoliciesPage';
 import { StorePage } from '@/src/pages/StorePage';
 import { SuccessPage } from '@/src/pages/SuccessPage';
 
@@ -46,6 +48,8 @@ export default function App() {
             transition={{ duration: 0.2 }}
           >
             {page === 'home' && <HomePage onNavigate={navigateToStore} />}
+            {page === 'about' && <AboutPage onNavigate={setPage} />}
+            {page === 'policies' && <PoliciesPage onNavigate={setPage} />}
             {page === 'store' && selectedStoreId && <StorePage storeId={selectedStoreId} onNavigateItem={navigateToItem} />}
             {page === 'item' && selectedItemId && <ItemPage itemId={selectedItemId} />}
             {page === 'cart' && <CartPage onCheckout={() => setPage('checkout')} />}

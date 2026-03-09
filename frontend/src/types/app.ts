@@ -1,5 +1,7 @@
 export type AppPage =
   | 'home'
+  | 'about'
+  | 'policies'
   | 'store'
   | 'item'
   | 'cart'

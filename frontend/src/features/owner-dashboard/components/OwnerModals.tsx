@@ -75,6 +75,44 @@ export function OwnerModals({
   onReportFraud,
   onCancelBooking,
 }: OwnerModalsProps) {
+  const PRESET_BRANDS = [
+    'Canon',
+    'Nikon',
+    'Sony',
+    'Fujifilm',
+    'Panasonic',
+    'Olympus',
+    'OM System',
+    'Leica',
+    'Pentax',
+    'Hasselblad',
+    'Phase One',
+    'Ricoh',
+    'Kodak',
+    'Polaroid',
+    'GoPro',
+    'DJI',
+    'Blackmagic',
+    'RED',
+    'ARRI',
+    'Z CAM',
+    'Insta360',
+    'YI',
+    'Sigma',
+    'Tamron',
+    'Tokina',
+    'Samyang',
+    'Rokinon',
+    'Viltrox',
+    'Laowa',
+    'Zeiss',
+    'Voigtlander',
+    'Meike',
+    'TTArtisan',
+    '7Artisans',
+    'Mitakon',
+    'Others',
+  ] as const;
   const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
   const [previewFile, setPreviewFile] = useState<{ url: string; type: string; sourceUrl: string } | null>(null);
   const [fileLoading, setFileLoading] = useState(false);
@@ -133,20 +171,32 @@ export function OwnerModals({
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                   <Input className="h-11 border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-500" placeholder="Gear name" value={editor.name} onChange={(event) => onEditorChange({ ...editor, name: event.target.value })} />
                   <Input className="h-11 border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-500" placeholder="Category (Camera, Lens, Audio, etc.)" value={editor.category} onChange={(event) => onEditorChange({ ...editor, category: event.target.value })} />
-                  <select className="h-11 rounded-md border border-slate-200 bg-slate-50 px-3 text-sm text-slate-900" value={editor.brand} onChange={(event) => onEditorChange({ ...editor, brand: event.target.value })}>
-                    {['Canon', 'Nikon', 'Sony', 'GoPro', 'Fujifilm', 'Panasonic', 'DJI', 'Sigma', 'Tamron', 'Others'].map((brand) => (
-                      <option key={brand} value={brand}>
-                        {brand}
-                      </option>
+                  <Input
+                    className="h-11 border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-500"
+                    list="gear-brand-options"
+                    placeholder="Brand (choose or type custom)"
+                    value={editor.brand}
+                    onChange={(event) => onEditorChange({ ...editor, brand: event.target.value })}
+                  />
+                  <datalist id="gear-brand-options">
+                    {PRESET_BRANDS.map((brand) => (
+                      <option key={brand} value={brand} />
                     ))}
-                  </select>
+                  </datalist>
                   <Input className="h-11 border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-500" placeholder="Daily price" type="number" value={editor.daily_price} onChange={(event) => onEditorChange({ ...editor, daily_price: event.target.value })} />
                   <Input className="h-11 border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-500" placeholder="Stock" type="number" min="0" value={editor.stock} onChange={(event) => onEditorChange({ ...editor, stock: event.target.value })} />
                 </div>
-                <label className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900">
-                  <input type="checkbox" checked={editor.is_available} onChange={(event) => onEditorChange({ ...editor, is_available: event.target.checked })} />
-                  Available for renting
-                </label>
+                <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900">
+                  <span className="font-medium">Availability</span>
+                  <button
+                    type="button"
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${editor.is_available ? 'bg-emerald-500' : 'bg-slate-300'}`}
+                    onClick={() => onEditorChange({ ...editor, is_available: !editor.is_available })}
+                    aria-label="Toggle availability"
+                  >
+                    <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${editor.is_available ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                  </button>
+                </div>
                 <div className="space-y-2 rounded-2xl border border-slate-200 bg-slate-50 p-4">
                   <p className="text-sm font-semibold text-slate-900">Gear Photo</p>
                   <Input className="border-slate-200 bg-white text-slate-900 file:text-slate-700" type="file" accept="image/*" onChange={(event) => onEditorImageFileChange(event.target.files?.[0] ?? null)} />

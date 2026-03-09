@@ -571,9 +571,20 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
           )}
 
           <div className="flex items-start gap-3 rounded-xl border border-primary/10 bg-primary/5 p-4">
-            <input type="checkbox" className="mt-1" checked={formData.agree} onChange={(event) => setFormData({ ...formData, agree: event.target.checked })} />
+            <button
+              type="button"
+              className={`relative mt-0.5 inline-flex h-5 w-9 items-center rounded-full transition-colors ${formData.agree ? 'bg-emerald-500' : 'bg-slate-300'}`}
+              onClick={() => setFormData({ ...formData, agree: !formData.agree })}
+              aria-label="Toggle policy agreement"
+            >
+              <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${formData.agree ? 'translate-x-4' : 'translate-x-0.5'}`} />
+            </button>
             <p className="text-xs leading-relaxed text-muted-foreground">
-              I agree to the rental terms and conditions. My application will be reviewed by the store owner.
+              I have read and agree to the app{' '}
+              <button type="button" className="font-semibold underline" onClick={() => onNavigate?.('policies')}>
+                Policies and Terms & Conditions
+              </button>
+              . My application will be reviewed by the store owner.
             </p>
           </div>
 

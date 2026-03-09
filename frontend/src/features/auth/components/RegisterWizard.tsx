@@ -5,11 +5,12 @@ import type { RegisterFormState, StoreBranchInput } from '@/src/features/auth/ty
 interface RegisterWizardProps {
   submitting: boolean;
   onSubmit: (state: RegisterFormState) => Promise<void>;
+  onOpenPolicies: () => void;
 }
 
 const defaultBranches: StoreBranchInput[] = [{ name: 'Main Branch', address: '', location_lat: '', location_lng: '' }];
 
-export function RegisterWizard({ submitting, onSubmit }: RegisterWizardProps) {
+export function RegisterWizard({ submitting, onSubmit, onOpenPolicies }: RegisterWizardProps) {
   const [step, setStep] = useState(1);
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
@@ -33,6 +34,7 @@ export function RegisterWizard({ submitting, onSubmit }: RegisterWizardProps) {
   const [branchSearchLoading, setBranchSearchLoading] = useState<Record<number, boolean>>({});
   const [branchSearchResults, setBranchSearchResults] = useState<Record<number, Array<{ name: string; lat: string; lon: string }>>>({});
   const [branchLocationLoading, setBranchLocationLoading] = useState<Record<number, boolean>>({});
+  const [agreePolicies, setAgreePolicies] = useState(false);
 
   const totalSteps = role === 'owner' ? 3 : 2;
 
@@ -153,6 +155,10 @@ export function RegisterWizard({ submitting, onSubmit }: RegisterWizardProps) {
     event.preventDefault();
     if (submitting) return;
     if (!validateStep(totalSteps)) return;
+    if (!agreePolicies) {
+      alert('Please confirm that you have read the Policies and Terms & Conditions.');
+      return;
+    }
     if (role === 'owner') {
       const invalidBranch = storeBranches.find((branch, index) => {
         const address = (index === 0 ? storeAddress : branch.address).trim();
@@ -184,6 +190,7 @@ export function RegisterWizard({ submitting, onSubmit }: RegisterWizardProps) {
       deliveryModes,
       storeLogo,
       storeBanner,
+      agreePolicies,
     });
   };
 
@@ -391,6 +398,26 @@ export function RegisterWizard({ submitting, onSubmit }: RegisterWizardProps) {
             ))}
           </div>
         </Card>
+      )}
+
+      {step === totalSteps && (
+        <div className="flex items-start gap-3 rounded-xl border border-primary/10 bg-primary/5 p-4">
+          <button
+            type="button"
+            className={`relative mt-0.5 inline-flex h-5 w-9 items-center rounded-full transition-colors ${agreePolicies ? 'bg-emerald-500' : 'bg-slate-300'}`}
+            onClick={() => setAgreePolicies((prev) => !prev)}
+            aria-label="Toggle policy agreement"
+          >
+            <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${agreePolicies ? 'translate-x-4' : 'translate-x-0.5'}`} />
+          </button>
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            I have read and agree to the app{' '}
+            <button type="button" className="font-semibold underline" onClick={onOpenPolicies}>
+              Policies and Terms & Conditions
+            </button>
+            .
+          </p>
+        </div>
       )}
 
       <div className="flex items-center justify-between">

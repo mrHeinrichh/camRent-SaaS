@@ -15,7 +15,7 @@ export function Navbar({ onNavigate }: NavbarProps) {
       <div className="container relative mx-auto flex h-16 items-center justify-between gap-4 px-4">
         <div className="flex cursor-pointer items-center gap-2" onClick={() => (user?.role === 'owner' ? onNavigate('owner') : onNavigate('home'))}>
           <Camera className="h-6 w-6 text-primary" />
-          <span className="text-xl font-bold tracking-tight">CamRent</span>
+          <span className="text-xl font-bold tracking-tight">CamRent PH</span>
         </div>
 
         {page === 'home' && user?.role !== 'owner' && user?.role !== 'admin' ? (

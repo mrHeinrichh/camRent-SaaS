@@ -1356,7 +1356,7 @@ export function OwnerTabs({
                           className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${item.is_available !== false ? 'translate-x-5' : 'translate-x-0.5'}`}
                         />
                       </button>
-                      <p className="mt-1 text-xs text-muted-foreground">{item.is_available !== false ? 'Available' : 'Unavailable'}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">{item.is_available !== false}</p>
                     </td>
                     <td className="space-x-2 p-4 text-right">
                       <Button variant="ghost" size="sm" onClick={() => onOpenBlockModal(item)}>

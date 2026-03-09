@@ -28,4 +28,5 @@ export interface RegisterFormState {
   deliveryModes: string[];
   storeLogo: File | null;
   storeBanner: File | null;
+  agreePolicies: boolean;
 }
