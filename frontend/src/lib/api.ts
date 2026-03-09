@@ -1,11 +1,14 @@
 import { useAppStore } from '@/src/store';
+import { resolveApiPath } from '@/src/config/apiEndpoints';
+import { resolveApiBase } from '@/src/config/runtime';
 
 async function request<T>(input: string, init?: RequestInit): Promise<T> {
   const token = useAppStore.getState().token;
   const headers = new Headers(init?.headers);
-  const envMeta = (import.meta as any).env || {};
-  const devApiBase = envMeta.DEV ? (envMeta.VITE_API_URL || 'http://127.0.0.1:3000') : '';
-  const resolvedInput = typeof input === 'string' && input.startsWith('/api') && devApiBase ? `${devApiBase}${input}` : input;
+  const envMeta = ((import.meta as any).env || {}) as Record<string, string | boolean | undefined>;
+  const { apiBaseUrl } = resolveApiBase(envMeta);
+  const resolvedPath = typeof input === 'string' && input.startsWith('/api') ? resolveApiPath(input, envMeta) : input;
+  const resolvedInput = typeof resolvedPath === 'string' && resolvedPath.startsWith('/api') && apiBaseUrl ? `${apiBaseUrl}${resolvedPath}` : resolvedPath;
 
   if (!headers.has('Content-Type') && init?.body && !(init.body instanceof FormData)) {
     headers.set('Content-Type', 'application/json');
