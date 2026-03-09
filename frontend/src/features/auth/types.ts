@@ -21,6 +21,8 @@ export interface RegisterFormState {
   storeBranches: StoreBranchInput[];
   facebookUrl: string;
   instagramUrl: string;
+  tiktokUrl: string;
+  customSocialLinks: string[];
   paymentDetails: string;
   paymentDetailImages: File[];
   leaseAgreementFile: File | null;

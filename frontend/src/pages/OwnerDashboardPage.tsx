@@ -359,6 +359,8 @@ export function OwnerDashboardPage() {
     banner_url?: string;
     facebook_url: string;
     instagram_url: string;
+    tiktok_url: string;
+    custom_social_links?: string[];
     payment_details: string;
     payment_detail_images?: string[];
     branches?: Array<{ name?: string; address: string; location_lat?: number | null; location_lng?: number | null }>;

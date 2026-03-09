@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { CreditCard, Facebook, FileText, Globe, Instagram, MapPin, Music2, Truck } from 'lucide-react';
 import { api } from '@/src/lib/api';
 import { formatPHP } from '@/src/lib/currency';
 import { useAppStore } from '@/src/store';
@@ -270,29 +271,55 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
           <Card className="mb-6 space-y-4 border bg-muted/20 p-4">
             <h2 className="text-lg font-bold">{store.name}</h2>
             <p className="text-sm text-muted-foreground">{store.address}</p>
-            {(store.facebook_url || store.instagram_url) && (
-              <div className="space-y-1 text-sm">
-                {store.facebook_url && (
-                  <p>
-                    Facebook: <a className="underline" href={store.facebook_url} target="_blank" rel="noreferrer">{store.facebook_url}</a>
+            {(store.facebook_url || store.instagram_url || store.tiktok_url || (store.custom_social_links || []).length) ? (
+              <div className="space-y-2 text-sm">
+                {store.facebook_url ? (
+                  <p className="inline-flex items-center gap-2">
+                    <Facebook className="h-4 w-4 text-blue-600" />
+                    <a className="underline" href={store.facebook_url} target="_blank" rel="noreferrer">
+                      {store.facebook_url}
+                    </a>
                   </p>
-                )}
-                {store.instagram_url && (
-                  <p>
-                    Instagram: <a className="underline" href={store.instagram_url} target="_blank" rel="noreferrer">{store.instagram_url}</a>
+                ) : null}
+                {store.instagram_url ? (
+                  <p className="inline-flex items-center gap-2">
+                    <Instagram className="h-4 w-4 text-pink-600" />
+                    <a className="underline" href={store.instagram_url} target="_blank" rel="noreferrer">
+                      {store.instagram_url}
+                    </a>
                   </p>
-                )}
+                ) : null}
+                {store.tiktok_url ? (
+                  <p className="inline-flex items-center gap-2">
+                    <Music2 className="h-4 w-4 text-slate-900" />
+                    <a className="underline" href={store.tiktok_url} target="_blank" rel="noreferrer">
+                      {store.tiktok_url}
+                    </a>
+                  </p>
+                ) : null}
+                {(store.custom_social_links || []).map((link, index) => (
+                  <p key={`checkout-custom-social-${index}`} className="inline-flex items-center gap-2">
+                    <Globe className="h-4 w-4 text-slate-600" />
+                    <a className="underline" href={link} target="_blank" rel="noreferrer">
+                      {link}
+                    </a>
+                  </p>
+                ))}
               </div>
-            )}
+            ) : null}
             {store.payment_details && (
               <div>
-                <p className="text-sm font-semibold">Payment Details (Customer Reference)</p>
+                <p className="inline-flex items-center gap-2 text-sm font-semibold">
+                  <CreditCard className="h-4 w-4" /> Payment Details (Customer Reference)
+                </p>
                 <p className="whitespace-pre-line text-sm text-muted-foreground">{store.payment_details}</p>
               </div>
             )}
             {(store.payment_detail_images || []).length ? (
               <div className="space-y-2">
-                <p className="text-sm font-semibold">Payment QR / Reference Images</p>
+                <p className="inline-flex items-center gap-2 text-sm font-semibold">
+                  <FileText className="h-4 w-4" /> Payment QR / Reference Images
+                </p>
                 <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
                   {(store.payment_detail_images || []).map((url, index) => (
                     <a key={`${url}-${index}`} href={url} target="_blank" rel="noreferrer" className="block overflow-hidden rounded border bg-muted">
@@ -303,7 +330,9 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
               </div>
             ) : null}
             <div>
-              <p className="text-sm font-semibold">Delivery Modes</p>
+              <p className="inline-flex items-center gap-2 text-sm font-semibold">
+                <Truck className="h-4 w-4" /> Delivery Modes
+              </p>
               <ul className="list-disc pl-6 text-sm text-muted-foreground">
                 {(store.delivery_modes?.length ? store.delivery_modes : ['Store Pickup']).map((mode) => (
                   <li key={mode}>{mode}</li>
@@ -312,7 +341,9 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
             </div>
             {store.branches?.length ? (
               <div>
-                <p className="text-sm font-semibold">Store Branches</p>
+                <p className="inline-flex items-center gap-2 text-sm font-semibold">
+                  <MapPin className="h-4 w-4" /> Store Branches
+                </p>
                 <ul className="list-disc pl-6 text-sm text-muted-foreground">
                   {store.branches.map((branch) => (
                     <li key={branch._id || branch.address}>

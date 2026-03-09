@@ -113,6 +113,8 @@ export function LoginPage({ onNavigate }: LoginPageProps) {
         store_banner_url: state.role === 'owner' ? storeBannerUrl : undefined,
         facebook_url: state.role === 'owner' ? state.facebookUrl : undefined,
         instagram_url: state.role === 'owner' ? state.instagramUrl : undefined,
+        tiktok_url: state.role === 'owner' ? state.tiktokUrl : undefined,
+        custom_social_links: state.role === 'owner' ? state.customSocialLinks : undefined,
         payment_details: state.role === 'owner' ? state.paymentDetails : undefined,
         payment_detail_images: state.role === 'owner' ? paymentDetailImageUrls : undefined,
         delivery_modes: state.role === 'owner' ? state.deliveryModes.filter((mode) => mode.trim()) : undefined,

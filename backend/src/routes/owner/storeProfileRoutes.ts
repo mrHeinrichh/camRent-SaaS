@@ -26,6 +26,10 @@ export function registerOwnerStoreProfileRoutes(router: Router) {
       if (body.banner_url !== undefined) store.banner_url = String(body.banner_url || '').trim();
       if (body.facebook_url !== undefined) store.facebook_url = String(body.facebook_url || '').trim();
       if (body.instagram_url !== undefined) store.instagram_url = String(body.instagram_url || '').trim();
+      if (body.tiktok_url !== undefined) store.tiktok_url = String(body.tiktok_url || '').trim();
+      if (Array.isArray(body.custom_social_links)) {
+        store.custom_social_links = body.custom_social_links.map((url: unknown) => String(url || '').trim()).filter(Boolean);
+      }
       if (body.payment_details !== undefined) store.payment_details = String(body.payment_details || '').trim();
       if (Array.isArray(body.payment_detail_images)) {
         store.payment_detail_images = body.payment_detail_images.map((url: unknown) => String(url || '').trim()).filter(Boolean);

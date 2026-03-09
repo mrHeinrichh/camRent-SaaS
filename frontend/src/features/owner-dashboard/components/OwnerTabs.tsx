@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { format, parseISO } from 'date-fns';
-import { Ban, CalendarDays, CalendarRange, Camera, ChevronRight, Clock3, CreditCard, Download, ExternalLink, FileText, Globe, Mail, MapPin, MessageSquare, Package, Pencil, Phone, Send, ShieldAlert, Trash2, Truck, User } from 'lucide-react';
+import { Ban, CalendarDays, CalendarRange, Camera, ChevronRight, Clock3, CreditCard, Download, ExternalLink, Facebook, FileText, Globe, Instagram, Mail, MapPin, MessageSquare, Music2, Package, Pencil, Phone, Send, ShieldAlert, Trash2, Truck, User } from 'lucide-react';
 import { PeriodCalendar } from '@/src/components/PeriodCalendar';
 import { Button, Card, Input, cn } from '@/src/components/ui';
 import { formatPHP } from '@/src/lib/currency';
@@ -87,6 +87,8 @@ interface OwnerTabsProps {
     banner_url?: string;
     facebook_url: string;
     instagram_url: string;
+    tiktok_url: string;
+    custom_social_links?: string[];
     payment_details: string;
     payment_detail_images?: string[];
     branches?: Array<{ name?: string; address: string; location_lat?: number | null; location_lng?: number | null }>;
@@ -186,6 +188,8 @@ export function OwnerTabs({
     banner_url: '',
     facebook_url: '',
     instagram_url: '',
+    tiktok_url: '',
+    custom_social_links: [''],
     payment_details: '',
     location_lat: '',
     location_lng: '',
@@ -200,6 +204,8 @@ export function OwnerTabs({
       banner_url: data.store?.banner_url || '',
       facebook_url: data.store?.facebook_url || '',
       instagram_url: data.store?.instagram_url || '',
+      tiktok_url: data.store?.tiktok_url || '',
+      custom_social_links: (data.store?.custom_social_links && data.store.custom_social_links.length ? data.store.custom_social_links : ['']) as string[],
       payment_details: data.store?.payment_details || '',
       location_lat: data.store?.location_lat != null ? String(data.store.location_lat) : '',
       location_lng: data.store?.location_lng != null ? String(data.store.location_lng) : '',
@@ -214,7 +220,7 @@ export function OwnerTabs({
         location_lng: branch.location_lng != null ? String(branch.location_lng) : '',
       })),
     );
-  }, [data.store?.id, data.store?.name, data.store?.description, data.store?.address, data.store?.logo_url, data.store?.banner_url, data.store?.facebook_url, data.store?.instagram_url, data.store?.payment_details, data.store?.payment_detail_images, data.store?.branches, data.store?.location_lat, data.store?.location_lng]);
+  }, [data.store?.id, data.store?.name, data.store?.description, data.store?.address, data.store?.logo_url, data.store?.banner_url, data.store?.facebook_url, data.store?.instagram_url, data.store?.tiktok_url, data.store?.custom_social_links, data.store?.payment_details, data.store?.payment_detail_images, data.store?.branches, data.store?.location_lat, data.store?.location_lng]);
 
   const itemColorMap = useMemo(() => {
     const palette = ['#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#14b8a6', '#f97316', '#84cc16'];
@@ -458,6 +464,52 @@ export function OwnerTabs({
                     <span className="text-xs text-muted-foreground">Instagram URL</span>
                     <Input value={storeProfileForm.instagram_url} onChange={(event) => setStoreProfileForm((prev) => ({ ...prev, instagram_url: event.target.value }))} />
                   </label>
+                  <label className="space-y-1 text-sm md:col-span-2">
+                    <span className="text-xs text-muted-foreground">TikTok URL</span>
+                    <Input value={storeProfileForm.tiktok_url} onChange={(event) => setStoreProfileForm((prev) => ({ ...prev, tiktok_url: event.target.value }))} />
+                  </label>
+                  <div className="space-y-2 md:col-span-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">Custom Social Links</span>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setStoreProfileForm((prev) => ({ ...prev, custom_social_links: [...(prev.custom_social_links || []), ''] }))}
+                      >
+                        Add Link
+                      </Button>
+                    </div>
+                    {(storeProfileForm.custom_social_links || []).map((link, index) => (
+                      <div key={`owner-custom-social-${index}`} className="flex items-center gap-2">
+                        <Input
+                          placeholder="https://your-social-link.com"
+                          value={link}
+                          onChange={(event) =>
+                            setStoreProfileForm((prev) => ({
+                              ...prev,
+                              custom_social_links: (prev.custom_social_links || []).map((entry, current) => (current === index ? event.target.value : entry)),
+                            }))
+                          }
+                        />
+                        {(storeProfileForm.custom_social_links || []).length > 1 ? (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() =>
+                              setStoreProfileForm((prev) => ({
+                                ...prev,
+                                custom_social_links: (prev.custom_social_links || []).filter((_, current) => current !== index),
+                              }))
+                            }
+                          >
+                            Remove
+                          </Button>
+                        ) : null}
+                      </div>
+                    ))}
+                  </div>
                   <label className="space-y-1 text-sm">
                     <span className="text-xs text-muted-foreground">Location Latitude</span>
                     <Input value={storeProfileForm.location_lat} onChange={(event) => setStoreProfileForm((prev) => ({ ...prev, location_lat: event.target.value }))} />
@@ -663,6 +715,8 @@ export function OwnerTabs({
                           banner_url: nextBannerUrl,
                           facebook_url: storeProfileForm.facebook_url,
                           instagram_url: storeProfileForm.instagram_url,
+                          tiktok_url: storeProfileForm.tiktok_url,
+                          custom_social_links: (storeProfileForm.custom_social_links || []).map((value) => value.trim()).filter(Boolean),
                           payment_details: storeProfileForm.payment_details,
                           payment_detail_images: nextPaymentImageUrls,
                           branches: parsedBranches.map((branch) => ({
@@ -701,8 +755,26 @@ export function OwnerTabs({
               <div className="grid grid-cols-1 gap-2 text-sm md:grid-cols-2">
                 <p><span className="font-semibold">Name:</span> {storeProfileForm.name || '-'}</p>
                 <p><span className="font-semibold">Address:</span> {storeProfileForm.address || '-'}</p>
-                <p><span className="font-semibold">Facebook:</span> {storeProfileForm.facebook_url || '-'}</p>
-                <p><span className="font-semibold">Instagram:</span> {storeProfileForm.instagram_url || '-'}</p>
+                {storeProfileForm.facebook_url ? (
+                  <p className="inline-flex items-center gap-1">
+                    <Facebook className="h-4 w-4 text-blue-600" /> <span className="font-semibold">Facebook:</span> {storeProfileForm.facebook_url}
+                  </p>
+                ) : null}
+                {storeProfileForm.instagram_url ? (
+                  <p className="inline-flex items-center gap-1">
+                    <Instagram className="h-4 w-4 text-pink-600" /> <span className="font-semibold">Instagram:</span> {storeProfileForm.instagram_url}
+                  </p>
+                ) : null}
+                {storeProfileForm.tiktok_url ? (
+                  <p className="inline-flex items-center gap-1">
+                    <Music2 className="h-4 w-4 text-slate-900" /> <span className="font-semibold">TikTok:</span> {storeProfileForm.tiktok_url}
+                  </p>
+                ) : null}
+                {(storeProfileForm.custom_social_links || []).filter(Boolean).map((link, index) => (
+                  <p key={`owner-custom-social-display-${index}`} className="inline-flex items-center gap-1">
+                    <Globe className="h-4 w-4 text-slate-600" /> <span className="font-semibold">Custom:</span> {link}
+                  </p>
+                ))}
                 <p><span className="font-semibold">Location:</span> {storeProfileForm.location_lat || '-'}, {storeProfileForm.location_lng || '-'}</p>
                 <p><span className="font-semibold">Payment Details:</span> {storeProfileForm.payment_details || '-'}</p>
                 <p className="md:col-span-2"><span className="font-semibold">Description:</span> {storeProfileForm.description || '-'}</p>

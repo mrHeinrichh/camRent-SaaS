@@ -24,6 +24,8 @@ export interface Store {
   location_lng?: number | null;
   facebook_url?: string;
   instagram_url?: string;
+  tiktok_url?: string;
+  custom_social_links?: string[];
   payment_details?: string;
   payment_detail_images?: string[];
   delivery_modes?: string[];

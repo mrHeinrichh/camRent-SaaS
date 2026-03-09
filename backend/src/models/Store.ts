@@ -16,6 +16,8 @@ const storeSchema = new Schema(
     location_lng: { type: Number, default: null },
     facebook_url: { type: String, default: '' },
     instagram_url: { type: String, default: '' },
+    tiktok_url: { type: String, default: '' },
+    custom_social_links: { type: [String], default: [] },
     payment_details: { type: String, default: '' },
     payment_detail_images: { type: [String], default: [] },
     delivery_modes: { type: [String], default: [] },

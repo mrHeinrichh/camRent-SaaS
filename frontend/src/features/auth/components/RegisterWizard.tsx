@@ -23,6 +23,8 @@ export function RegisterWizard({ submitting, onSubmit, onOpenPolicies }: Registe
   const [storeBranches, setStoreBranches] = useState<StoreBranchInput[]>(defaultBranches);
   const [facebookUrl, setFacebookUrl] = useState('');
   const [instagramUrl, setInstagramUrl] = useState('');
+  const [tiktokUrl, setTiktokUrl] = useState('');
+  const [customSocialLinks, setCustomSocialLinks] = useState<string[]>(['']);
   const [paymentDetails, setPaymentDetails] = useState('');
   const [paymentDetailImages, setPaymentDetailImages] = useState<File[]>([]);
   const [leaseAgreementFile, setLeaseAgreementFile] = useState<File | null>(null);
@@ -84,6 +86,9 @@ export function RegisterWizard({ submitting, onSubmit, onOpenPolicies }: Registe
 
   const addDeliveryMode = () => setDeliveryModes((previous) => [...previous, '']);
   const removeDeliveryMode = (index: number) => setDeliveryModes((previous) => previous.filter((_, currentIndex) => currentIndex !== index));
+  const updateCustomSocialLink = (index: number, value: string) => setCustomSocialLinks((previous) => previous.map((entry, currentIndex) => (currentIndex === index ? value : entry)));
+  const addCustomSocialLink = () => setCustomSocialLinks((previous) => [...previous, '']);
+  const removeCustomSocialLink = (index: number) => setCustomSocialLinks((previous) => previous.filter((_, currentIndex) => currentIndex !== index));
 
   const updateStoreBranch = (index: number, key: keyof StoreBranchInput, value: string) => {
     setStoreBranches((previous) => previous.map((branch, currentIndex) => (currentIndex === index ? { ...branch, [key]: value } : branch)));
@@ -191,6 +196,8 @@ export function RegisterWizard({ submitting, onSubmit, onOpenPolicies }: Registe
       storeBranches,
       facebookUrl,
       instagramUrl,
+      tiktokUrl,
+      customSocialLinks: customSocialLinks.map((value) => value.trim()).filter(Boolean),
       paymentDetails,
       paymentDetailImages,
       leaseAgreementFile,
@@ -269,6 +276,24 @@ export function RegisterWizard({ submitting, onSubmit, onOpenPolicies }: Registe
             <div className="space-y-2">
               <label className="text-sm font-medium">Instagram URL (optional)</label>
               <Input type="url" value={instagramUrl} onChange={(event) => setInstagramUrl(event.target.value)} />
+            </div>
+            <div className="space-y-2 md:col-span-2">
+              <label className="text-sm font-medium">TikTok URL (optional)</label>
+              <Input type="url" value={tiktokUrl} onChange={(event) => setTiktokUrl(event.target.value)} />
+            </div>
+            <div className="space-y-2 md:col-span-2">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium">Custom Social Links (optional)</label>
+                <Button type="button" variant="outline" size="sm" onClick={addCustomSocialLink}>Add</Button>
+              </div>
+              {customSocialLinks.map((link, index) => (
+                <div key={`custom-social-${index}`} className="flex items-center gap-2">
+                  <Input type="url" placeholder="https://your-social-link.com" value={link} onChange={(event) => updateCustomSocialLink(index, event.target.value)} />
+                  {customSocialLinks.length > 1 ? (
+                    <Button type="button" variant="ghost" size="sm" onClick={() => removeCustomSocialLink(index)}>Remove</Button>
+                  ) : null}
+                </div>
+              ))}
             </div>
           </div>
           <div className="space-y-2">
