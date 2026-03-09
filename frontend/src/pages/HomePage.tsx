@@ -1,34 +1,71 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ChevronRight, MapPin, Search, Star } from 'lucide-react';
+import { ChevronRight, MapPin, ShoppingCart, Star } from 'lucide-react';
 import { motion } from 'motion/react';
 import { api } from '@/src/lib/api';
+import { formatPHP } from '@/src/lib/currency';
 import { useAppStore } from '@/src/store';
 import type { Announcement, Store } from '@/src/types/domain';
-import { Button, Card, Input } from '@/src/components/ui';
+import { Button, Card } from '@/src/components/ui';
 
 interface HomePageProps {
   onNavigate: (id: string) => void;
 }
 
+interface GearFeedItem {
+  id: string;
+  store_id: string;
+  name: string;
+  description: string;
+  daily_price: number;
+  image_url: string;
+  category: string;
+  brand?: string;
+  stock?: number;
+  store: {
+    id: string;
+    name: string;
+    logo_url: string;
+    rating: number;
+    location_lat?: number | null;
+    location_lng?: number | null;
+    branches?: Array<{
+      name?: string;
+      address?: string;
+      location_lat?: number | null;
+      location_lng?: number | null;
+    }>;
+  };
+}
+
+type SortMode = 'default' | 'store_az' | 'store_za';
+type ViewMode = 'gears' | 'stores';
+
+const BRAND_OPTIONS = ['All Brands', 'Canon', 'Nikon', 'Sony', 'Go Pro', 'Fujifilm', 'Panasonic', 'DJI', 'Sigma', 'Tamron', 'Others'] as const;
+
 export function HomePage({ onNavigate }: HomePageProps) {
   const [stores, setStores] = useState<Store[]>([]);
+  const [gears, setGears] = useState<GearFeedItem[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [activeAnnouncement, setActiveAnnouncement] = useState(0);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [viewMode, setViewMode] = useState<ViewMode>('gears');
+  const [selectedCategory, setSelectedCategory] = useState('All Gear');
+  const [selectedBrand, setSelectedBrand] = useState('All Brands');
   const [minRating, setMinRating] = useState('0');
+  const [sortMode, setSortMode] = useState<SortMode>('default');
   const [nearMeOnly, setNearMeOnly] = useState(false);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [locating, setLocating] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(true);
-  const { user } = useAppStore();
+  const { user, homeSearchQuery, setHomeSearchQuery, addToCart, setPage } = useAppStore();
 
   useEffect(() => {
     if (user?.role === 'owner') return;
 
-    Promise.all([api.get<Store[]>('/api/stores'), api.get<Announcement[]>('/api/announcements')])
-      .then(([storesData, announcementsData]) => {
-        setStores(storesData);
+    Promise.all([api.get<Store[]>('/api/stores'), api.get<GearFeedItem[]>('/api/items/feed').catch(() => []), api.get<Announcement[]>('/api/announcements')])
+      .then(([storesData, gearsData, announcementsData]) => {
+        setStores(storesData || []);
+        setGears(Array.isArray(gearsData) ? gearsData : []);
         setAnnouncements(announcementsData || []);
       })
       .finally(() => setLoading(false));
@@ -53,34 +90,87 @@ export function HomePage({ onNavigate }: HomePageProps) {
     return R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
   };
 
+  const availableCategories = useMemo(() => {
+    const unique = Array.from(new Set(gears.map((gear) => String(gear.category || '').trim()).filter(Boolean)));
+    return ['All Gear', ...unique];
+  }, [gears]);
+
+  const normalizedBrand = (value: string) => (value || 'Others').toLowerCase().replace(/\s+/g, '');
+
+  const filteredGears = useMemo(() => {
+    const ratingFloor = Number(minRating) || 0;
+    const query = homeSearchQuery.trim().toLowerCase();
+    return gears.filter((gear) => {
+      const brand = gear.brand || 'Others';
+      const matchesSearch =
+        !query ||
+        `${gear.name} ${gear.description || ''} ${gear.category || ''} ${brand} ${gear.store.name || ''}`.toLowerCase().includes(query);
+      const matchesCategory = selectedCategory === 'All Gear' || String(gear.category || '').toLowerCase() === selectedCategory.toLowerCase();
+      const matchesBrand =
+        selectedBrand === 'All Brands' ||
+        normalizedBrand(brand) === normalizedBrand(selectedBrand) ||
+        (selectedBrand === 'Go Pro' && normalizedBrand(brand) === 'gopro');
+      const matchesRating = Number(gear.store.rating || 0) >= ratingFloor;
+
+      let matchesNearMe = true;
+      if (nearMeOnly) {
+        if (!userLocation) {
+          matchesNearMe = false;
+        } else {
+          const candidates = [
+            { lat: gear.store.location_lat, lng: gear.store.location_lng },
+            ...((gear.store.branches || []).map((branch) => ({ lat: branch.location_lat, lng: branch.location_lng })) || []),
+          ];
+          matchesNearMe = candidates.some((candidate) => {
+            if (candidate.lat == null || candidate.lng == null) return false;
+            return distanceInKm(userLocation.lat, userLocation.lng, Number(candidate.lat), Number(candidate.lng)) <= 25;
+          });
+        }
+      }
+      return matchesSearch && matchesCategory && matchesBrand && matchesRating && matchesNearMe;
+    });
+  }, [gears, homeSearchQuery, minRating, nearMeOnly, selectedCategory, selectedBrand, userLocation]);
+
   const filteredStores = useMemo(() => {
     const ratingFloor = Number(minRating) || 0;
-    return stores.filter((store) => {
-      const matchesSearch =
-        !searchQuery.trim() ||
-        `${store.name} ${store.address} ${store.description || ''}`.toLowerCase().includes(searchQuery.trim().toLowerCase());
+    const query = homeSearchQuery.trim().toLowerCase();
+    const filtered = stores.filter((store) => {
+      const matchesSearch = !query || `${store.name} ${store.address} ${store.description || ''}`.toLowerCase().includes(query);
       const matchesRating = Number(store.rating || 0) >= ratingFloor;
       let matchesNearMe = true;
       if (nearMeOnly) {
-        if (!userLocation || store.location_lat == null || store.location_lng == null) {
+        if (!userLocation) {
           matchesNearMe = false;
         } else {
-          matchesNearMe = distanceInKm(userLocation.lat, userLocation.lng, Number(store.location_lat), Number(store.location_lng)) <= 25;
+          const candidates = [
+            { lat: store.location_lat, lng: store.location_lng },
+            ...((store.branches || []).map((branch) => ({ lat: branch.location_lat, lng: branch.location_lng })) || []),
+          ];
+          matchesNearMe = candidates.some((candidate) => {
+            if (candidate.lat == null || candidate.lng == null) return false;
+            return distanceInKm(userLocation.lat, userLocation.lng, Number(candidate.lat), Number(candidate.lng)) <= 25;
+          });
         }
       }
       return matchesSearch && matchesRating && matchesNearMe;
     });
-  }, [stores, searchQuery, minRating, nearMeOnly, userLocation]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredStores.length / 30));
+    if (sortMode === 'store_az') return [...filtered].sort((a, b) => a.name.localeCompare(b.name));
+    if (sortMode === 'store_za') return [...filtered].sort((a, b) => b.name.localeCompare(a.name));
+    return filtered;
+  }, [stores, homeSearchQuery, minRating, nearMeOnly, sortMode, userLocation]);
+
+  const activeTotal = viewMode === 'gears' ? filteredGears.length : filteredStores.length;
+  const totalPages = Math.max(1, Math.ceil(activeTotal / 30));
+  const pagedGears = useMemo(() => filteredGears.slice((currentPage - 1) * 30, currentPage * 30), [filteredGears, currentPage]);
   const pagedStores = useMemo(() => filteredStores.slice((currentPage - 1) * 30, currentPage * 30), [filteredStores, currentPage]);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, minRating, nearMeOnly, userLocation]);
+  }, [viewMode, homeSearchQuery, minRating, nearMeOnly, selectedCategory, selectedBrand, sortMode, userLocation]);
 
   if (user?.role === 'owner') return null;
-  if (loading) return <div className="flex h-96 items-center justify-center">Loading stores...</div>;
+  if (loading) return <div className="flex h-96 items-center justify-center">Loading...</div>;
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -121,17 +211,42 @@ export function HomePage({ onNavigate }: HomePageProps) {
         <h1 className="mb-4 text-4xl font-extrabold tracking-tight lg:text-5xl">
           Rent Professional Gear <br /> from Local Stores
         </h1>
-        <p className="mx-auto max-w-2xl text-xl text-muted-foreground">
-          The easiest way to find and rent cameras, lenses, and production equipment.
-        </p>
-      </div>
-
-      <div className="mb-8 mx-auto max-w-md relative">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input className="pl-9" placeholder="Search stores..." value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} />
       </div>
 
       <div className="mb-8 flex flex-wrap items-center gap-2">
+        <Button variant={viewMode === 'gears' ? 'secondary' : 'outline'} onClick={() => setViewMode('gears')}>
+          Gears
+        </Button>
+        <Button variant={viewMode === 'stores' ? 'secondary' : 'outline'} onClick={() => setViewMode('stores')}>
+          Stores
+        </Button>
+        <Button variant="outline" onClick={() => setHomeSearchQuery('')}>
+          Clear Search
+        </Button>
+        {viewMode === 'gears' ? (
+          <>
+            <select className="rounded-md border border-input bg-transparent px-3 py-2 text-sm" value={selectedCategory} onChange={(event) => setSelectedCategory(event.target.value)}>
+              {availableCategories.map((category) => (
+                <option key={category} value={category}>
+                  {category}
+                </option>
+              ))}
+            </select>
+            <select className="rounded-md border border-input bg-transparent px-3 py-2 text-sm" value={selectedBrand} onChange={(event) => setSelectedBrand(event.target.value)}>
+              {BRAND_OPTIONS.map((brand) => (
+                <option key={brand} value={brand}>
+                  {brand}
+                </option>
+              ))}
+            </select>
+          </>
+        ) : (
+          <select className="rounded-md border border-input bg-transparent px-3 py-2 text-sm" value={sortMode} onChange={(event) => setSortMode(event.target.value as SortMode)}>
+            <option value="default">Show all stores</option>
+            <option value="store_az">Store name A-Z</option>
+            <option value="store_za">Store name Z-A</option>
+          </select>
+        )}
         <select className="rounded-md border border-input bg-transparent px-3 py-2 text-sm" value={minRating} onChange={(event) => setMinRating(event.target.value)}>
           <option value="0">Filter by ratings</option>
           <option value="4.5">4.5+</option>
@@ -164,52 +279,120 @@ export function HomePage({ onNavigate }: HomePageProps) {
         >
           <MapPin className="mr-2 h-4 w-4" /> {locating ? 'Getting location...' : nearMeOnly ? 'Near me: ON' : 'Near me'}
         </Button>
-        {nearMeOnly ? <p className="text-xs text-muted-foreground">Showing stores within ~25km.</p> : null}
       </div>
 
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {pagedStores.map((store) => (
-          <motion.div key={store.id} whileHover={{ y: -5 }} transition={{ type: 'spring', stiffness: 300 }}>
-            <Card className="group cursor-pointer overflow-hidden" onClick={() => onNavigate(store.id)}>
-              <div className="relative aspect-video overflow-hidden">
-                <img
-                  src={store.banner_url || `https://picsum.photos/seed/store-${store.id}/800/450`}
-                  alt={store.name}
-                  className="h-full w-full object-cover transition-transform group-hover:scale-105"
-                  referrerPolicy="no-referrer"
-                />
-                <div className="absolute right-4 top-4 flex items-center gap-1 rounded-md bg-background/90 px-2 py-1 text-sm font-medium backdrop-blur">
-                  <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                  {store.rating || '4.8'}
-                </div>
-              </div>
-
-              <div className="p-5">
-                <div className="mb-2 flex items-center gap-3">
-                  <div className="h-10 w-10 overflow-hidden rounded-full border bg-muted">
-                    <img src={store.logo_url || `https://picsum.photos/seed/logo-${store.id}/100/100`} alt="" referrerPolicy="no-referrer" />
+      {viewMode === 'gears' ? (
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {pagedGears.map((gear) => (
+            <motion.div key={gear.id} whileHover={{ y: -5 }} transition={{ type: 'spring', stiffness: 300 }}>
+              <Card className="group overflow-hidden">
+                <div className="relative aspect-video overflow-hidden">
+                  <img
+                    src={gear.image_url || `https://picsum.photos/seed/item-${gear.id}/800/450`}
+                    alt={gear.name}
+                    className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                    referrerPolicy="no-referrer"
+                  />
+                  <div className="absolute right-4 top-4 flex items-center gap-1 rounded-md bg-background/90 px-2 py-1 text-sm font-medium backdrop-blur">
+                    <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                    {Number(gear.store.rating || 0).toFixed(1)}
                   </div>
-                  <h3 className="text-lg font-bold">{store.name}</h3>
                 </div>
 
-                <div className="mb-4 flex items-center gap-1 text-sm text-muted-foreground">
-                  <MapPin className="h-3 w-3" />
-                  {store.address || 'Downtown, City Center'}
+                <div className="p-5">
+                  <h3 className="mb-1 text-lg font-bold">{gear.name}</h3>
+                  <p className="mb-2 line-clamp-2 text-sm text-muted-foreground">{gear.description || 'No description provided.'}</p>
+                  <p className="mb-4 text-xs text-muted-foreground">
+                    {gear.category || 'Uncategorized'} • {gear.brand || 'Others'} • Stock: {Math.max(0, Number(gear.stock || 0))}
+                  </p>
+                  <div className="mb-4 flex items-center gap-3">
+                    <div className="h-10 w-10 overflow-hidden rounded-full border bg-muted">
+                      <img src={gear.store.logo_url || `https://picsum.photos/seed/logo-${gear.store.id}/100/100`} alt="" referrerPolicy="no-referrer" />
+                    </div>
+                    <button className="text-left text-sm font-semibold hover:underline" onClick={() => onNavigate(gear.store.id)}>
+                      {gear.store.name}
+                    </button>
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-lg font-bold">{formatPHP(Number(gear.daily_price || 0))}</p>
+                      <p className="text-xs text-muted-foreground">per day</p>
+                    </div>
+                    <Button
+                      className="gap-2"
+                      onClick={() => {
+                        if (user?.role === 'owner' || user?.role === 'admin') return;
+                        const start = new Date();
+                        start.setDate(start.getDate() + 1);
+                        const end = new Date();
+                        end.setDate(end.getDate() + 2);
+                        const toISODate = (value: Date) => value.toISOString().slice(0, 10);
+                        addToCart({
+                          id: gear.id,
+                          name: gear.name,
+                          daily_price: Number(gear.daily_price || 0),
+                          deposit_amount: 0,
+                          image_url: gear.image_url || '',
+                          quantity: 1,
+                          stock: Math.max(1, Number(gear.stock || 1)),
+                          startDate: toISODate(start),
+                          endDate: toISODate(end),
+                          store_id: gear.store_id,
+                        });
+                        setPage('cart');
+                      }}
+                    >
+                      <ShoppingCart className="h-4 w-4" /> Add to cart
+                    </Button>
+                  </div>
                 </div>
-
-                <Button className="w-full group-hover:bg-primary/90">
-                  Visit Store
-                  <ChevronRight className="ml-2 h-4 w-4" />
-                </Button>
-              </div>
-            </Card>
-          </motion.div>
-        ))}
-      </div>
+              </Card>
+            </motion.div>
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {pagedStores.map((store) => (
+            <motion.div key={store.id} whileHover={{ y: -5 }} transition={{ type: 'spring', stiffness: 300 }}>
+              <Card className="group cursor-pointer overflow-hidden" onClick={() => onNavigate(store.id)}>
+                <div className="relative aspect-video overflow-hidden">
+                  <img
+                    src={store.banner_url || `https://picsum.photos/seed/store-${store.id}/800/450`}
+                    alt={store.name}
+                    className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                    referrerPolicy="no-referrer"
+                  />
+                  <div className="absolute right-4 top-4 flex items-center gap-1 rounded-md bg-background/90 px-2 py-1 text-sm font-medium backdrop-blur">
+                    <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                    {Number(store.rating || 0).toFixed(1)}
+                  </div>
+                </div>
+                <div className="p-5">
+                  <div className="mb-2 flex items-center gap-3">
+                    <div className="h-10 w-10 overflow-hidden rounded-full border bg-muted">
+                      <img src={store.logo_url || `https://picsum.photos/seed/logo-${store.id}/100/100`} alt="" referrerPolicy="no-referrer" />
+                    </div>
+                    <h3 className="text-lg font-bold">{store.name}</h3>
+                  </div>
+                  <div className="mb-4 flex items-center gap-1 text-sm text-muted-foreground">
+                    <MapPin className="h-3 w-3" />
+                    {store.address || 'Downtown, City Center'}
+                  </div>
+                  <p className="mb-3 line-clamp-2 text-xs text-muted-foreground">{store.description || 'No store description provided.'}</p>
+                  <Button className="w-full group-hover:bg-primary/90">
+                    Visit Store
+                    <ChevronRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </div>
+              </Card>
+            </motion.div>
+          ))}
+        </div>
+      )}
 
       <div className="mt-8 flex items-center justify-between gap-4">
         <p className="text-sm text-muted-foreground">
-          Showing {filteredStores.length ? (currentPage - 1) * 30 + 1 : 0}-{Math.min(currentPage * 30, filteredStores.length)} of {filteredStores.length}
+          Showing {activeTotal ? (currentPage - 1) * 30 + 1 : 0}-{Math.min(currentPage * 30, activeTotal)} of {activeTotal}
         </p>
         <div className="flex items-center gap-2">
           <Button variant="outline" disabled={currentPage <= 1} onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}>

@@ -133,6 +133,13 @@ export function OwnerModals({
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                   <Input className="h-11 border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-500" placeholder="Gear name" value={editor.name} onChange={(event) => onEditorChange({ ...editor, name: event.target.value })} />
                   <Input className="h-11 border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-500" placeholder="Category (Camera, Lens, Audio, etc.)" value={editor.category} onChange={(event) => onEditorChange({ ...editor, category: event.target.value })} />
+                  <select className="h-11 rounded-md border border-slate-200 bg-slate-50 px-3 text-sm text-slate-900" value={editor.brand} onChange={(event) => onEditorChange({ ...editor, brand: event.target.value })}>
+                    {['Canon', 'Nikon', 'Sony', 'GoPro', 'Fujifilm', 'Panasonic', 'DJI', 'Sigma', 'Tamron', 'Others'].map((brand) => (
+                      <option key={brand} value={brand}>
+                        {brand}
+                      </option>
+                    ))}
+                  </select>
                   <Input className="h-11 border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-500" placeholder="Daily price" type="number" value={editor.daily_price} onChange={(event) => onEditorChange({ ...editor, daily_price: event.target.value })} />
                   <Input className="h-11 border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-500" placeholder="Stock" type="number" min="0" value={editor.stock} onChange={(event) => onEditorChange({ ...editor, stock: event.target.value })} />
                 </div>
@@ -327,6 +334,7 @@ export function OwnerModals({
                           </div>
                           <div className="flex-1">
                             <p className="font-medium">{item.name}</p>
+                            {item.description ? <p className="line-clamp-2 text-xs text-muted-foreground">{item.description}</p> : null}
                             <div className="mt-2 grid grid-cols-1 gap-1 text-xs text-muted-foreground sm:grid-cols-2">
                               <p className="inline-flex items-center gap-1"><Package className="h-3.5 w-3.5" /> Quantity: {item.quantity || 1}</p>
                               <p className="inline-flex items-center gap-1"><CalendarDays className="h-3.5 w-3.5" /> Start Rent: {format(parseISO(item.start_date), 'MMM dd, yyyy')}</p>

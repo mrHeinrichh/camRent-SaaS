@@ -5,6 +5,7 @@ export type ItemEditor = {
   name: string;
   description: string;
   category: string;
+  brand: string;
   daily_price: string;
   stock: string;
   is_available: boolean;

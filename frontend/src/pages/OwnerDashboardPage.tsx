@@ -16,6 +16,7 @@ const emptyEditor: ItemEditor = {
   name: '',
   description: '',
   category: '',
+  brand: 'Others',
   daily_price: '',
   stock: '1',
   is_available: true,
@@ -249,6 +250,7 @@ export function OwnerDashboardPage() {
       name: item.name,
       description: item.description,
       category: item.category,
+      brand: item.brand || 'Others',
       daily_price: String(item.daily_price),
       stock: String(Math.max(0, item.stock || 0)),
       is_available: item.is_available !== false,
@@ -260,8 +262,8 @@ export function OwnerDashboardPage() {
 
   const saveItem = async () => {
     if (!data?.store?.id) return alert('Store not found');
-    if (!editor.name.trim() || !editor.category.trim() || !editor.daily_price.trim()) {
-      return alert('Name, category, and daily price are required');
+    if (!editor.name.trim() || !editor.category.trim() || !editor.brand.trim() || !editor.daily_price.trim()) {
+      return alert('Name, category, brand, and daily price are required');
     }
 
     const payload: Record<string, unknown> = {
@@ -269,6 +271,7 @@ export function OwnerDashboardPage() {
       name: editor.name.trim(),
       description: editor.description.trim(),
       category: editor.category.trim(),
+      brand: editor.brand.trim(),
       daily_price: Number(editor.daily_price),
       stock: Math.max(0, Math.floor(Number(editor.stock))),
       is_available: editor.is_available,
@@ -384,8 +387,8 @@ export function OwnerDashboardPage() {
   const exportInventoryExcel = () => {
     exportRowsToCsv(
       'inventory_report.csv',
-      ['Name', 'Category', 'Daily Price', 'Stock', 'Available'],
-      inventory.map((item) => [item.name, item.category, item.daily_price, Math.max(0, item.stock || 0), item.is_available !== false ? 'Yes' : 'No']),
+      ['Name', 'Category', 'Brand', 'Daily Price', 'Stock', 'Available'],
+      inventory.map((item) => [item.name, item.category, item.brand || 'Others', item.daily_price, Math.max(0, item.stock || 0), item.is_available !== false ? 'Yes' : 'No']),
     );
   };
 

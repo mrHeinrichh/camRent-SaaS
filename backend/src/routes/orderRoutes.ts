@@ -174,6 +174,7 @@ orderRoutes.get('/account/orders', authenticate, requireAuth, async (req: Authed
         return {
           id: orderItem.item_id.toString(),
           name: item?.name || '',
+          description: item?.description || '',
           start_date: orderItem.start_date,
           end_date: orderItem.end_date,
           daily_price: orderItem.price_per_day,

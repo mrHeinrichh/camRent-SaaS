@@ -853,6 +853,21 @@ export function OwnerTabs({
               {!topRentersOfMonth.length && <p className="text-sm text-muted-foreground">No top renter data this month yet.</p>}
             </div>
           </Card>
+          <Card className="p-6">
+            <h3 className="mb-4 text-lg font-bold">Latest Store Ratings</h3>
+            <div className="space-y-3">
+              {(data.storeRatings || []).slice(0, 8).map((entry, index) => (
+                <div key={`${entry.renter_name}-${entry.created_at}-${index}`} className="rounded-lg border bg-muted/20 p-3">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="font-semibold">{entry.renter_name}</span>
+                    <span>{'★'.repeat(Math.max(1, Math.min(5, Math.round(entry.rating))))} ({entry.rating})</span>
+                  </div>
+                  <p className="mt-1 text-sm text-muted-foreground">{entry.description}</p>
+                </div>
+              ))}
+              {!(data.storeRatings || []).length && <p className="text-sm text-muted-foreground">No ratings yet.</p>}
+            </div>
+          </Card>
         </div>
       )}
 
@@ -1007,6 +1022,7 @@ export function OwnerTabs({
                                       </div>
                                       <div className="min-w-0">
                                         <p className="truncate text-sm font-semibold text-slate-900">{item.name}</p>
+                                        {item.description ? <p className="line-clamp-2 text-[11px] text-muted-foreground">{item.description}</p> : null}
                                         <div className="mt-2 grid grid-cols-1 gap-1.5 text-[11px] text-muted-foreground sm:grid-cols-2">
                                           <p className="inline-flex items-center gap-1">
                                             <Package className="h-3 w-3" /> Quantity: {item.quantity || 1}
@@ -1117,6 +1133,7 @@ export function OwnerTabs({
                                 </div>
                                 <div className="min-w-0 space-y-1">
                                   <p className="truncate text-sm font-semibold text-slate-900">{item.name}</p>
+                                  {item.description ? <p className="line-clamp-2 text-[11px] text-muted-foreground">{item.description}</p> : null}
                                   <div className="grid grid-cols-1 gap-1 text-[11px] text-muted-foreground">
                                     <p className="inline-flex items-center gap-1">
                                       <Package className="h-3.5 w-3.5" /> Quantity: {item.quantity || 1}
@@ -1303,6 +1320,7 @@ export function OwnerTabs({
                 <tr>
                   <th className="p-4 text-sm font-semibold">Item</th>
                   <th className="p-4 text-sm font-semibold">Category</th>
+                  <th className="p-4 text-sm font-semibold">Brand</th>
                   <th className="p-4 text-sm font-semibold">Price</th>
                   <th className="p-4 text-sm font-semibold">Stock</th>
                   <th className="p-4 text-sm font-semibold">Status</th>
@@ -1324,6 +1342,7 @@ export function OwnerTabs({
                       </div>
                     </td>
                     <td className="p-4">{item.category}</td>
+                    <td className="p-4">{item.brand || 'Others'}</td>
                     <td className="p-4">{formatPHP(item.daily_price)}</td>
                     <td className="p-4">{Math.max(0, item.stock || 0)}</td>
                     <td className="p-4">

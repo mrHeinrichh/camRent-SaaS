@@ -1,5 +1,5 @@
-import { Camera, LogOut, ShoppingCart, User } from 'lucide-react';
-import { Button } from '@/src/components/ui';
+import { Camera, LogOut, Search, ShoppingCart, User } from 'lucide-react';
+import { Button, Input } from '@/src/components/ui';
 import { useAppStore } from '@/src/store';
 import type { AppPage } from '@/src/types/app';
 
@@ -8,15 +8,24 @@ interface NavbarProps {
 }
 
 export function Navbar({ onNavigate }: NavbarProps) {
-  const { user, cart, logout } = useAppStore();
+  const { user, cart, logout, page, homeSearchQuery, setHomeSearchQuery } = useAppStore();
 
   return (
     <nav className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container mx-auto flex h-16 items-center justify-between px-4">
+      <div className="container relative mx-auto flex h-16 items-center justify-between gap-4 px-4">
         <div className="flex cursor-pointer items-center gap-2" onClick={() => (user?.role === 'owner' ? onNavigate('owner') : onNavigate('home'))}>
           <Camera className="h-6 w-6 text-primary" />
           <span className="text-xl font-bold tracking-tight">CamRent</span>
         </div>
+
+        {page === 'home' && user?.role !== 'owner' && user?.role !== 'admin' ? (
+          <div className="pointer-events-none absolute left-1/2 z-10 w-full max-w-xl -translate-x-1/2 px-4">
+            <div className="pointer-events-auto relative">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input className="pl-9" placeholder="Search gears, brands, stores..." value={homeSearchQuery} onChange={(event) => setHomeSearchQuery(event.target.value)} />
+            </div>
+          </div>
+        ) : null}
 
         <div className="flex items-center gap-4">
           {user?.role !== 'owner' && user?.role !== 'admin' && (

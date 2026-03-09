@@ -56,6 +56,7 @@ export function ItemPage({ itemId }: ItemPageProps) {
           <div>
             <h1 className="mb-2 text-4xl font-bold">{item.name}</h1>
             <p className="text-lg text-muted-foreground">{item.description}</p>
+            <p className="mt-2 text-sm text-muted-foreground">Brand: {item.brand || 'Others'}</p>
           </div>
 
           <div className="space-y-6 rounded-2xl border bg-card p-6 shadow-sm">

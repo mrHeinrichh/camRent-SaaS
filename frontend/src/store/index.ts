@@ -23,10 +23,14 @@ interface NavigationSlice {
   selectedStoreId: string | null;
   selectedItemId: string | null;
   lastSubmittedApplication: SubmittedApplication | null;
+  homeSearchQuery: string;
+  showHomeNavSearch: boolean;
   setPage: (page: AppPage) => void;
   openStore: (id: string) => void;
   openItem: (id: string) => void;
   setLastSubmittedApplication: (application: SubmittedApplication | null) => void;
+  setHomeSearchQuery: (value: string) => void;
+  setShowHomeNavSearch: (value: boolean) => void;
 }
 
 export type AppStore = AuthSlice & CartSlice & NavigationSlice;
@@ -41,6 +45,8 @@ export const useAppStore = create<AppStore>()(
       selectedStoreId: null,
       selectedItemId: null,
       lastSubmittedApplication: null,
+      homeSearchQuery: '',
+      showHomeNavSearch: false,
       setSession: (user, token) => set({ user, token }),
       logout: () => set({ user: null, token: null, cart: [], page: 'home', selectedStoreId: null, selectedItemId: null, lastSubmittedApplication: null }),
       addToCart: (item) =>
@@ -73,6 +79,8 @@ export const useAppStore = create<AppStore>()(
       openStore: (id) => set({ selectedStoreId: id, page: 'store' }),
       openItem: (id) => set({ selectedItemId: id, page: 'item' }),
       setLastSubmittedApplication: (application) => set({ lastSubmittedApplication: application }),
+      setHomeSearchQuery: (value) => set({ homeSearchQuery: value }),
+      setShowHomeNavSearch: (value) => set({ showHomeNavSearch: value }),
     }),
     {
       name: 'camrent-storage',

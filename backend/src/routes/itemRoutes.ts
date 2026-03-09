@@ -24,6 +24,39 @@ itemRoutes.get('/', authenticate, async (req: AuthedRequest, res) => {
   res.json(serializeMany(items as any[]));
 });
 
+itemRoutes.get('/feed', authenticate, async (req: AuthedRequest, res) => {
+  const visibleStores = await Store.find({ status: 'approved', is_active: true })
+    .select('_id name logo_url rating location_lat location_lng branches')
+    .lean();
+  const storeMap = new Map(visibleStores.map((store) => [String(store._id), store]));
+  const items = await Item.find({
+    store_id: { $in: visibleStores.map((store) => store._id) },
+    is_available: true,
+    stock: { $gt: 0 },
+  }).lean();
+
+  const feed = items
+    .map((item) => {
+      const store = storeMap.get(String(item.store_id));
+      if (!store) return null;
+      return {
+        ...serialize(item as any),
+        store: {
+          id: String(store._id),
+          name: store.name || 'Store',
+          logo_url: store.logo_url || '',
+          rating: Number(store.rating || 0),
+          location_lat: store.location_lat ?? null,
+          location_lng: store.location_lng ?? null,
+          branches: Array.isArray(store.branches) ? store.branches : [],
+        },
+      };
+    })
+    .filter(Boolean);
+
+  res.json(feed);
+});
+
 itemRoutes.get('/:id', authenticate, async (req: AuthedRequest, res) => {
   if (!Types.ObjectId.isValid(req.params.id)) return res.status(404).json({ error: 'Item not found' });
   const item = await Item.findById(req.params.id).lean();
@@ -66,13 +99,14 @@ itemRoutes.put('/:id', authenticate, checkRole(['owner']), async (req: AuthedReq
   const store = await Store.findById(item.store_id).lean();
   if (!store || store.owner_id.toString() !== req.user!.id) return res.status(403).json({ error: 'Forbidden' });
 
-  const { name, description, daily_price, deposit_amount, image_url, category, is_available, stock } = req.body;
+  const { name, description, daily_price, deposit_amount, image_url, category, brand, is_available, stock } = req.body;
   item.name = name ?? item.name;
   item.description = description ?? item.description;
   item.daily_price = daily_price ?? item.daily_price;
   item.deposit_amount = Number.isFinite(Number(deposit_amount)) ? Number(deposit_amount) : item.deposit_amount;
   item.image_url = image_url ?? item.image_url;
   item.category = category ?? item.category;
+  item.brand = String(brand || item.brand || 'Others').trim() || 'Others';
   if (typeof is_available === 'boolean') item.is_available = is_available;
   if (Number.isFinite(Number(stock))) item.stock = Math.max(0, Math.floor(Number(stock)));
   await item.save();
@@ -105,7 +139,7 @@ itemRoutes.delete('/:id', authenticate, checkRole(['owner']), async (req: Authed
 });
 
 itemRoutes.post('/', authenticate, checkRole(['owner']), async (req: AuthedRequest, res) => {
-  const { store_id, name, description, daily_price, deposit_amount, image_url, category, is_available, stock } = req.body;
+  const { store_id, name, description, daily_price, deposit_amount, image_url, category, brand, is_available, stock } = req.body;
   const store = await Store.findById(store_id).lean();
   if (!store || store.owner_id.toString() !== req.user!.id) return res.status(403).json({ error: 'Forbidden' });
 
@@ -117,6 +151,7 @@ itemRoutes.post('/', authenticate, checkRole(['owner']), async (req: AuthedReque
     deposit_amount: Number.isFinite(Number(deposit_amount)) ? Number(deposit_amount) : 0,
     image_url,
     category,
+    brand: String(brand || 'Others').trim() || 'Others',
     is_available: typeof is_available === 'boolean' ? is_available : true,
     stock: Number.isFinite(Number(stock)) ? Math.max(0, Math.floor(Number(stock))) : 1,
   });

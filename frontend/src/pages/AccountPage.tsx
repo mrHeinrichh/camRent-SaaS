@@ -158,6 +158,7 @@ export function AccountPage({ onNavigate }: AccountPageProps) {
                     </div>
                     <div className="flex-1">
                       <p className="text-sm font-medium">{item.name}</p>
+                      {item.description ? <p className="line-clamp-2 text-xs text-muted-foreground">{item.description}</p> : null}
                       <p className="text-xs text-muted-foreground">
                         {item.start_date} to {item.end_date}
                       </p>

@@ -37,6 +37,17 @@ export interface Store {
   lease_agreement_file_url?: string;
   security_deposit?: number;
   rating: number;
+  total_reviews?: number;
+}
+
+export interface StoreReview {
+  id: string;
+  store_id: string;
+  renter_id: string;
+  renter_name: string;
+  rating: number;
+  description: string;
+  created_at: string;
 }
 
 export interface Booking {
@@ -85,6 +96,7 @@ export interface Item {
   deposit_amount: number;
   image_url: string;
   category: string;
+  brand?: string;
   stock?: number;
   is_available?: boolean;
   bookings?: Booking[];
@@ -107,6 +119,7 @@ export interface CartItem {
 export interface OrderHistoryItem {
   id: string;
   name: string;
+  description?: string;
   start_date: string;
   end_date: string;
   daily_price: number;
@@ -168,7 +181,7 @@ export interface OwnerApplication {
   fraud_flag: boolean | number;
   custom_answers?: Record<string, string>;
   documents?: Array<{ type: string; url: string }>;
-  items: Array<{ id: string; name: string; image_url?: string; start_date: string; end_date: string; quantity?: number }>;
+  items: Array<{ id: string; name: string; description?: string; image_url?: string; start_date: string; end_date: string; quantity?: number }>;
 }
 
 export interface SupportTicket {
@@ -229,7 +242,7 @@ export interface OwnerDashboardData {
     id_types: string[];
     start_date?: string | null;
     end_date?: string | null;
-    items?: Array<{ name: string; start_date: string; end_date: string; quantity?: number }>;
+    items?: Array<{ name: string; description?: string; start_date: string; end_date: string; quantity?: number }>;
     documents?: Array<{ type: string; url: string }>;
   }>;
   customers?: Array<{
@@ -251,7 +264,7 @@ export interface OwnerDashboardData {
       renter_address?: string;
       store_branch_name?: string;
       store_branch_address?: string;
-      items: Array<{ name: string; start_date: string; end_date: string; quantity?: number }>;
+      items: Array<{ name: string; description?: string; start_date: string; end_date: string; quantity?: number }>;
       documents?: Array<{ type: string; url: string }>;
     }>;
   }>;
@@ -265,6 +278,7 @@ export interface OwnerDashboardData {
     mostRentedCameras?: Array<{ name: string; count: number }>;
     topRentersOfMonth?: Array<{ renter_name: string; renter_email: string; rentals: number; amount: number }>;
   };
+  storeRatings?: Array<{ renter_name: string; rating: number; description: string; created_at: string }>;
 }
 
 export interface AdminDashboardData {

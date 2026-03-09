@@ -8,6 +8,7 @@ import { OrderDocument } from '../models/OrderDocument';
 import { OrderItem } from '../models/OrderItem';
 import { Store } from '../models/Store';
 import { SupportTicket } from '../models/SupportTicket';
+import { StoreReview } from '../models/StoreReview';
 import type { AuthedRequest } from '../types/auth';
 import { serialize, serializeMany, toId } from '../utils/mongo';
 
@@ -308,6 +309,7 @@ ownerRoutes.get('/dashboard/owner', authenticate, checkRole(['owner']), async (r
   }
 
   const allOrderItems = await OrderItem.find({ order_id: { $in: allOrderIds } }).lean();
+  const storeReviews = await StoreReview.find({ store_id: store._id }).sort({ created_at: -1 }).lean();
   const orderItemsByOrder = new Map<string, typeof allOrderItems>();
   for (const orderItem of allOrderItems) {
     const key = orderItem.order_id.toString();
@@ -340,7 +342,7 @@ ownerRoutes.get('/dashboard/owner', authenticate, checkRole(['owner']), async (r
         renter_address: string;
         store_branch_name: string;
         store_branch_address: string;
-        items: Array<{ name: string; start_date: string; end_date: string; quantity: number }>;
+        items: Array<{ name: string; description: string; start_date: string; end_date: string; quantity: number }>;
         documents: Array<{ type: string; url: string }>;
       }>;
     }
@@ -368,12 +370,13 @@ ownerRoutes.get('/dashboard/owner', authenticate, checkRole(['owner']), async (r
       }
     }
     const orderItems = orderItemsByOrder.get(order._id.toString()) || [];
-    const transactionItems: Array<{ name: string; start_date: string; end_date: string; quantity: number }> = [];
+    const transactionItems: Array<{ name: string; description: string; start_date: string; end_date: string; quantity: number }> = [];
     for (const orderItem of orderItems) {
       const name = rentedItemById.get(orderItem.item_id.toString())?.name || 'Unknown Gear';
       existing.gearCount.set(name, (existing.gearCount.get(name) || 0) + 1);
       transactionItems.push({
         name,
+        description: String(rentedItemById.get(orderItem.item_id.toString())?.description || ''),
         start_date: new Date(orderItem.start_date).toISOString(),
         end_date: new Date(orderItem.end_date).toISOString(),
         quantity: Math.max(1, Number((orderItem as any).quantity) || 1),
@@ -479,6 +482,7 @@ ownerRoutes.get('/dashboard/owner', authenticate, checkRole(['owner']), async (r
       const itemRanges = orderItems
         .map((orderItem) => ({
           name: rentedItemById.get(orderItem.item_id.toString())?.name || 'Unknown Gear',
+          description: String(rentedItemById.get(orderItem.item_id.toString())?.description || ''),
           start_date: new Date(orderItem.start_date).toISOString(),
           end_date: new Date(orderItem.end_date).toISOString(),
           quantity: Math.max(1, Number((orderItem as any).quantity) || 1),
@@ -524,6 +528,12 @@ ownerRoutes.get('/dashboard/owner', authenticate, checkRole(['owner']), async (r
       mostRentedCameras,
       topRentersOfMonth,
     },
+    storeRatings: storeReviews.map((review) => ({
+      renter_name: String((review as any).renter_name || 'Customer'),
+      rating: Number((review as any).rating || 0),
+      description: String((review as any).description || ''),
+      created_at: (review as any).created_at ? new Date((review as any).created_at).toISOString() : '',
+    })),
     items: serializeMany(items as any[]),
   });
 });
@@ -550,11 +560,12 @@ ownerRoutes.get('/owner/applications', authenticate, checkRole(['owner']), async
 
     payload.push({
       ...(serialize(order as any) as Record<string, unknown>),
-      items: orderItems.map((orderItem) => ({
-        id: orderItem.item_id.toString(),
-        name: itemsById.get(orderItem.item_id.toString())?.name || '',
-        image_url: itemsById.get(orderItem.item_id.toString())?.image_url || '',
-        start_date: orderItem.start_date,
+        items: orderItems.map((orderItem) => ({
+          id: orderItem.item_id.toString(),
+          name: itemsById.get(orderItem.item_id.toString())?.name || '',
+          description: itemsById.get(orderItem.item_id.toString())?.description || '',
+          image_url: itemsById.get(orderItem.item_id.toString())?.image_url || '',
+          start_date: orderItem.start_date,
         end_date: orderItem.end_date,
         quantity: Math.max(1, Number((orderItem as any).quantity) || 1),
       })),
