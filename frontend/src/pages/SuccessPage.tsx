@@ -7,10 +7,11 @@ import type { SubmittedApplication } from '@/src/types/domain';
 
 interface SuccessPageProps {
   onBackHome: () => void;
+  onOpenAccount?: () => void;
 }
 
-export function SuccessPage({ onBackHome }: SuccessPageProps) {
-  const { lastSubmittedApplication } = useAppStore();
+export function SuccessPage({ onBackHome, onOpenAccount }: SuccessPageProps) {
+  const { lastSubmittedApplication, user } = useAppStore();
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [fallbackSubmission] = useState<SubmittedApplication | null>(() => {
     try {
@@ -118,6 +119,7 @@ export function SuccessPage({ onBackHome }: SuccessPageProps) {
             <p>Store: <span className="font-semibold">{displayedSubmission.storeName}</span></p>
             <p>Total Amount: <span className="font-semibold">{formatPHP(displayedSubmission.totalAmount)}</span></p>
             <p className="text-muted-foreground">Open detailed form to view all submitted fields and save your copy.</p>
+            {user?.role === 'renter' ? <p className="text-xs text-emerald-700">This submission is also saved in your account history.</p> : null}
           </div>
         ) : (
           <p className="text-sm text-muted-foreground">No local copy was found. You can still review your transaction in your account.</p>
@@ -137,6 +139,11 @@ export function SuccessPage({ onBackHome }: SuccessPageProps) {
           <Button variant="outline" onClick={saveAsImage} disabled={!displayedSubmission}>
             <FileImage className="mr-2 h-4 w-4" /> Save as Image
           </Button>
+          {user?.role === 'renter' ? (
+            <Button variant="outline" onClick={onOpenAccount}>
+              View in My Account
+            </Button>
+          ) : null}
           <Button onClick={onBackHome}>Back to Home</Button>
         </div>
       </Card>

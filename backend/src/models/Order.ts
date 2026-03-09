@@ -22,6 +22,8 @@ const orderSchema = new Schema(
     custom_answers: { type: Schema.Types.Mixed, default: {} },
     form_schema_version: { type: String, default: 'v1' },
     total_amount: { type: Number, required: true },
+    voucher_code: { type: String, default: '' },
+    voucher_discount: { type: Number, default: 0 },
     status: {
       type: String,
       enum: ['PENDING_REVIEW', 'APPROVED', 'REJECTED', 'ONGOING', 'COMPLETED', 'CANCELLED', 'FRAUD_REPORTED', 'CANCELLED_BY_OWNER'],

@@ -65,6 +65,9 @@ export function AppFooter({ onNavigate }: AppFooterProps) {
             <button type="button" className="block hover:text-foreground" onClick={() => onNavigate('policies')}>
               Rental Guide
             </button>
+            <button type="button" className="block hover:text-foreground" onClick={() => onNavigate('donate')}>
+              Support This Website
+            </button>
           </div>
         </div>
 

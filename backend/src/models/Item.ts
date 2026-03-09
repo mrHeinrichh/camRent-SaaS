@@ -9,7 +9,7 @@ const itemSchema = new Schema(
     deposit_amount: { type: Number, default: 0 },
     image_url: { type: String, default: '' },
     category: { type: String, default: '' },
-    brand: { type: String, default: 'Others' },
+    brand: { type: String, default: '' },
     stock: { type: Number, default: 1, min: 0 },
     is_available: { type: Boolean, default: true },
   },

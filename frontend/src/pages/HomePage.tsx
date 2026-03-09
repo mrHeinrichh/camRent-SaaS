@@ -4,6 +4,7 @@ import { useAppStore } from '@/src/store';
 import type { Announcement, Store } from '@/src/types/domain';
 import { Button } from '@/src/components/ui';
 import { AppFooter } from '@/src/components/layout/AppFooter';
+import { EmptyState } from '@/src/components/EmptyState';
 import { siteTheme } from '@/src/config/siteTheme';
 import { HomeFilterBar } from '@/src/features/home/components/HomeFilterBar';
 import { GearCard } from '@/src/features/home/components/GearCard';
@@ -279,6 +280,13 @@ export function HomePage({ onNavigate }: HomePageProps) {
             ))}
           </div>
         )}
+        {activeTotal === 0 ? (
+          <EmptyState
+            title="No Data Available"
+            message="This section is not available as of the moment. Try again later or change your filters."
+            className="mt-4"
+          />
+        ) : null}
 
         <div className="mt-8 flex flex-col items-start justify-between gap-3 rounded-2xl border border-[var(--tone-border)] bg-[var(--tone-surface)] p-3 sm:flex-row sm:items-center">
           <p className="text-sm text-[var(--tone-text-muted)]">

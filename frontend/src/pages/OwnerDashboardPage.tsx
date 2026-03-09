@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '@/src/lib/api';
-import type { Booking, FraudListEntry, Item, ManualBlock, OwnerApplication, OwnerDashboardData, RentalFormField, RentalFormSchemaResponse, SupportTicket } from '@/src/types/domain';
+import type { Booking, FraudListEntry, Item, ManualBlock, OwnerApplication, OwnerDashboardData, RentalFormField, RentalFormSchemaResponse, SupportTicket, Voucher } from '@/src/types/domain';
 import { exportRowsToCsv } from '@/src/lib/export';
 import { Button } from '@/src/components/ui';
 import type { ItemEditor, OwnerTab } from '@/src/features/owner-dashboard/types';
@@ -87,6 +87,7 @@ export function OwnerDashboardPage() {
     contact_number: '',
   });
   const [supportTickets, setSupportTickets] = useState<SupportTicket[]>([]);
+  const [vouchers, setVouchers] = useState<Voucher[]>([]);
   const [ownerNotice, setOwnerNotice] = useState<{ title: string; message: string } | null>(null);
 
   const loadData = async () => {
@@ -129,6 +130,12 @@ export function OwnerDashboardPage() {
         setSupportTickets(tickets);
       } catch {
         setSupportTickets([]);
+      }
+      try {
+        const vouchersData = await api.get<Voucher[]>('/api/owner/vouchers');
+        setVouchers(vouchersData);
+      } catch {
+        setVouchers([]);
       }
       setData(stats);
       setApplications(apps);
@@ -385,6 +392,14 @@ export function OwnerDashboardPage() {
         ['Reserved', data?.ownerAnalytics?.reservedCount || 0],
       ],
     );
+  };
+
+  const createVoucher = async (payload: { code: string; discount_amount: number; is_active?: boolean }) => {
+    await withReload(() => api.post('/api/owner/vouchers', payload), 'Voucher created');
+  };
+
+  const updateVoucher = async (id: string, payload: { code?: string; discount_amount?: number; is_active?: boolean; is_used?: boolean }) => {
+    await withReload(() => api.put(`/api/owner/vouchers/${id}`, payload), 'Voucher updated');
   };
 
   const exportInventoryExcel = () => {
@@ -667,6 +682,9 @@ export function OwnerDashboardPage() {
           onUpdateSupportTicket={updateSupportTicket}
           onDeleteSupportTicket={deleteSupportTicket}
           onSaveStoreProfile={saveStoreProfile}
+          vouchers={vouchers}
+          onCreateVoucher={createVoucher}
+          onUpdateVoucher={updateVoucher}
         />
 
         <OwnerModals

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '@/src/lib/api';
 import { exportRowsToCsv } from '@/src/lib/export';
-import type { AdminDashboardData, Announcement, FraudAnalytics, FraudListEntry, SupportTicket } from '@/src/types/domain';
+import type { AdminDashboardData, Announcement, DonationSettings, FraudAnalytics, FraudListEntry, SupportTicket } from '@/src/types/domain';
 import type { AdminTab, EditFraudForm } from '@/src/features/admin-dashboard/types';
 import { AdminSidebar } from '@/src/features/admin-dashboard/components/AdminSidebar';
 import { StoresTab } from '@/src/features/admin-dashboard/components/StoresTab';
@@ -11,6 +11,7 @@ import { InsightsTab } from '@/src/features/admin-dashboard/components/InsightsT
 import { EditFraudModal } from '@/src/features/admin-dashboard/components/EditFraudModal';
 import { SupportTab } from '@/src/features/admin-dashboard/components/SupportTab';
 import { AnnouncementsTab } from '@/src/features/admin-dashboard/components/AnnouncementsTab';
+import { DonationsTab } from '@/src/features/admin-dashboard/components/DonationsTab';
 
 const defaultEditFraudForm: EditFraudForm = {
   full_name: '',
@@ -29,6 +30,18 @@ export function AdminDashboardPage() {
   const [fraudList, setFraudList] = useState<FraudListEntry[]>([]);
   const [analytics, setAnalytics] = useState<FraudAnalytics | null>(null);
   const [supportTickets, setSupportTickets] = useState<SupportTicket[]>([]);
+  const [donationSaving, setDonationSaving] = useState(false);
+  const [donationForm, setDonationForm] = useState<{
+    message: string;
+    is_active: boolean;
+    qr_codes: Array<{ label: string; url: string; file: File | null }>;
+    bank_details: Array<{ label: string; account_name: string; account_number: string; notes: string }>;
+  }>({
+    message: '',
+    is_active: true,
+    qr_codes: [],
+    bank_details: [],
+  });
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [announcementSaving, setAnnouncementSaving] = useState(false);
   const [editingAnnouncementId, setEditingAnnouncementId] = useState<string | null>(null);
@@ -65,18 +78,30 @@ export function AdminDashboardPage() {
   });
 
   const loadData = async () => {
-    const [storesData, list, analyticsData, supportData, announcementData] = await Promise.all([
+    const [storesData, list, analyticsData, supportData, announcementData, donationData] = await Promise.all([
       api.get<AdminDashboardData>('/api/dashboard/admin'),
       api.get<FraudListEntry[]>('/api/admin/fraud-list'),
       api.get<FraudAnalytics>('/api/admin/fraud-analytics'),
       api.get<SupportTicket[]>('/api/admin/support-tickets'),
       api.get<Announcement[]>('/api/admin/announcements'),
+      api.get<DonationSettings>('/api/admin/donation-settings'),
     ]);
     setStores(storesData);
     setFraudList(list);
     setAnalytics(analyticsData);
     setSupportTickets(supportData);
     setAnnouncements(announcementData);
+    setDonationForm({
+      message: donationData?.message || '',
+      is_active: donationData?.is_active !== false,
+      qr_codes: (donationData?.qr_codes || []).map((entry) => ({ label: entry.label || '', url: entry.url || '', file: null })),
+      bank_details: (donationData?.bank_details || []).map((entry) => ({
+        label: entry.label || '',
+        account_name: entry.account_name || '',
+        account_number: entry.account_number || '',
+        notes: entry.notes || '',
+      })),
+    });
   };
 
   useEffect(() => {
@@ -104,6 +129,28 @@ export function AdminDashboardPage() {
 
   const handleToggleCustomerActive = async (id: string, isActive: boolean) => {
     await api.post(`/api/admin/customers/${id}/active`, { isActive });
+    await loadData();
+  };
+
+  const promptAdminPassword = () => {
+    const password = prompt('Enter your admin password to continue this delete action:');
+    if (!password || !password.trim()) return null;
+    return password.trim();
+  };
+
+  const handleDeleteStore = async (id: string) => {
+    if (!confirm('Delete this store and all its related data? This cannot be undone.')) return;
+    const adminPassword = promptAdminPassword();
+    if (!adminPassword) return;
+    await api.post(`/api/admin/stores/${id}/delete`, { admin_password: adminPassword });
+    await loadData();
+  };
+
+  const handleDeleteUser = async (id: string) => {
+    if (!confirm('Delete this user and related data? This cannot be undone.')) return;
+    const adminPassword = promptAdminPassword();
+    if (!adminPassword) return;
+    await api.post(`/api/admin/users/${id}/delete`, { admin_password: adminPassword });
     await loadData();
   };
 
@@ -194,7 +241,7 @@ export function AdminDashboardPage() {
   const exportStoresExcel = () => {
     exportRowsToCsv(
       'superadmin_stores.csv',
-      ['Store', 'Status', 'Active', 'Approved Date', 'Due Date', 'Income', 'Assets Value', 'Assets Count', 'Customers'],
+      ['Store', 'Status', 'Active', 'Approved Date', 'Due Date', 'Due Days Remaining', 'Near Due', 'Overdue', 'Income', 'Assets Value', 'Assets Count', 'Customers', 'Avg Rating', 'Total Reviews'],
       (stores?.storeInsights || []).map((entry) => {
         const store = stores?.allStores.find((item) => item.id === entry.store_id);
         return [
@@ -203,10 +250,15 @@ export function AdminDashboardPage() {
           store?.is_active ? 'active' : 'inactive',
           store?.approved_at || '',
           store?.payment_due_date || '',
+          entry.due_days_remaining ?? '',
+          entry.near_due ? 'yes' : 'no',
+          entry.overdue ? 'yes' : 'no',
           entry.income,
           entry.assets_value,
           entry.assets_count,
           entry.customers_count,
+          Number(entry.average_rating || 0).toFixed(2),
+          entry.total_reviews || 0,
         ];
       }),
     );
@@ -221,10 +273,22 @@ export function AdminDashboardPage() {
   };
 
   const exportCustomersExcel = () => {
+    const insightByEmail = new Map((stores?.customerInsights || []).map((entry) => [String(entry.email || '').toLowerCase(), entry]));
     exportRowsToCsv(
       'superadmin_customers.csv',
-      ['Name', 'Email', 'Active'],
-      (stores?.customers || []).map((customer) => [customer.full_name, customer.email, customer.is_active === false ? 'disabled' : 'active']),
+      ['Name', 'Email', 'Active', 'Transactions', 'Successful', 'Total Spent', 'Last Transaction'],
+      (stores?.customers || []).map((customer) => {
+        const insight = insightByEmail.get(String(customer.email || '').toLowerCase());
+        return [
+          customer.full_name,
+          customer.email,
+          customer.is_active === false ? 'disabled' : 'active',
+          insight?.transaction_count || 0,
+          insight?.successful_transactions || 0,
+          insight?.total_spent || 0,
+          insight?.last_transaction_at || '',
+        ];
+      }),
     );
   };
 
@@ -324,6 +388,40 @@ export function AdminDashboardPage() {
     await loadData();
   };
 
+  const handleSaveDonationSettings = async () => {
+    try {
+      setDonationSaving(true);
+      const qrCodes = await Promise.all(
+        donationForm.qr_codes.map(async (entry) => {
+          if (entry.file) {
+            const form = new FormData();
+            form.append('file', entry.file);
+            const upload = await api.post<{ url: string }>('/api/upload/public', form);
+            return { label: entry.label.trim(), url: upload.url };
+          }
+          return { label: entry.label.trim(), url: entry.url.trim() };
+        }),
+      );
+      await api.put('/api/admin/donation-settings', {
+        message: donationForm.message.trim(),
+        is_active: donationForm.is_active,
+        qr_codes: qrCodes.filter((entry) => entry.url),
+        bank_details: donationForm.bank_details
+          .map((entry) => ({
+            label: entry.label.trim(),
+            account_name: entry.account_name.trim(),
+            account_number: entry.account_number.trim(),
+            notes: entry.notes.trim(),
+          }))
+          .filter((entry) => entry.label || entry.account_name || entry.account_number || entry.notes),
+      });
+      await loadData();
+      alert('Donation settings updated');
+    } finally {
+      setDonationSaving(false);
+    }
+  };
+
   const exportAnnouncementsExcel = () => {
     exportRowsToCsv(
       'superadmin_announcements.csv',
@@ -341,21 +439,47 @@ export function AdminDashboardPage() {
     );
   };
 
+  const exportDonationsExcel = () => {
+    exportRowsToCsv(
+      'superadmin_donations.csv',
+      ['Message', 'Active', 'QR Label', 'QR URL', 'Bank Label', 'Account Name', 'Account Number', 'Notes'],
+      [
+        ...donationForm.qr_codes.map((entry) => [donationForm.message, donationForm.is_active ? 'yes' : 'no', entry.label, entry.url, '', '', '', '']),
+        ...donationForm.bank_details.map((entry) => [donationForm.message, donationForm.is_active ? 'yes' : 'no', '', '', entry.label, entry.account_name, entry.account_number, entry.notes]),
+      ],
+    );
+  };
+
   return (
-    <div className="flex min-h-[calc(100vh-64px)]">
-      <AdminSidebar activeTab={activeTab} onChangeTab={setActiveTab} />
-      <main className="flex-1 overflow-auto p-8">
+    <div className="flex min-h-[calc(100vh-64px)] flex-col md:flex-row">
+      <AdminSidebar
+        activeTab={activeTab}
+        onChangeTab={setActiveTab}
+        pendingMerchants={stores?.systemSummary?.pendingMerchants || stores?.pendingStores?.length || 0}
+        nearDueStores={stores?.systemSummary?.nearDueStores || 0}
+        pendingGlobalFraud={stores?.systemSummary?.pendingGlobalFraud || 0}
+        feedbackCount={stores?.systemSummary?.totalFeedback || 0}
+      />
+      <main className="flex-1 overflow-auto p-4 md:p-8">
         {activeTab === 'stores' && stores && (
           <StoresTab
             stores={stores}
             onExport={exportStoresExcel}
             onApproveStore={handleApproveStore}
             onToggleStoreActive={handleToggleStoreActive}
+            onDeleteStore={handleDeleteStore}
+            onDeleteUser={handleDeleteUser}
           />
         )}
 
         {activeTab === 'customers' && stores && (
-          <CustomersTab customers={stores.customers || []} onExport={exportCustomersExcel} onToggleCustomerActive={handleToggleCustomerActive} />
+          <CustomersTab
+            customers={stores.customers || []}
+            customerInsights={stores.customerInsights || []}
+            onExport={exportCustomersExcel}
+            onToggleCustomerActive={handleToggleCustomerActive}
+            onDeleteCustomer={handleDeleteUser}
+          />
         )}
 
         {activeTab === 'fraud' && (
@@ -390,6 +514,16 @@ export function AdminDashboardPage() {
             onEdit={handleEditAnnouncement}
             onDelete={handleDeleteAnnouncement}
             onExport={exportAnnouncementsExcel}
+          />
+        )}
+
+        {activeTab === 'donations' && (
+          <DonationsTab
+            form={donationForm}
+            saving={donationSaving}
+            onChange={(next) => setDonationForm((prev) => ({ ...prev, ...next }))}
+            onSave={handleSaveDonationSettings}
+            onExport={exportDonationsExcel}
           />
         )}
       </main>

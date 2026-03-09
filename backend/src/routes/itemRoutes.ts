@@ -106,7 +106,7 @@ itemRoutes.put('/:id', authenticate, checkRole(['owner']), async (req: AuthedReq
   item.deposit_amount = Number.isFinite(Number(deposit_amount)) ? Number(deposit_amount) : item.deposit_amount;
   item.image_url = image_url ?? item.image_url;
   item.category = category ?? item.category;
-  item.brand = String(brand || item.brand || 'Others').trim() || 'Others';
+  item.brand = String(brand || item.brand || '').trim() || '';
   if (typeof is_available === 'boolean') item.is_available = is_available;
   if (Number.isFinite(Number(stock))) item.stock = Math.max(0, Math.floor(Number(stock)));
   await item.save();
@@ -151,7 +151,7 @@ itemRoutes.post('/', authenticate, checkRole(['owner']), async (req: AuthedReque
     deposit_amount: Number.isFinite(Number(deposit_amount)) ? Number(deposit_amount) : 0,
     image_url,
     category,
-    brand: String(brand || 'Others').trim() || 'Others',
+    brand: String(brand || '').trim() || '',
     is_available: typeof is_available === 'boolean' ? is_available : true,
     stock: Number.isFinite(Number(stock)) ? Math.max(0, Math.floor(Number(stock))) : 1,
   });

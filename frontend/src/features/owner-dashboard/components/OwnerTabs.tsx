@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { format, parseISO } from 'date-fns';
-import { Ban, CalendarDays, CalendarRange, Camera, ChevronRight, Clock3, CreditCard, Download, ExternalLink, Facebook, FileText, Globe, Instagram, Mail, MapPin, MessageSquare, Music2, Package, Pencil, Phone, Send, ShieldAlert, Trash2, Truck, User } from 'lucide-react';
+import { Ban, CalendarDays, CalendarRange, Camera, ChevronRight, Clock3, CreditCard, Download, ExternalLink, Facebook, FileText, Globe, Instagram, Mail, MapPin, MessageSquare, Music2, Package, Pencil, Phone, Send, ShieldAlert, TicketPercent, Trash2, Truck, User } from 'lucide-react';
+import { PaginationControls } from '@/src/components/PaginationControls';
 import { PeriodCalendar } from '@/src/components/PeriodCalendar';
 import { Button, Card, Input, cn } from '@/src/components/ui';
+import { EmptyState } from '@/src/components/EmptyState';
 import { formatPHP } from '@/src/lib/currency';
 import { api } from '@/src/lib/api';
-import type { FraudListEntry, Item, ManualBlock, OwnerApplication, OwnerDashboardData, RentalFormField, SupportTicket } from '@/src/types/domain';
+import type { FraudListEntry, Item, ManualBlock, OwnerApplication, OwnerDashboardData, RentalFormField, SupportTicket, Voucher } from '@/src/types/domain';
 import type { OwnerTab } from '@/src/features/owner-dashboard/types';
 
 interface OwnerTabsProps {
@@ -79,6 +81,9 @@ interface OwnerTabsProps {
   onCreateSupportTicket: (payload: { type: SupportTicket['type']; priority: SupportTicket['priority']; subject: string; message: string }) => Promise<void>;
   onUpdateSupportTicket: (id: string, payload: { type?: SupportTicket['type']; priority?: SupportTicket['priority']; subject?: string; message?: string; status?: SupportTicket['status'] }) => Promise<void>;
   onDeleteSupportTicket: (id: string) => Promise<void>;
+  vouchers: Voucher[];
+  onCreateVoucher: (payload: { code: string; discount_amount: number; is_active?: boolean }) => Promise<void>;
+  onUpdateVoucher: (id: string, payload: { code?: string; discount_amount?: number; is_active?: boolean; is_used?: boolean }) => Promise<void>;
   onSaveStoreProfile: (payload: {
     name: string;
     description: string;
@@ -149,6 +154,9 @@ export function OwnerTabs({
   onCreateSupportTicket,
   onUpdateSupportTicket,
   onDeleteSupportTicket,
+  vouchers,
+  onCreateVoucher,
+  onUpdateVoucher,
   onSaveStoreProfile,
 }: OwnerTabsProps) {
   const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
@@ -178,6 +186,13 @@ export function OwnerTabs({
   });
   const [editingSupportId, setEditingSupportId] = useState<string | null>(null);
   const [supportBusy, setSupportBusy] = useState(false);
+  const [voucherForm, setVoucherForm] = useState<{ code: string; discount_amount: string }>({ code: '', discount_amount: '' });
+  const [editingVoucherId, setEditingVoucherId] = useState<string | null>(null);
+  const [editingVoucherForm, setEditingVoucherForm] = useState<{ code: string; discount_amount: string }>({ code: '', discount_amount: '' });
+  const [customerPage, setCustomerPage] = useState(1);
+  const [transactionPage, setTransactionPage] = useState(1);
+  const [applicationPage, setApplicationPage] = useState(1);
+  const [fraudPage, setFraudPage] = useState(1);
   const logoInputRef = useRef<HTMLInputElement | null>(null);
   const bannerInputRef = useRef<HTMLInputElement | null>(null);
   const [storeProfileForm, setStoreProfileForm] = useState({
@@ -196,6 +211,13 @@ export function OwnerTabs({
   });
 
   useEffect(() => {
+    const rawStore = (data.store || {}) as Record<string, any>;
+    const resolvedTiktok = String(rawStore.tiktok_url ?? rawStore.tiktokUrl ?? '').trim();
+    const resolvedCustomSocialLinks = Array.isArray(rawStore.custom_social_links)
+      ? rawStore.custom_social_links
+      : Array.isArray(rawStore.customSocialLinks)
+        ? rawStore.customSocialLinks
+        : [];
     setStoreProfileForm({
       name: data.store?.name || '',
       description: data.store?.description || '',
@@ -204,8 +226,8 @@ export function OwnerTabs({
       banner_url: data.store?.banner_url || '',
       facebook_url: data.store?.facebook_url || '',
       instagram_url: data.store?.instagram_url || '',
-      tiktok_url: data.store?.tiktok_url || '',
-      custom_social_links: (data.store?.custom_social_links && data.store.custom_social_links.length ? data.store.custom_social_links : ['']) as string[],
+      tiktok_url: resolvedTiktok,
+      custom_social_links: (resolvedCustomSocialLinks.length ? resolvedCustomSocialLinks : ['']) as string[],
       payment_details: data.store?.payment_details || '',
       location_lat: data.store?.location_lat != null ? String(data.store.location_lat) : '',
       location_lng: data.store?.location_lng != null ? String(data.store.location_lng) : '',
@@ -220,7 +242,63 @@ export function OwnerTabs({
         location_lng: branch.location_lng != null ? String(branch.location_lng) : '',
       })),
     );
-  }, [data.store?.id, data.store?.name, data.store?.description, data.store?.address, data.store?.logo_url, data.store?.banner_url, data.store?.facebook_url, data.store?.instagram_url, data.store?.tiktok_url, data.store?.custom_social_links, data.store?.payment_details, data.store?.payment_detail_images, data.store?.branches, data.store?.location_lat, data.store?.location_lng]);
+  }, [
+    data.store?.id,
+    data.store?.name,
+    data.store?.description,
+    data.store?.address,
+    data.store?.logo_url,
+    data.store?.banner_url,
+    data.store?.facebook_url,
+    data.store?.instagram_url,
+    data.store?.tiktok_url,
+    data.store?.custom_social_links,
+    (data.store as any)?.tiktokUrl,
+    (data.store as any)?.customSocialLinks,
+    data.store?.payment_details,
+    data.store?.payment_detail_images,
+    data.store?.branches,
+    data.store?.location_lat,
+    data.store?.location_lng,
+  ]);
+  const ownerPageSize = 8;
+  const customers = data.customers || [];
+  const transactions = data.recentTransactions || [];
+  const ownerFraudEntries = fraudEntries || [];
+  const applicationItems = applications || [];
+  const customerTotalPages = Math.max(1, Math.ceil(customers.length / ownerPageSize));
+  const transactionTotalPages = Math.max(1, Math.ceil(transactions.length / ownerPageSize));
+  const applicationTotalPages = Math.max(1, Math.ceil(applicationItems.length / ownerPageSize));
+  const fraudTotalPages = Math.max(1, Math.ceil(ownerFraudEntries.length / ownerPageSize));
+  const pagedCustomers = useMemo(() => customers.slice((customerPage - 1) * ownerPageSize, customerPage * ownerPageSize), [customers, customerPage]);
+  const pagedTransactions = useMemo(() => transactions.slice((transactionPage - 1) * ownerPageSize, transactionPage * ownerPageSize), [transactions, transactionPage]);
+  const pagedApplications = useMemo(() => applicationItems.slice((applicationPage - 1) * ownerPageSize, applicationPage * ownerPageSize), [applicationItems, applicationPage]);
+  const pagedFraudEntries = useMemo(() => ownerFraudEntries.slice((fraudPage - 1) * ownerPageSize, fraudPage * ownerPageSize), [ownerFraudEntries, fraudPage]);
+
+  useEffect(() => {
+    setCustomerPage(1);
+  }, [customers.length]);
+  useEffect(() => {
+    setTransactionPage(1);
+  }, [transactions.length]);
+  useEffect(() => {
+    setApplicationPage(1);
+  }, [applicationItems.length]);
+  useEffect(() => {
+    setFraudPage(1);
+  }, [ownerFraudEntries.length]);
+  useEffect(() => {
+    if (customerPage > customerTotalPages) setCustomerPage(customerTotalPages);
+  }, [customerPage, customerTotalPages]);
+  useEffect(() => {
+    if (transactionPage > transactionTotalPages) setTransactionPage(transactionTotalPages);
+  }, [transactionPage, transactionTotalPages]);
+  useEffect(() => {
+    if (applicationPage > applicationTotalPages) setApplicationPage(applicationTotalPages);
+  }, [applicationPage, applicationTotalPages]);
+  useEffect(() => {
+    if (fraudPage > fraudTotalPages) setFraudPage(fraudTotalPages);
+  }, [fraudPage, fraudTotalPages]);
 
   const itemColorMap = useMemo(() => {
     const palette = ['#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#14b8a6', '#f97316', '#84cc16'];
@@ -575,8 +653,10 @@ export function OwnerTabs({
                     {(paymentDetailImageUrls.length || paymentDetailImageFiles.length) ? (
                       <div className="grid grid-cols-2 gap-2 md:grid-cols-6">
                         {paymentDetailImageUrls.map((url, index) => (
-                          <div key={`${url}-${index}`} className="relative overflow-hidden rounded border">
-                            <img src={url} alt={`Payment detail ${index + 1}`} className="h-20 w-full object-cover" />
+                          <div key={`${url}-${index}`} className="relative overflow-hidden rounded border bg-muted/20 p-1">
+                            <div className="flex h-24 items-center justify-center overflow-hidden rounded bg-background">
+                              <img src={url} alt={`Payment detail ${index + 1}`} className="h-full w-full object-contain" />
+                            </div>
                             <Button
                               type="button"
                               variant="secondary"
@@ -589,8 +669,10 @@ export function OwnerTabs({
                           </div>
                         ))}
                         {paymentDetailImageFiles.map((file, index) => (
-                          <div key={`${file.name}-${index}`} className="overflow-hidden rounded border">
-                            <img src={URL.createObjectURL(file)} alt={file.name} className="h-20 w-full object-cover" />
+                          <div key={`${file.name}-${index}`} className="overflow-hidden rounded border bg-muted/20 p-1">
+                            <div className="flex h-24 items-center justify-center overflow-hidden rounded bg-background">
+                              <img src={URL.createObjectURL(file)} alt={file.name} className="h-full w-full object-contain" />
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -783,8 +865,10 @@ export function OwnerTabs({
                   {paymentDetailImageUrls.length ? (
                     <div className="mt-1 grid grid-cols-2 gap-2 md:grid-cols-6">
                       {paymentDetailImageUrls.map((url, index) => (
-                        <a key={`${url}-${index}`} href={url} target="_blank" rel="noreferrer" className="block overflow-hidden rounded border">
-                          <img src={url} alt={`Payment reference ${index + 1}`} className="h-60 w-full object-cover" />
+                        <a key={`${url}-${index}`} href={url} target="_blank" rel="noreferrer" className="block overflow-hidden rounded border bg-muted/20 p-2">
+                          <div className="flex h-48 items-center justify-center overflow-hidden rounded bg-background">
+                            <img src={url} alt={`Payment reference ${index + 1}`} className="h-full w-full object-contain" />
+                          </div>
                         </a>
                       ))}
                     </div>
@@ -957,7 +1041,7 @@ export function OwnerTabs({
             </Button>
           </div>
           <div className="space-y-4">
-            {(data.customers || []).map((customer) => (
+            {pagedCustomers.map((customer) => (
               <Card key={customer.renter_email} className="space-y-4 p-5">
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_auto] md:items-start">
                   <div className="space-y-1.5">
@@ -1137,7 +1221,10 @@ export function OwnerTabs({
                 )}
               </Card>
             ))}
-            {!(data.customers || []).length && <p className="text-sm text-muted-foreground">No customers yet.</p>}
+            {!(data.customers || []).length && (
+              <EmptyState title="No Customers Yet" message="Customer data is not available as of the moment. Please try again later." />
+            )}
+            <PaginationControls page={customerPage} totalPages={customerTotalPages} totalItems={customers.length} pageSize={ownerPageSize} onPageChange={setCustomerPage} />
           </div>
         </div>
       )}
@@ -1151,7 +1238,7 @@ export function OwnerTabs({
             </Button>
           </div>
           <div className="space-y-4">
-            {(data.recentTransactions || []).map((transaction) => {
+            {pagedTransactions.map((transaction) => {
               const docs = (transaction.documents || []).filter((doc) => doc.url);
               return (
                 <Card key={transaction.id} className="space-y-4 p-5">
@@ -1306,7 +1393,10 @@ export function OwnerTabs({
                 </Card>
               );
             })}
-            {!(data.recentTransactions || []).length && <p className="text-sm text-muted-foreground">No transactions yet.</p>}
+            {!(data.recentTransactions || []).length && (
+              <EmptyState title="No Transactions Yet" message="Recent transaction data is not available as of the moment. Please try again later." />
+            )}
+            <PaginationControls page={transactionPage} totalPages={transactionTotalPages} totalItems={transactions.length} pageSize={ownerPageSize} onPageChange={setTransactionPage} />
           </div>
         </div>
       )}
@@ -1315,10 +1405,9 @@ export function OwnerTabs({
         <div className="space-y-6">
           <h1 className="text-3xl font-bold">Rental Applications</h1>
           <div className="grid grid-cols-1 gap-4">
-            {applications.map((application) => (
-              <Card key={application.id} className="cursor-pointer space-y-3 p-5 transition-colors hover:bg-muted/10" onClick={() => onSelectApplication(application)}>
-                <div className="flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-4">
+            {pagedApplications.map((application) => (
+              <Card key={application.id} className="w-full cursor-pointer space-y-3 p-5 text-left transition-colors hover:bg-muted/10" onClick={() => onSelectApplication(application)}>
+                <div className="flex items-start gap-4 text-left">
                     <div
                       className={cn(
                         'relative flex h-12 w-12 items-center justify-center rounded-full',
@@ -1336,19 +1425,18 @@ export function OwnerTabs({
                       <h3 className="font-bold">{application.renter_name}</h3>
                       <p className="text-sm text-muted-foreground">{application.renter_email}</p>
                       <p className="text-sm text-muted-foreground">{application.renter_phone}</p>
+                      <div className="mt-2 flex items-center gap-2">
+                        <span
+                          className={cn(
+                            'rounded-full px-3 py-1 text-xs font-bold',
+                            application.status === 'PENDING_REVIEW' ? 'bg-yellow-100 text-yellow-700' : application.status === 'APPROVED' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700',
+                          )}
+                        >
+                          {application.status.replace(/_/g, ' ')}
+                        </span>
+                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <span
-                      className={cn(
-                        'rounded-full px-3 py-1 text-xs font-bold',
-                        application.status === 'PENDING_REVIEW' ? 'bg-yellow-100 text-yellow-700' : application.status === 'APPROVED' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700',
-                      )}
-                    >
-                      {application.status.replace(/_/g, ' ')}
-                    </span>
-                    <ChevronRight className="h-5 w-5 text-muted-foreground" />
-                  </div>
                 </div>
                 <div className="grid grid-cols-1 gap-2 text-sm md:grid-cols-3">
                   <div className="rounded-lg bg-muted/40 p-2">
@@ -1372,6 +1460,10 @@ export function OwnerTabs({
                 </div>
               </Card>
             ))}
+            {!applications.length ? (
+              <EmptyState title="No Applications Yet" message="Rental applications are not available as of the moment. Please try again later." />
+            ) : null}
+            <PaginationControls page={applicationPage} totalPages={applicationTotalPages} totalItems={applicationItems.length} pageSize={ownerPageSize} onPageChange={setApplicationPage} />
           </div>
         </div>
       )}
@@ -1458,6 +1550,9 @@ export function OwnerTabs({
               </tbody>
             </table>
           </Card>
+          {!filteredInventory.length ? (
+            <EmptyState title="No Inventory Data" message="Inventory data is not available as of the moment. Please try again later." />
+          ) : null}
         </div>
       )}
 
@@ -1682,7 +1777,7 @@ export function OwnerTabs({
                 </tr>
               </thead>
               <tbody>
-                {fraudEntries.map((entry) => (
+                {pagedFraudEntries.map((entry) => (
                   <tr key={entry.id} className="border-t transition-colors hover:bg-muted/30">
                     <td className="p-4">
                       <p className="font-medium">{entry.full_name}</p>
@@ -1694,22 +1789,56 @@ export function OwnerTabs({
                     <td className="p-4">
                       <p className="text-sm">{entry.reason}</p>
                       {entry.evidence_image_url ? (
-                        <a href={entry.evidence_image_url} target="_blank" rel="noreferrer" className="text-xs underline">
-                          View evidence
-                        </a>
+                        <div className="mt-2">
+                          <p className="mb-1 text-xs font-semibold text-muted-foreground">Evidence</p>
+                          <button type="button" className="h-24 w-24 overflow-hidden rounded border" onClick={() => setPreviewImageUrl(entry.evidence_image_url || '')}>
+                            <img src={entry.evidence_image_url} alt="Evidence" className="h-full w-full object-cover" />
+                          </button>
+                        </div>
                       ) : null}
                       {(entry.requirement_files || []).length ? (
                         <div className="mt-2 grid grid-cols-2 gap-2">
                           {(entry.requirement_files || []).map((file, index) => (
-                            <a
-                              key={`${entry.id}-req-${index}`}
-                              href={file.url}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="truncate rounded border px-2 py-1 text-xs underline"
-                            >
-                              {file.type || `Requirement ${index + 1}`}
-                            </a>
+                            /\.(png|jpg|jpeg|webp|gif)$/i.test(file.url) ? (
+                              <button
+                                key={`${entry.id}-req-${index}`}
+                                type="button"
+                                className="overflow-hidden rounded border bg-white"
+                                onClick={() => setPreviewImageUrl(file.url)}
+                              >
+                                <img src={file.url} alt={file.type || `Requirement ${index + 1}`} className="h-20 w-full object-cover" />
+                                <p className="truncate px-1 py-1 text-[10px] font-semibold">{file.type || `Requirement ${index + 1}`}</p>
+                              </button>
+                            ) : (
+                              <div key={`${entry.id}-req-${index}`} className="rounded border bg-white p-2">
+                                <div className="mb-2 flex items-center gap-1 text-[10px] font-semibold">
+                                  <FileText className="h-3 w-3" /> {file.type || `Requirement ${index + 1}`}
+                                </div>
+                                <div className="grid grid-cols-2 gap-1">
+                                  <button
+                                    type="button"
+                                    className="inline-flex items-center justify-center gap-1 rounded border px-1 py-1 text-[10px] font-semibold"
+                                    onClick={async () => {
+                                      try {
+                                        const access = await resolveFileAccess(file.url);
+                                        setPreviewFile({ url: access.view_url, type: file.type || `Requirement ${index + 1}`, sourceUrl: file.url });
+                                      } catch (error: any) {
+                                        alert(error?.message || 'Failed to preview file');
+                                      }
+                                    }}
+                                  >
+                                    <ExternalLink className="h-3 w-3" /> View
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="inline-flex items-center justify-center gap-1 rounded border px-1 py-1 text-[10px] font-semibold"
+                                    onClick={() => downloadFile(file.url, `${file.type || `requirement-${index + 1}`}.pdf`)}
+                                  >
+                                    <Download className="h-3 w-3" /> Save
+                                  </button>
+                                </div>
+                              </div>
+                            )
                           ))}
                         </div>
                       ) : null}
@@ -1728,7 +1857,139 @@ export function OwnerTabs({
                 ))}
               </tbody>
             </table>
+            <PaginationControls page={fraudPage} totalPages={fraudTotalPages} totalItems={ownerFraudEntries.length} pageSize={ownerPageSize} onPageChange={setFraudPage} />
           </Card>
+        </div>
+      )}
+
+      {activeTab === 'vouchers' && (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h1 className="text-3xl font-bold">Store Vouchers</h1>
+          </div>
+          <Card className="space-y-3 p-4">
+            <p className="text-sm font-semibold">Create Voucher</p>
+            <p className="text-xs text-muted-foreground">Voucher only works on the store who generates it and can only be used once. No delete, only disable or used/unused mark.</p>
+            <div className="grid grid-cols-1 gap-2 md:grid-cols-[1fr,220px,auto]">
+              <Input
+                placeholder="Code (e.g. WELCOME100)"
+                value={voucherForm.code}
+                onChange={(event) => setVoucherForm((prev) => ({ ...prev, code: event.target.value.toUpperCase() }))}
+              />
+              <Input
+                placeholder="Discount Amount"
+                type="number"
+                min="1"
+                value={voucherForm.discount_amount}
+                onChange={(event) => setVoucherForm((prev) => ({ ...prev, discount_amount: event.target.value }))}
+              />
+              <Button
+                onClick={async () => {
+                  const code = voucherForm.code.trim().toUpperCase();
+                  const discount = Number(voucherForm.discount_amount);
+                  if (!code) return alert('Voucher code is required');
+                  if (!Number.isFinite(discount) || discount <= 0) return alert('Discount amount must be greater than 0');
+                  await onCreateVoucher({ code, discount_amount: discount, is_active: true });
+                  setVoucherForm({ code: '', discount_amount: '' });
+                }}
+              >
+                <TicketPercent className="mr-2 h-4 w-4" /> Generate
+              </Button>
+            </div>
+          </Card>
+          <div className="space-y-3">
+            {vouchers.map((voucher) => (
+              <Card key={voucher.id} className="space-y-3 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    {editingVoucherId === voucher.id ? (
+                      <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                        <Input
+                          value={editingVoucherForm.code}
+                          onChange={(event) => setEditingVoucherForm((prev) => ({ ...prev, code: event.target.value.toUpperCase() }))}
+                          placeholder="Voucher code"
+                        />
+                        <Input
+                          type="number"
+                          min="1"
+                          value={editingVoucherForm.discount_amount}
+                          onChange={(event) => setEditingVoucherForm((prev) => ({ ...prev, discount_amount: event.target.value }))}
+                          placeholder="Discount amount"
+                        />
+                      </div>
+                    ) : (
+                      <>
+                        <p className="text-lg font-bold">{voucher.code}</p>
+                        <p className="text-sm text-muted-foreground">Discount: {formatPHP(Number(voucher.discount_amount || 0))}</p>
+                      </>
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      Status: {voucher.is_used ? 'USED' : 'UNUSED'} • Redemptions: {(voucher.usages || []).length}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${voucher.is_active ? 'bg-emerald-500' : 'bg-slate-300'}`}
+                      onClick={() => onUpdateVoucher(voucher.id, { is_active: !voucher.is_active })}
+                      aria-label="Toggle voucher status"
+                    >
+                      <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${voucher.is_active ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                    </button>
+                    <Button variant="outline" size="sm" onClick={() => onUpdateVoucher(voucher.id, { is_used: !Boolean(voucher.is_used) })}>
+                      Mark {voucher.is_used ? 'Unused' : 'Used'}
+                    </Button>
+                    {editingVoucherId === voucher.id ? (
+                      <>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={async () => {
+                            const code = editingVoucherForm.code.trim().toUpperCase();
+                            const discount = Number(editingVoucherForm.discount_amount);
+                            if (!code) return alert('Voucher code is required');
+                            if (!Number.isFinite(discount) || discount <= 0) return alert('Discount amount must be greater than 0');
+                            await onUpdateVoucher(voucher.id, { code, discount_amount: discount });
+                            setEditingVoucherId(null);
+                            setEditingVoucherForm({ code: '', discount_amount: '' });
+                          }}
+                        >
+                          Save
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setEditingVoucherId(null);
+                            setEditingVoucherForm({ code: '', discount_amount: '' });
+                          }}
+                        >
+                          Cancel
+                        </Button>
+                      </>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setEditingVoucherId(voucher.id);
+                          setEditingVoucherForm({
+                            code: voucher.code || '',
+                            discount_amount: String(Number(voucher.discount_amount || 0)),
+                          });
+                        }}
+                      >
+                        Edit
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </Card>
+            ))}
+            {!vouchers.length ? (
+              <EmptyState title="No Vouchers Yet" message="Generate your first voucher for this store." />
+            ) : null}
+          </div>
         </div>
       )}
 

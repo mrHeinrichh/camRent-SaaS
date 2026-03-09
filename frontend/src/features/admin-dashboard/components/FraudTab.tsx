@@ -1,4 +1,6 @@
+import { useEffect, useMemo, useState } from 'react';
 import { Globe, Search, Trash2 } from 'lucide-react';
+import { PaginationControls } from '@/src/components/PaginationControls';
 import { Button, Card, Input } from '@/src/components/ui';
 import type { FraudListEntry } from '@/src/types/domain';
 
@@ -36,13 +38,29 @@ export function FraudTab({
   onDelete,
   onExport,
 }: FraudTabProps) {
+  const PAGE_SIZE = 10;
+  const [page, setPage] = useState(1);
+  const totalPages = Math.max(1, Math.ceil(fraudList.length / PAGE_SIZE));
+  const pagedFraudList = useMemo(() => {
+    const startIndex = (page - 1) * PAGE_SIZE;
+    return fraudList.slice(startIndex, startIndex + PAGE_SIZE);
+  }, [fraudList, page]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [fraudList.length, fraudSearch]);
+
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
+
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-3xl font-bold">Fraud Management</h1>
-        <div className="flex gap-2">
+        <div className="flex w-full flex-wrap gap-2 md:w-auto">
           <Button variant="outline" onClick={onExport}>Export Fraud Excel</Button>
-          <div className="relative w-64">
+          <div className="relative w-full md:w-64">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input className="pl-9" placeholder="Search fraud list..." value={fraudSearch} onChange={(event) => onFraudSearchChange(event.target.value)} />
           </div>
@@ -87,7 +105,8 @@ export function FraudTab({
       </Card>
 
       <Card className="overflow-hidden">
-        <table className="w-full border-collapse text-left">
+        <div className="overflow-x-auto">
+        <table className="min-w-[980px] w-full border-collapse text-left">
           <thead className="bg-muted/50">
             <tr>
               <th className="p-4 text-sm font-semibold">Reported Person</th>
@@ -99,7 +118,7 @@ export function FraudTab({
             </tr>
           </thead>
           <tbody>
-            {fraudList.map((entry) => (
+            {pagedFraudList.map((entry) => (
               <tr key={entry.id} className="border-t transition-colors hover:bg-muted/30">
                 <td className="p-4">
                   <p className="font-medium">{entry.full_name}</p>
@@ -154,6 +173,8 @@ export function FraudTab({
             ))}
           </tbody>
         </table>
+        </div>
+        <PaginationControls page={page} totalPages={totalPages} totalItems={fraudList.length} pageSize={PAGE_SIZE} onPageChange={setPage} />
       </Card>
     </div>
   );

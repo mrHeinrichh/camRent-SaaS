@@ -9,6 +9,7 @@ import { adminRoutes } from './routes/adminRoutes';
 import { authRoutes } from './routes/authRoutes';
 import { docsRoutes } from './routes/docsRoutes';
 import { itemRoutes } from './routes/itemRoutes';
+import { apiRateLimit } from './middleware/rateLimit';
 import { orderRoutes } from './routes/orderRoutes';
 import { ownerRoutes } from './routes/ownerRoutes';
 import { storeRoutes } from './routes/storeRoutes';
@@ -42,6 +43,7 @@ export async function startServer() {
   });
   app.use(express.json({ limit: '10mb' }));
   app.use('/uploads', express.static(uploadsDir));
+  app.use('/api', apiRateLimit);
 
   app.use('/docs', docsRoutes);
   app.use('/api/auth', authRoutes);

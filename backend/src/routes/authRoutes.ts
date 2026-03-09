@@ -3,8 +3,10 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { DEFAULT_STORE_BANNER_URL, DEFAULT_STORE_LOGO_URL, DEFAULT_USER_AVATAR_URL } from '../config/defaults';
 import { env } from '../config/env';
+import { authenticate, checkRole, requireAuth } from '../middleware/auth';
 import { Store } from '../models/Store';
 import { User } from '../models/User';
+import type { AuthedRequest } from '../types/auth';
 import { serialize } from '../utils/mongo';
 
 export const authRoutes = Router();
@@ -27,6 +29,8 @@ authRoutes.post('/register', async (req, res) => {
     instagram_url,
     tiktok_url,
     custom_social_links,
+    tiktokUrl,
+    customSocialLinks,
     payment_details,
     payment_detail_images,
     delivery_modes,
@@ -87,8 +91,10 @@ authRoutes.post('/register', async (req, res) => {
         location_lng: hasLocation ? lng : null,
         facebook_url: facebook_url || '',
         instagram_url: instagram_url || '',
-        tiktok_url: tiktok_url || '',
-        custom_social_links: Array.isArray(custom_social_links) ? custom_social_links.map((url: unknown) => String(url || '').trim()).filter(Boolean) : [],
+        tiktok_url: String(tiktok_url ?? tiktokUrl ?? '').trim(),
+        custom_social_links: Array.isArray(custom_social_links ?? customSocialLinks)
+          ? (custom_social_links ?? customSocialLinks).map((url: unknown) => String(url || '').trim()).filter(Boolean)
+          : [],
         payment_details: payment_details || '',
         payment_detail_images: Array.isArray(payment_detail_images) ? payment_detail_images.map((url: unknown) => String(url || '').trim()).filter(Boolean) : [],
         delivery_modes: Array.isArray(delivery_modes) ? delivery_modes.filter((mode) => typeof mode === 'string' && mode.trim()) : [],
@@ -140,4 +146,29 @@ authRoutes.post('/login', async (req, res) => {
   });
   const token = jwt.sign({ id: user._id.toString(), role: user.role, email: user.email }, env.jwtSecret);
   res.json({ token, user: serialize(user) });
+});
+
+authRoutes.put('/profile', authenticate, requireAuth, checkRole(['renter']), async (req: AuthedRequest, res) => {
+  const user = await User.findById(req.user!.id);
+  if (!user) return res.status(404).json({ error: 'User not found' });
+
+  const fullName = String(req.body?.full_name || '').trim();
+  const email = String(req.body?.email || '').trim().toLowerCase();
+  const avatarUrl = String(req.body?.avatar_url || '').trim();
+
+  if (!fullName) return res.status(400).json({ error: 'Full name is required' });
+  if (!email || !/^\S+@\S+\.\S+$/.test(email)) return res.status(400).json({ error: 'Valid email is required' });
+
+  if (email !== user.email) {
+    const exists = await User.findOne({ email }).lean();
+    if (exists) return res.status(400).json({ error: 'Email already exists' });
+    user.email = email;
+  }
+
+  user.full_name = fullName;
+  if (avatarUrl) user.avatar_url = avatarUrl;
+  await user.save();
+
+  const token = jwt.sign({ id: user._id.toString(), role: user.role, email: user.email }, env.jwtSecret);
+  res.json({ success: true, token, user: serialize(user as any) });
 });

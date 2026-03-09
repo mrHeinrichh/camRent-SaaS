@@ -1,4 +1,4 @@
-export type OwnerTab = 'overview' | 'applications' | 'inventory' | 'calendar' | 'customers' | 'transactions' | 'form' | 'fraud' | 'support';
+export type OwnerTab = 'overview' | 'applications' | 'inventory' | 'calendar' | 'customers' | 'transactions' | 'form' | 'fraud' | 'support' | 'vouchers';
 
 export type ItemEditor = {
   id?: string;

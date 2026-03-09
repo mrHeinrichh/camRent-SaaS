@@ -132,6 +132,8 @@ storeRoutes.post('/', authenticate, checkRole(['owner']), async (req: AuthedRequ
     instagram_url,
     tiktok_url,
     custom_social_links,
+    tiktokUrl,
+    customSocialLinks,
     payment_details,
     payment_detail_images,
     delivery_modes,
@@ -153,8 +155,10 @@ storeRoutes.post('/', authenticate, checkRole(['owner']), async (req: AuthedRequ
     banner_url: banner_url || DEFAULT_STORE_BANNER_URL,
     facebook_url: facebook_url || '',
     instagram_url: instagram_url || '',
-    tiktok_url: tiktok_url || '',
-    custom_social_links: Array.isArray(custom_social_links) ? custom_social_links.map((url: unknown) => String(url || '').trim()).filter(Boolean) : [],
+    tiktok_url: String(tiktok_url ?? tiktokUrl ?? '').trim(),
+    custom_social_links: Array.isArray(custom_social_links ?? customSocialLinks)
+      ? (custom_social_links ?? customSocialLinks).map((url: unknown) => String(url || '').trim()).filter(Boolean)
+      : [],
     payment_details: payment_details || '',
     payment_detail_images: Array.isArray(payment_detail_images) ? payment_detail_images.map((url: unknown) => String(url || '').trim()).filter(Boolean) : [],
     delivery_modes: Array.isArray(delivery_modes) ? delivery_modes.filter((mode) => typeof mode === 'string' && mode.trim()) : [],

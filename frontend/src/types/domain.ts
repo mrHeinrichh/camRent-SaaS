@@ -136,12 +136,24 @@ export interface OrderHistory {
   created_at: string;
   status: string;
   total_amount: number;
+  voucher_code?: string;
+  voucher_discount?: number;
+  renter_name?: string;
+  renter_email?: string;
+  renter_phone?: string;
+  renter_address?: string;
   renter_emergency_contact?: string;
   renter_emergency_contact_name?: string;
   store_branch_id?: string;
   store_branch_name?: string;
   store_branch_address?: string;
+  delivery_mode?: string;
+  delivery_address?: string;
+  payment_mode?: string;
   lease_agreement_submission_url?: string;
+  cancellation_reason?: string;
+  custom_answers?: Record<string, string>;
+  documents?: Array<{ type: string; url: string }>;
   items: OrderHistoryItem[];
 }
 
@@ -217,6 +229,26 @@ export interface Announcement {
   updated_at: string;
 }
 
+export interface DonationSettings {
+  id?: string | null;
+  message: string;
+  qr_codes: Array<{ label: string; url: string }>;
+  bank_details: Array<{ label: string; account_name?: string; account_number?: string; notes?: string }>;
+  is_active?: boolean;
+}
+
+export interface Voucher {
+  id: string;
+  store_id: string;
+  code: string;
+  discount_amount: number;
+  is_active: boolean;
+  is_used?: boolean;
+  usages?: Array<{ user_id?: string; email?: string; order_id?: string; used_at?: string }>;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface OwnerDashboardData {
   store?: Store;
   stats?: {
@@ -289,19 +321,104 @@ export interface AdminDashboardData {
   storeInsights?: Array<{
     store_id: string;
     store_name: string;
+    store_logo_url?: string;
+    owner_id?: string;
+    owner_name?: string;
+    owner_email?: string;
+    owner_avatar_url?: string;
     income: number;
     assets_value: number;
     assets_count: number;
     customers_count: number;
     pending_count: number;
     approved_count: number;
+    total_orders?: number;
+    total_items?: number;
+    average_rating?: number;
+    total_reviews?: number;
+    due_days_remaining?: number | null;
+    near_due?: boolean;
+    overdue?: boolean;
+    last_order_at?: string | null;
   }>;
   customers?: Array<User>;
+  customerInsights?: Array<{
+    customer_id: string;
+    full_name: string;
+    email: string;
+    is_active: boolean;
+    transaction_count: number;
+    successful_transactions: number;
+    total_spent: number;
+    last_transaction_at?: string | null;
+  }>;
+  topCustomers?: Array<{
+    customer_id: string;
+    full_name: string;
+    email: string;
+    is_active: boolean;
+    transaction_count: number;
+    successful_transactions: number;
+    total_spent: number;
+    last_transaction_at?: string | null;
+  }>;
+  topGears?: Array<{
+    item_id: string;
+    name: string;
+    brand: string;
+    category: string;
+    store_id: string;
+    store_name: string;
+    rent_count: number;
+    revenue_estimate: number;
+  }>;
+  topStores?: Array<{
+    store_id: string;
+    store_name: string;
+    store_logo_url?: string;
+    owner_id?: string;
+    owner_name?: string;
+    owner_email?: string;
+    owner_avatar_url?: string;
+    income: number;
+    assets_value: number;
+    assets_count: number;
+    customers_count: number;
+    pending_count: number;
+    approved_count: number;
+    total_orders?: number;
+    total_items?: number;
+    average_rating?: number;
+    total_reviews?: number;
+    due_days_remaining?: number | null;
+    near_due?: boolean;
+    overdue?: boolean;
+    last_order_at?: string | null;
+  }>;
+  recentRatings?: Array<{
+    id: string;
+    store_id: string;
+    store_name: string;
+    renter_name: string;
+    rating: number;
+    description: string;
+    created_at: string;
+  }>;
   systemSummary?: {
     totalIncome: number;
     totalAssetsValue: number;
     totalCustomers: number;
     disabledCustomers: number;
+    totalStores?: number;
+    pendingMerchants?: number;
+    nearDueStores?: number;
+    overdueStores?: number;
+    pendingGlobalFraud?: number;
+    totalFeedback?: number;
+    totalRatings?: number;
+    openSupportTickets?: number;
+    inProgressSupportTickets?: number;
+    resolvedSupportTickets?: number;
   };
 }
 

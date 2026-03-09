@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { CreditCard, Facebook, FileText, Globe, Instagram, MapPin, Music2, Truck } from 'lucide-react';
+import { CircleCheck, ClipboardList, CreditCard, Facebook, FileBadge2, FileText, Globe, Instagram, Mail, MapPin, Music2, Phone, Truck, User2 } from 'lucide-react';
 import { api } from '@/src/lib/api';
 import { formatPHP } from '@/src/lib/currency';
 import { useAppStore } from '@/src/store';
@@ -26,7 +26,7 @@ interface IdRequirementsResponse {
 }
 
 export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
-  const { cart, clearCart, user, setLastSubmittedApplication } = useAppStore();
+  const { cart, clearCart, user, setLastSubmittedApplication, appliedVoucher, setAppliedVoucher } = useAppStore();
   const [store, setStore] = useState<Store | null>(null);
   const [customFields, setCustomFields] = useState<RentalFormField[]>([]);
   const [customAnswers, setCustomAnswers] = useState<Record<string, string>>({});
@@ -75,7 +75,37 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
 
   const rentalSubtotal = useMemo(() => cart.reduce((sum, item) => sum + item.daily_price * Math.max(1, item.quantity || 1), 0), [cart]);
   const finalSecurityDeposit = store?.security_deposit || 0;
-  const totalAmount = rentalSubtotal + finalSecurityDeposit;
+  const voucherDiscount = appliedVoucher && appliedVoucher.store_id === cart[0]?.store_id ? Math.max(0, Number(appliedVoucher.discount_amount || 0)) : 0;
+  const totalAmount = Math.max(0, rentalSubtotal + finalSecurityDeposit - voucherDiscount);
+  const completion = useMemo(() => {
+    const checks = [
+      Boolean(formData.fullName.trim()),
+      Boolean(formData.email.trim()),
+      Boolean(formData.phone.trim()),
+      Boolean(formData.emergencyContactName.trim()),
+      Boolean(formData.emergencyContact.trim()),
+      Boolean(formData.presentAddress.trim()),
+      Boolean(formData.storeBranchId.trim() || store?.branches?.[0]?._id),
+      Boolean(formData.deliveryMode.trim()),
+      Boolean(formData.deliveryAddress.trim()),
+      Boolean(formData.paymentMode.trim()),
+      Boolean(billingAddressFile),
+      Boolean(documentFiles.id1_front),
+      Boolean(documentFiles.id1_back),
+      Boolean(documentFiles.id2_front),
+      Boolean(documentFiles.id2_back),
+      Boolean(documentFiles.selfie_id),
+      store?.lease_agreement_file_url ? Boolean(leaseAgreementSubmissionFile) : true,
+      Boolean(formData.agree),
+    ];
+    const completed = checks.filter(Boolean).length;
+    const total = checks.length;
+    return {
+      completed,
+      total,
+      percent: Math.round((completed / Math.max(1, total)) * 100),
+    };
+  }, [billingAddressFile, documentFiles.id1_back, documentFiles.id1_front, documentFiles.id2_back, documentFiles.id2_front, documentFiles.selfie_id, formData.agree, formData.deliveryAddress, formData.deliveryMode, formData.email, formData.emergencyContact, formData.emergencyContactName, formData.fullName, formData.paymentMode, formData.phone, formData.presentAddress, formData.storeBranchId, leaseAgreementSubmissionFile, store?.branches, store?.lease_agreement_file_url]);
 
   useEffect(() => {
     if (!cart[0]?.store_id) {
@@ -121,8 +151,20 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
   const uploadPublicFile = async (file: File) => {
     const uploadFormData = new FormData();
     uploadFormData.append('file', file);
-    const uploadResult = await api.post<UploadResponse>('/api/upload/public/strict-cloudinary', uploadFormData);
+    const uploadResult = await withTimeout(api.post<UploadResponse>('/api/upload/public/strict-cloudinary', uploadFormData), 45000, `Upload timed out for ${file.name}`);
     return uploadResult.url;
+  };
+
+  const withTimeout = async <T,>(promise: Promise<T>, timeoutMs: number, message: string): Promise<T> => {
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    const timeoutPromise = new Promise<T>((_, reject) => {
+      timeoutId = setTimeout(() => reject(new Error(message)), timeoutMs);
+    });
+    try {
+      return await Promise.race([promise, timeoutPromise]);
+    } finally {
+      if (timeoutId) clearTimeout(timeoutId);
+    }
   };
 
   const selectedBranch = useMemo(
@@ -144,6 +186,20 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
     const maxLat = Math.min(90, lat + deltaLat);
     return `https://www.openstreetmap.org/export/embed.html?bbox=${minLng}%2C${minLat}%2C${maxLng}%2C${maxLat}&layer=mapnik&marker=${lat}%2C${lng}`;
   }, [selectedBranch]);
+  const socialLinks = useMemo(() => {
+    const rawStore = (store || {}) as Record<string, any>;
+    const custom = Array.isArray(rawStore.custom_social_links)
+      ? rawStore.custom_social_links
+      : Array.isArray(rawStore.customSocialLinks)
+        ? rawStore.customSocialLinks
+        : [];
+    return {
+      facebook: String(rawStore.facebook_url || '').trim(),
+      instagram: String(rawStore.instagram_url || '').trim(),
+      tiktok: String(rawStore.tiktok_url ?? rawStore.tiktokUrl ?? '').trim(),
+      custom: custom.map((entry: unknown) => String(entry || '').trim()).filter(Boolean),
+    };
+  }, [store]);
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -184,31 +240,38 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
       }
 
       const documentUrls: Record<string, string> = {};
-      if (documentFiles.id1_front) documentUrls.id1_front = await uploadPublicFile(documentFiles.id1_front);
-      if (documentFiles.id1_back) documentUrls.id1_back = await uploadPublicFile(documentFiles.id1_back);
-      if (documentFiles.id2_front) documentUrls.id2_front = await uploadPublicFile(documentFiles.id2_front);
-      if (documentFiles.id2_back) documentUrls.id2_back = await uploadPublicFile(documentFiles.id2_back);
-      if (documentFiles.selfie_id) documentUrls.selfie_id = await uploadPublicFile(documentFiles.selfie_id);
+      const docUploadTasks: Array<Promise<void>> = [];
+      if (documentFiles.id1_front) docUploadTasks.push(uploadPublicFile(documentFiles.id1_front).then((url) => { documentUrls.id1_front = url; }));
+      if (documentFiles.id1_back) docUploadTasks.push(uploadPublicFile(documentFiles.id1_back).then((url) => { documentUrls.id1_back = url; }));
+      if (documentFiles.id2_front) docUploadTasks.push(uploadPublicFile(documentFiles.id2_front).then((url) => { documentUrls.id2_front = url; }));
+      if (documentFiles.id2_back) docUploadTasks.push(uploadPublicFile(documentFiles.id2_back).then((url) => { documentUrls.id2_back = url; }));
+      if (documentFiles.selfie_id) docUploadTasks.push(uploadPublicFile(documentFiles.selfie_id).then((url) => { documentUrls.selfie_id = url; }));
+      await Promise.all(docUploadTasks);
       documentUrls.proof_of_billing = billingAddressFileUrl;
 
-      const result = await api.post<OrderCreateResponse>('/api/orders', {
-        store_id: cart[0].store_id,
-        renter_name: formData.fullName,
-        renter_email: formData.email,
-        renter_phone: formData.phone,
-        renter_emergency_contact_name: formData.emergencyContactName,
-        renter_emergency_contact: formData.emergencyContact,
-        renter_address: formData.presentAddress,
-        store_branch_id: effectiveStoreBranchId,
-        delivery_mode: formData.deliveryMode,
-        delivery_address: formData.deliveryAddress,
-        payment_mode: formData.paymentMode,
-        lease_agreement_submission_url: leaseAgreementSubmissionUrl,
-        custom_answers: customAnswers,
-        document_urls: documentUrls,
-        items: cart,
-        total_amount: totalAmount,
-      });
+      const result = await withTimeout(
+        api.post<OrderCreateResponse>('/api/orders', {
+          store_id: cart[0].store_id,
+          renter_name: formData.fullName,
+          renter_email: formData.email,
+          renter_phone: formData.phone,
+          renter_emergency_contact_name: formData.emergencyContactName,
+          renter_emergency_contact: formData.emergencyContact,
+          renter_address: formData.presentAddress,
+          store_branch_id: effectiveStoreBranchId,
+          delivery_mode: formData.deliveryMode,
+          delivery_address: formData.deliveryAddress,
+          payment_mode: formData.paymentMode,
+          lease_agreement_submission_url: leaseAgreementSubmissionUrl,
+          custom_answers: customAnswers,
+          document_urls: documentUrls,
+          voucher_code: appliedVoucher?.store_id === cart[0].store_id ? appliedVoucher.code : '',
+          items: cart,
+          total_amount: totalAmount,
+        }),
+        45000,
+        'Application submission timed out. Please try again.',
+      );
 
       const submittedApplication: SubmittedApplication = {
         orderId: result.id,
@@ -249,6 +312,7 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
       }
 
       clearCart();
+      setAppliedVoucher(null);
       onComplete();
     } catch (error: any) {
       alert(error.message);
@@ -260,46 +324,60 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
   if (loadingStore) return <div className="container mx-auto max-w-2xl px-4 py-12">Loading store details...</div>;
 
   return (
-    <div className="container mx-auto max-w-2xl px-4 py-12">
-      <Card className="p-8">
+    <div className="container mx-auto max-w-3xl px-4 py-12">
+      <Card className="space-y-6 p-8">
         <div className="mb-8 text-center">
           <h1 className="mb-2 text-3xl font-bold">Rental Agreement Form</h1>
           <p className="text-muted-foreground">Complete your application for review by the store owner.</p>
         </div>
+        <Card className="space-y-3 border-dashed bg-muted/30 p-4">
+          <div className="flex items-center justify-between">
+            <p className="inline-flex items-center gap-2 text-sm font-semibold">
+              <ClipboardList className="h-4 w-4" /> Application Progress
+            </p>
+            <p className="text-xs font-semibold text-muted-foreground">
+              {completion.completed}/{completion.total} completed
+            </p>
+          </div>
+          <div className="h-2 overflow-hidden rounded-full bg-muted">
+            <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${completion.percent}%` }} />
+          </div>
+          <p className="text-xs text-muted-foreground">Fill each section below. Required uploads and agreement are included in progress.</p>
+        </Card>
 
         {store && (
           <Card className="mb-6 space-y-4 border bg-muted/20 p-4">
             <h2 className="text-lg font-bold">{store.name}</h2>
             <p className="text-sm text-muted-foreground">{store.address}</p>
-            {(store.facebook_url || store.instagram_url || store.tiktok_url || (store.custom_social_links || []).length) ? (
+            {(socialLinks.facebook || socialLinks.instagram || socialLinks.tiktok || socialLinks.custom.length) ? (
               <div className="space-y-2 text-sm">
-                {store.facebook_url ? (
-                  <p className="inline-flex items-center gap-2">
-                    <Facebook className="h-4 w-4 text-blue-600" />
-                    <a className="underline" href={store.facebook_url} target="_blank" rel="noreferrer">
-                      {store.facebook_url}
+                {socialLinks.facebook ? (
+                  <p className="flex items-center gap-3 rounded-md border bg-background px-3 py-2">
+                    <Facebook className="h-4 w-4 shrink-0 text-blue-600" />
+                    <a className="underline" href={socialLinks.facebook} target="_blank" rel="noreferrer">
+                      {socialLinks.facebook}
                     </a>
                   </p>
                 ) : null}
-                {store.instagram_url ? (
-                  <p className="inline-flex items-center gap-2">
-                    <Instagram className="h-4 w-4 text-pink-600" />
-                    <a className="underline" href={store.instagram_url} target="_blank" rel="noreferrer">
-                      {store.instagram_url}
+                {socialLinks.instagram ? (
+                  <p className="flex items-center gap-3 rounded-md border bg-background px-3 py-2">
+                    <Instagram className="h-4 w-4 shrink-0 text-pink-600" />
+                    <a className="underline" href={socialLinks.instagram} target="_blank" rel="noreferrer">
+                      {socialLinks.instagram}
                     </a>
                   </p>
                 ) : null}
-                {store.tiktok_url ? (
-                  <p className="inline-flex items-center gap-2">
-                    <Music2 className="h-4 w-4 text-slate-900" />
-                    <a className="underline" href={store.tiktok_url} target="_blank" rel="noreferrer">
-                      {store.tiktok_url}
+                {socialLinks.tiktok ? (
+                  <p className="flex items-center gap-3 rounded-md border bg-background px-3 py-2">
+                    <Music2 className="h-4 w-4 shrink-0 text-slate-900" />
+                    <a className="underline" href={socialLinks.tiktok} target="_blank" rel="noreferrer">
+                      {socialLinks.tiktok}
                     </a>
                   </p>
                 ) : null}
-                {(store.custom_social_links || []).map((link, index) => (
-                  <p key={`checkout-custom-social-${index}`} className="inline-flex items-center gap-2">
-                    <Globe className="h-4 w-4 text-slate-600" />
+                {socialLinks.custom.map((link, index) => (
+                  <p key={`checkout-custom-social-${index}`} className="flex items-center gap-3 rounded-md border bg-background px-3 py-2">
+                    <Globe className="h-4 w-4 shrink-0 text-slate-600" />
                     <a className="underline" href={link} target="_blank" rel="noreferrer">
                       {link}
                     </a>
@@ -308,11 +386,13 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
               </div>
             ) : null}
             {store.payment_details && (
-              <div>
+              <div className="space-y-2">
                 <p className="inline-flex items-center gap-2 text-sm font-semibold">
                   <CreditCard className="h-4 w-4" /> Payment Details (Customer Reference)
                 </p>
-                <p className="whitespace-pre-line text-sm text-muted-foreground">{store.payment_details}</p>
+                <div className="rounded-md border bg-background px-3 py-2 text-sm text-muted-foreground">
+                  <p className="whitespace-pre-line">{store.payment_details}</p>
+                </div>
               </div>
             )}
             {(store.payment_detail_images || []).length ? (
@@ -320,10 +400,12 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
                 <p className="inline-flex items-center gap-2 text-sm font-semibold">
                   <FileText className="h-4 w-4" /> Payment QR / Reference Images
                 </p>
-                <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
                   {(store.payment_detail_images || []).map((url, index) => (
-                    <a key={`${url}-${index}`} href={url} target="_blank" rel="noreferrer" className="block overflow-hidden rounded border bg-muted">
-                      <img src={url} alt={`Payment reference ${index + 1}`} className="h-24 w-full object-cover" />
+                    <a key={`${url}-${index}`} href={url} target="_blank" rel="noreferrer" className="block overflow-hidden rounded border bg-muted/20 p-2">
+                      <div className="flex h-40 items-center justify-center overflow-hidden rounded bg-background">
+                        <img src={url} alt={`Payment reference ${index + 1}`} className="h-full w-full object-contain" />
+                      </div>
                     </a>
                   ))}
                 </div>
@@ -361,6 +443,11 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
               <p>
                 Rental subtotal: <span className="font-semibold text-foreground">{formatPHP(rentalSubtotal)}</span>
               </p>
+              {voucherDiscount > 0 ? (
+                <p>
+                  Voucher discount: <span className="font-semibold text-emerald-700">-{formatPHP(voucherDiscount)}</span>
+                </p>
+              ) : null}
               <p>
                 Total due for this application: <span className="font-semibold text-foreground">{formatPHP(totalAmount)}</span>
               </p>
@@ -387,26 +474,30 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
             )}
           </div>
 
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div className="space-y-2">
+          <Card className="space-y-4 border-dashed p-4">
+            <p className="inline-flex items-center gap-2 text-sm font-semibold">
+              <User2 className="h-4 w-4" /> Applicant Information
+            </p>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div className="space-y-2">
               <label className="text-sm font-medium">Full Name</label>
               <Input required value={formData.fullName} onChange={(event) => setFormData({ ...formData, fullName: event.target.value })} />
-            </div>
-            <div className="space-y-2">
+              </div>
+              <div className="space-y-2">
               <label className="text-sm font-medium">Contact Number</label>
               <Input required value={formData.phone} onChange={(event) => setFormData({ ...formData, phone: event.target.value })} />
-            </div>
-            <div className="space-y-2">
+              </div>
+              <div className="space-y-2">
               <label className="text-sm font-medium">Emergency Contact Name</label>
               <Input required value={formData.emergencyContactName} onChange={(event) => setFormData({ ...formData, emergencyContactName: event.target.value })} />
-            </div>
-            <div className="space-y-2">
+              </div>
+              <div className="space-y-2">
               <label className="text-sm font-medium">Emergency Contact Number</label>
               <Input required value={formData.emergencyContact} onChange={(event) => setFormData({ ...formData, emergencyContact: event.target.value })} />
+              </div>
             </div>
-          </div>
 
-          <div className="space-y-2">
+            <div className="space-y-2">
             <label className="text-sm font-medium">Email</label>
             <Input
               type="email"
@@ -415,14 +506,19 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
               onChange={(event) => setFormData({ ...formData, email: event.target.value })}
               disabled={Boolean(user?.email)}
             />
-          </div>
+            </div>
 
-          <div className="space-y-2">
+            <div className="space-y-2">
             <label className="text-sm font-medium">Present Address</label>
             <Input required value={formData.presentAddress} onChange={(event) => setFormData({ ...formData, presentAddress: event.target.value })} />
-          </div>
+            </div>
+          </Card>
 
-          <div className="space-y-2">
+          <Card className="space-y-4 border-dashed p-4">
+            <p className="inline-flex items-center gap-2 text-sm font-semibold">
+              <MapPin className="h-4 w-4" /> Delivery & Branch
+            </p>
+            <div className="space-y-2">
             <label className="text-sm font-medium">Store Branch</label>
             <select className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm" value={formData.storeBranchId} onChange={(event) => setFormData({ ...formData, storeBranchId: event.target.value })} required>
               {(store?.branches?.length ? store.branches : [{ _id: 'main', address: store?.address || 'Main Store' }]).map((branch) => (
@@ -432,7 +528,7 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
                 </option>
               ))}
             </select>
-          </div>
+            </div>
 
           {rentalFormSettings.reference_text && (
             <div className="rounded-xl border bg-muted/20 p-4 text-sm text-muted-foreground">
@@ -465,7 +561,7 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
             </div>
           )}
 
-          <div className="space-y-2">
+            <div className="space-y-2">
             <label className="text-sm font-medium">Delivery Mode</label>
             <select
               className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm"
@@ -478,14 +574,19 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
                 </option>
               ))}
             </select>
-          </div>
+            </div>
 
-          <div className="space-y-2">
+            <div className="space-y-2">
             <label className="text-sm font-medium">Delivery Address</label>
             <Input required value={formData.deliveryAddress} onChange={(event) => setFormData({ ...formData, deliveryAddress: event.target.value })} />
-          </div>
+            </div>
+          </Card>
 
-          <div className="space-y-2">
+          <Card className="space-y-4 border-dashed p-4">
+            <p className="inline-flex items-center gap-2 text-sm font-semibold">
+              <CreditCard className="h-4 w-4" /> Payment & Required Files
+            </p>
+            <div className="space-y-2">
             <label className="text-sm font-medium">Payment Mode</label>
             <select className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm" value={formData.paymentMode} onChange={(event) => setFormData({ ...formData, paymentMode: event.target.value })}>
               <option value="cash">Cash on Pickup</option>
@@ -493,9 +594,9 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
               <option value="gcash">GCash</option>
               <option value="card">Credit/Debit Card</option>
             </select>
-          </div>
+            </div>
 
-          <div className="space-y-2">
+            <div className="space-y-2">
             <label className="text-sm font-medium">Upload Completed Lease Agreement</label>
             <Input
               type="file"
@@ -504,9 +605,9 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
               onChange={(event) => setLeaseAgreementSubmissionFile(event.target.files?.[0] ?? null)}
             />
             <p className="text-xs text-muted-foreground">Download the template above, fill it up, then upload your completed copy here.</p>
-          </div>
+            </div>
 
-          <div className="space-y-3 rounded-xl border bg-muted/20 p-4">
+            <div className="space-y-3 rounded-xl border bg-muted/20 p-4">
             <h3 className="font-semibold">Rented Gear Details</h3>
             {cart.map((item) => (
               <div key={`${item.id}-${item.startDate}-${item.endDate}`} className="flex items-center gap-3 rounded-md border bg-background p-3 text-sm">
@@ -523,9 +624,9 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
                 </div>
               </div>
             ))}
-          </div>
+            </div>
 
-          <div className="space-y-3 rounded-xl border bg-muted/20 p-4">
+            <div className="space-y-3 rounded-xl border bg-muted/20 p-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h3 className="font-semibold">Identity Documents</h3>
               <span className="text-xs text-muted-foreground">Required</span>
@@ -553,15 +654,18 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
                 <Input type="file" accept="image/*,.pdf" required onChange={(event) => setDocumentFiles((prev) => ({ ...prev, selfie_id: event.target.files?.[0] ?? null }))} />
               </div>
             </div>
-          </div>
- <div className="space-y-2">
+            </div>
+            <div className="space-y-2">
             <label className="text-sm font-medium">Billing Address File (Image/PDF)</label>
             <Input required type="file" accept="image/*,.pdf" onChange={(event) => setBillingAddressFile(event.target.files?.[0] ?? null)} />
             <p className="text-xs text-muted-foreground">Upload a billing address document that can be reviewed by the store owner.</p>
-          </div>
+            </div>
+          </Card>
           {customFields.length > 0 && (
             <div className="space-y-4 rounded-xl border bg-muted/20 p-4">
-              <h3 className="font-semibold">Additional Store Requirements</h3>
+              <h3 className="inline-flex items-center gap-2 font-semibold">
+                <FileBadge2 className="h-4 w-4" /> Additional Store Requirements
+              </h3>
               {customFields.map((field) => (
                 <div key={field.id} className="space-y-2">
                   <label className="text-sm font-medium">{field.label}</label>
@@ -619,9 +723,15 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
             </p>
           </div>
 
-          <Button type="submit" className="h-12 w-full" disabled={submittingApplication}>
-            {submittingApplication ? 'Submitting Application...' : 'Submit Application'}
-          </Button>
+          <Card className="space-y-3 border-dashed p-4">
+            <div className="flex items-center justify-between text-sm">
+              <span className="font-semibold">Ready to submit</span>
+              <span className="text-xs text-muted-foreground">Progress: {completion.percent}%</span>
+            </div>
+            <Button type="submit" className="h-12 w-full" disabled={submittingApplication}>
+              {submittingApplication ? 'Submitting Application...' : 'Submit Application'}
+            </Button>
+          </Card>
         </form>
       </Card>
 
@@ -629,7 +739,7 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
         <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/60 p-4">
           <div className="w-full max-w-sm rounded-xl bg-white p-6 text-center text-slate-900 shadow-2xl">
             <p className="text-lg font-semibold">Uploading and submitting...</p>
-            <p className="mt-2 text-sm text-slate-600">Please wait. Do not close this page.</p>
+            <p className="mt-2 text-sm text-slate-600">Please wait. If this takes too long, it will auto-cancel and show an error.</p>
           </div>
         </div>
       )}

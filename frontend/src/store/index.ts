@@ -12,10 +12,12 @@ interface AuthSlice {
 
 interface CartSlice {
   cart: CartItem[];
+  appliedVoucher: { code: string; discount_amount: number; store_id: string } | null;
   addToCart: (item: CartItem) => void;
   updateCartQuantity: (id: string, startDate: string, endDate: string, quantity: number) => void;
   removeFromCart: (id: string) => void;
   clearCart: () => void;
+  setAppliedVoucher: (voucher: { code: string; discount_amount: number; store_id: string } | null) => void;
 }
 
 interface NavigationSlice {
@@ -41,6 +43,7 @@ export const useAppStore = create<AppStore>()(
       user: null,
       token: null,
       cart: [],
+      appliedVoucher: null,
       page: 'home',
       selectedStoreId: null,
       selectedItemId: null,
@@ -48,22 +51,23 @@ export const useAppStore = create<AppStore>()(
       homeSearchQuery: '',
       showHomeNavSearch: false,
       setSession: (user, token) => set({ user, token }),
-      logout: () => set({ user: null, token: null, cart: [], page: 'home', selectedStoreId: null, selectedItemId: null, lastSubmittedApplication: null }),
+      logout: () => set({ user: null, token: null, cart: [], appliedVoucher: null, page: 'home', selectedStoreId: null, selectedItemId: null, lastSubmittedApplication: null }),
       addToCart: (item) =>
         set((state) => {
           const quantityToAdd = Math.max(1, item.quantity || 1);
+          const clearVoucher = state.appliedVoucher && state.appliedVoucher.store_id !== item.store_id;
           const existingIndex = state.cart.findIndex(
             (entry) => entry.id === item.id && entry.startDate === item.startDate && entry.endDate === item.endDate,
           );
           if (existingIndex === -1) {
-            return { cart: [...state.cart, { ...item, quantity: quantityToAdd }] };
+            return { cart: [...state.cart, { ...item, quantity: quantityToAdd }], appliedVoucher: clearVoucher ? null : state.appliedVoucher };
           }
           const existing = state.cart[existingIndex];
           const maxStock = Math.max(1, existing.stock || item.stock || 1);
           const nextQuantity = Math.min(maxStock, Math.max(1, (existing.quantity || 1) + quantityToAdd));
           const updated = [...state.cart];
           updated[existingIndex] = { ...existing, quantity: nextQuantity };
-          return { cart: updated };
+          return { cart: updated, appliedVoucher: clearVoucher ? null : state.appliedVoucher };
         }),
       updateCartQuantity: (id, startDate, endDate, quantity) =>
         set((state) => ({
@@ -73,8 +77,15 @@ export const useAppStore = create<AppStore>()(
               : item,
           ),
         })),
-      removeFromCart: (id) => set((state) => ({ cart: state.cart.filter((item) => item.id !== id) })),
-      clearCart: () => set({ cart: [] }),
+      removeFromCart: (id) =>
+        set((state) => {
+          const nextCart = state.cart.filter((item) => item.id !== id);
+          const nextStoreId = nextCart[0]?.store_id || '';
+          const clearVoucher = state.appliedVoucher && state.appliedVoucher.store_id !== nextStoreId;
+          return { cart: nextCart, appliedVoucher: clearVoucher ? null : state.appliedVoucher };
+        }),
+      clearCart: () => set({ cart: [], appliedVoucher: null }),
+      setAppliedVoucher: (voucher) => set({ appliedVoucher: voucher }),
       setPage: (page) => set({ page }),
       openStore: (id) => set({ selectedStoreId: id, page: 'store' }),
       openItem: (id) => set({ selectedItemId: id, page: 'item' }),
@@ -88,6 +99,7 @@ export const useAppStore = create<AppStore>()(
         user: state.user,
         token: state.token,
         cart: state.cart,
+        appliedVoucher: state.appliedVoucher,
         lastSubmittedApplication: state.lastSubmittedApplication,
       }),
       merge: (persistedState, currentState) => ({

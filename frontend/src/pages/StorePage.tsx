@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { MapPin, Search, Star } from 'lucide-react';
+import { Facebook, Globe, Instagram, MapPin, Music2, Search, Star } from 'lucide-react';
 import { api } from '@/src/lib/api';
 import { formatPHP } from '@/src/lib/currency';
 import { useAppStore } from '@/src/store';
 import type { Item, Store, StoreReview } from '@/src/types/domain';
 import { Button, Card, Input } from '@/src/components/ui';
+import { EmptyState } from '@/src/components/EmptyState';
 
 interface StorePageProps {
   storeId: string;
@@ -49,7 +50,26 @@ export function StorePage({ storeId, onNavigateItem }: StorePageProps) {
 
   if (user?.role === 'owner') return null;
   if (loading) return <div className="flex h-96 items-center justify-center">Loading store...</div>;
-  if (!store) return <div>Store not found</div>;
+  if (!store)
+    return (
+      <div className="container mx-auto px-4 py-10">
+        <EmptyState title="Store Not Available" message="This store is not available as of the moment. Please try again later." />
+      </div>
+    );
+  const rawStore = store as Record<string, any>;
+  const socialLinks = {
+    facebook: String(rawStore.facebook_url || '').trim(),
+    instagram: String(rawStore.instagram_url || '').trim(),
+    tiktok: String(rawStore.tiktok_url ?? rawStore.tiktokUrl ?? '').trim(),
+    custom: (Array.isArray(rawStore.custom_social_links)
+      ? rawStore.custom_social_links
+      : Array.isArray(rawStore.customSocialLinks)
+        ? rawStore.customSocialLinks
+        : []
+    )
+      .map((entry: unknown) => String(entry || '').trim())
+      .filter(Boolean),
+  };
   const availableCategories = ['All Gear', ...Array.from(new Set(store.items.map((item) => item.category).filter(Boolean)))];
   const visibleItems = selectedCategory === 'All Gear' ? store.items : store.items.filter((item) => item.category === selectedCategory);
 
@@ -110,14 +130,43 @@ export function StorePage({ storeId, onNavigateItem }: StorePageProps) {
                 <h4 className="mb-2 font-semibold">Payment Details</h4>
                 {store.payment_details ? <p className="mb-2 whitespace-pre-line text-sm text-muted-foreground">{store.payment_details}</p> : null}
                 {(store.payment_detail_images || []).length ? (
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                     {(store.payment_detail_images || []).map((url, index) => (
-                      <a key={`${url}-${index}`} href={url} target="_blank" rel="noreferrer" className="block overflow-hidden rounded border bg-muted/20">
-                        <img src={url} alt={`Payment reference ${index + 1}`} className="h-20 w-full object-cover" />
+                      <a key={`${url}-${index}`} href={url} target="_blank" rel="noreferrer" className="block overflow-hidden rounded border bg-muted/20 p-2">
+                        <div className="flex h-36 items-center justify-center overflow-hidden rounded bg-background">
+                          <img src={url} alt={`Payment reference ${index + 1}`} className="h-full w-full object-contain" />
+                        </div>
                       </a>
                     ))}
                   </div>
                 ) : null}
+              </div>
+            ) : null}
+            {(socialLinks.facebook || socialLinks.instagram || socialLinks.tiktok || socialLinks.custom.length) ? (
+              <div>
+                <h4 className="mb-2 font-semibold">Social Links</h4>
+                <div className="space-y-2 text-sm text-muted-foreground">
+                  {socialLinks.facebook ? (
+                    <a className="inline-flex items-center gap-2 underline" href={socialLinks.facebook} target="_blank" rel="noreferrer">
+                      <Facebook className="h-4 w-4 text-blue-600" /> {socialLinks.facebook}
+                    </a>
+                  ) : null}
+                  {socialLinks.instagram ? (
+                    <a className="inline-flex items-center gap-2 underline" href={socialLinks.instagram} target="_blank" rel="noreferrer">
+                      <Instagram className="h-4 w-4 text-pink-600" /> {socialLinks.instagram}
+                    </a>
+                  ) : null}
+                  {socialLinks.tiktok ? (
+                    <a className="inline-flex items-center gap-2 underline" href={socialLinks.tiktok} target="_blank" rel="noreferrer">
+                      <Music2 className="h-4 w-4 text-slate-900" /> {socialLinks.tiktok}
+                    </a>
+                  ) : null}
+                  {socialLinks.custom.map((link, index) => (
+                    <a key={`${link}-${index}`} className="inline-flex items-center gap-2 underline" href={link} target="_blank" rel="noreferrer">
+                      <Globe className="h-4 w-4 text-slate-600" /> {link}
+                    </a>
+                  ))}
+                </div>
               </div>
             ) : null}
             <div>
@@ -209,7 +258,7 @@ export function StorePage({ storeId, onNavigateItem }: StorePageProps) {
                   <div className="p-4">
                     <h3 className="mb-1 font-bold">{item.name}</h3>
                     <p className="mb-4 line-clamp-1 text-sm text-muted-foreground">{item.description}</p>
-                    <p className="mb-2 text-xs text-muted-foreground">Brand: {item.brand || 'Others'}</p>
+                    <p className="mb-2 text-xs text-muted-foreground">Brand: {item.brand || ''}</p>
                     <div className="flex items-center justify-between">
                       <div>
                         <span className="text-lg font-bold">{formatPHP(item.daily_price)}</span>
@@ -224,6 +273,11 @@ export function StorePage({ storeId, onNavigateItem }: StorePageProps) {
                 </Card>
               ))}
             </div>
+            {!visibleItems.length ? (
+              <div className="mt-4">
+                <EmptyState title="No Gears Available" message="No available gear right now. Try again later." />
+              </div>
+            ) : null}
           </main>
         </div>
       </div>

@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import { Calendar as CalendarIcon, ShoppingCart } from 'lucide-react';
+import { api } from '@/src/lib/api';
 import { formatPHP } from '@/src/lib/currency';
 import { Button, Card } from '@/src/components/ui';
 import { useAppStore } from '@/src/store';
@@ -8,8 +10,12 @@ interface CartPageProps {
 }
 
 export function CartPage({ onCheckout }: CartPageProps) {
-  const { cart, removeFromCart, updateCartQuantity, user } = useAppStore();
+  const { cart, removeFromCart, updateCartQuantity, user, appliedVoucher, setAppliedVoucher } = useAppStore();
+  const [voucherCodeInput, setVoucherCodeInput] = useState('');
+  const [voucherBusy, setVoucherBusy] = useState(false);
   const rentalSubtotal = cart.reduce((sum, item) => sum + item.daily_price * Math.max(1, item.quantity || 1), 0);
+  const voucherDiscount = appliedVoucher && appliedVoucher.store_id === cart[0]?.store_id ? Math.max(0, Number(appliedVoucher.discount_amount || 0)) : 0;
+  const finalTotal = Math.max(0, rentalSubtotal - voucherDiscount);
 
   if (user?.role === 'owner') return null;
 
@@ -86,14 +92,67 @@ export function CartPage({ onCheckout }: CartPageProps) {
         <div className="space-y-6">
           <Card className="p-6">
             <h3 className="mb-4 text-lg font-bold">Order Summary</h3>
+            <div className="mb-4 space-y-2 rounded-lg border bg-muted/20 p-3">
+              <p className="text-xs font-semibold uppercase text-muted-foreground">Voucher</p>
+              <p className="text-xs text-muted-foreground">Voucher only works on the store who generates it.</p>
+              <div className="flex gap-2">
+                <input
+                  className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                  placeholder="Enter voucher code"
+                  value={voucherCodeInput}
+                  onChange={(event) => setVoucherCodeInput(event.target.value.toUpperCase())}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={voucherBusy}
+                  onClick={async () => {
+                    if (!user) return alert('Login as renter to apply voucher.');
+                    const storeId = cart[0]?.store_id;
+                    if (!storeId) return alert('Cart store is missing');
+                    const code = voucherCodeInput.trim().toUpperCase();
+                    if (!code) return alert('Enter voucher code');
+                    try {
+                      setVoucherBusy(true);
+                      const result = await api.post<{ success: boolean; voucher: { code: string; discount_amount: number; store_id: string; note: string } }>('/api/orders/voucher/validate', {
+                        store_id: storeId,
+                        code,
+                      });
+                      setAppliedVoucher(result.voucher);
+                      alert(result.voucher.note || 'Voucher applied');
+                    } catch (error: any) {
+                      alert(error.message || 'Failed to apply voucher');
+                    } finally {
+                      setVoucherBusy(false);
+                    }
+                  }}
+                >
+                  Apply
+                </Button>
+              </div>
+              {appliedVoucher && appliedVoucher.store_id === cart[0]?.store_id ? (
+                <p className="text-xs text-emerald-700">
+                  Applied: <span className="font-semibold">{appliedVoucher.code}</span> (-{formatPHP(appliedVoucher.discount_amount)})
+                  <button type="button" className="ml-2 underline" onClick={() => setAppliedVoucher(null)}>
+                    Remove
+                  </button>
+                </p>
+              ) : null}
+            </div>
             <div className="mb-6 space-y-2">
               <div className="flex justify-between text-sm">
                 <span>Rental Subtotal</span>
                 <span>{formatPHP(rentalSubtotal)}</span>
               </div>
+              {voucherDiscount > 0 ? (
+                <div className="flex justify-between text-sm text-emerald-700">
+                  <span>Voucher Discount</span>
+                  <span>-{formatPHP(voucherDiscount)}</span>
+                </div>
+              ) : null}
               <div className="mt-2 flex justify-between border-t pt-2 text-lg font-bold">
                 <span>Total Due</span>
-                <span>{formatPHP(rentalSubtotal)}</span>
+                <span>{formatPHP(finalTotal)}</span>
               </div>
             </div>
             <Button className="h-12 w-full" onClick={onCheckout}>

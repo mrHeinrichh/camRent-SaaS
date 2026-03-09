@@ -1,4 +1,4 @@
-import { Calendar as CalendarIcon, Camera, Clock, LayoutDashboard, MessageSquare, ReceiptText, ShieldAlert, Users } from 'lucide-react';
+import { Calendar as CalendarIcon, Camera, Clock, LayoutDashboard, MessageSquare, ReceiptText, ShieldAlert, TicketPercent, Users } from 'lucide-react';
 import { Button } from '@/src/components/ui';
 import type { OwnerTab } from '@/src/features/owner-dashboard/types';
 
@@ -79,6 +79,13 @@ export function OwnerSidebar({ activeTab, onChangeTab, pendingApplicationsCount 
           onClick={() => onChangeTab('support')}
         >
           <MessageSquare className="mr-2 h-4 w-4" /> Support & Feedback
+        </Button>
+        <Button
+          variant={activeTab === 'vouchers' ? 'secondary' : 'ghost'}
+          className={`shrink-0 justify-start transition-all md:w-full ${activeTab === 'vouchers' ? 'bg-cyan-600 text-white hover:bg-cyan-600' : 'hover:bg-cyan-100'}`}
+          onClick={() => onChangeTab('vouchers')}
+        >
+          <TicketPercent className="mr-2 h-4 w-4" /> Vouchers
         </Button>
       </div>
     </aside>

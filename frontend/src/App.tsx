@@ -12,6 +12,7 @@ import { ItemPage } from '@/src/pages/ItemPage';
 import { LoginPage } from '@/src/pages/LoginPage';
 import { OwnerDashboardPage } from '@/src/pages/OwnerDashboardPage';
 import { AboutPage } from '@/src/pages/AboutPage';
+import { DonatePage } from '@/src/pages/DonatePage';
 import { PoliciesPage } from '@/src/pages/PoliciesPage';
 import { StorePage } from '@/src/pages/StorePage';
 import { SuccessPage } from '@/src/pages/SuccessPage';
@@ -65,12 +66,13 @@ export default function App() {
             {page === 'home' && <HomePage onNavigate={navigateToStore} />}
             {page === 'about' && <AboutPage onNavigate={setPage} />}
             {page === 'policies' && <PoliciesPage onNavigate={setPage} />}
+            {page === 'donate' && <DonatePage onNavigate={setPage} />}
             {page === 'store' && selectedStoreId && <StorePage storeId={selectedStoreId} onNavigateItem={navigateToItem} />}
             {page === 'item' && selectedItemId && <ItemPage itemId={selectedItemId} />}
             {page === 'cart' && <CartPage onCheckout={() => setPage('checkout')} />}
             {page === 'checkout' && <CheckoutPage onComplete={() => setPage('success')} onNavigate={setPage} />}
             {page === 'account' && <AccountPage onNavigate={setPage} />}
-            {page === 'success' && <SuccessPage onBackHome={() => setPage('home')} />}
+            {page === 'success' && <SuccessPage onBackHome={() => setPage('home')} onOpenAccount={() => setPage('account')} />}
             {page === 'login' && <LoginPage onNavigate={setPage} />}
             {page === 'owner' && <OwnerDashboardPage />}
             {page === 'admin' && <AdminDashboardPage />}

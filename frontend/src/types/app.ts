@@ -2,6 +2,7 @@ export type AppPage =
   | 'home'
   | 'about'
   | 'policies'
+  | 'donate'
   | 'store'
   | 'item'
   | 'cart'
