@@ -6,6 +6,19 @@ import type { AuthedRequest } from '../../types/auth';
 import { serialize, serializeMany, toId } from '../../utils/mongo';
 
 export function registerOwnerFraudRoutes(router: Router) {
+  const normalize = (value: unknown) => String(value || '').trim();
+  const normalizeEmail = (value: unknown) => normalize(value).toLowerCase();
+  const sanitizeRequirementFiles = (value: unknown) => {
+    if (!Array.isArray(value)) return [] as Array<{ type: string; url: string }>;
+    return value
+      .map((entry: any) => ({
+        type: normalize(entry?.type),
+        url: normalize(entry?.url),
+      }))
+      .filter((entry) => entry.url)
+      .slice(0, 5);
+  };
+
   router.get('/owner/fraud-list', authenticate, checkRole(['owner']), async (req: AuthedRequest, res) => {
     const store = await Store.findOne({ owner_id: toId(req.user!.id) }).lean();
     if (!store) return res.status(404).json({ error: 'No store found for this owner account' });
@@ -27,8 +40,11 @@ export function registerOwnerFraudRoutes(router: Router) {
       return res.status(403).json({ error: 'Pending stores cannot access. Your account must be approved before you can see this.' });
     }
 
-    const { full_name, email, contact_number, reason, scope, evidence_image_url } = req.body || {};
+    const { full_name, email, contact_number, requirement_files, reason, scope, evidence_image_url } = req.body || {};
     if (!full_name || !email) return res.status(400).json({ error: 'Full name and email are required' });
+    if (Array.isArray(requirement_files) && requirement_files.length > 5) {
+      return res.status(400).json({ error: 'You can upload up to 5 requirement files only' });
+    }
     const normalizedScope = scope === 'global' ? 'global' : 'internal';
     if (normalizedScope === 'internal' && !String(reason || '').trim()) {
       return res.status(400).json({ error: 'Reason is required for internal fraud flagging' });
@@ -41,10 +57,13 @@ export function registerOwnerFraudRoutes(router: Router) {
       store_id: normalizedScope === 'internal' ? store._id : store._id,
       scope: normalizedScope,
       status: normalizedScope === 'global' ? 'pending' : 'approved',
-      full_name: String(full_name || '').trim(),
-      email: String(email || '').trim().toLowerCase(),
-      contact_number: String(contact_number || '').trim(),
+      full_name: normalize(full_name),
+      email: normalizeEmail(email),
+      contact_number: normalize(contact_number),
       billing_address: '',
+      id_number: '',
+      id_numbers: [],
+      requirement_files: sanitizeRequirementFiles(requirement_files),
       reason: String(reason || '').trim(),
       evidence_image_url: String(evidence_image_url || '').trim(),
       global_request_reason: normalizedScope === 'global' ? String(reason || '').trim() : '',

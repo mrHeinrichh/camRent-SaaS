@@ -2,22 +2,36 @@
 
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --color-primary: #0f172a;
-  --color-primary-foreground: #f8fafc;
-  --color-secondary: #f1f5f9;
-  --color-secondary-foreground: #0f172a;
-  --color-muted: #f1f5f9;
-  --color-muted-foreground: #64748b;
-  --color-accent: #f1f5f9;
-  --color-accent-foreground: #0f172a;
+  --color-primary: #3b2a1c;
+  --color-primary-foreground: #fffaf2;
+  --color-secondary: #efe9df;
+  --color-secondary-foreground: #2f1e12;
+  --color-muted: #f3eee6;
+  --color-muted-foreground: #6d675f;
+  --color-accent: #eee7dc;
+  --color-accent-foreground: #2f1e12;
   --color-destructive: #ef4444;
   --color-destructive-foreground: #f8fafc;
-  --color-border: #e2e8f0;
-  --color-input: #e2e8f0;
-  --color-ring: #0f172a;
+  --color-border: #e2dbd1;
+  --color-input: #ddd3c7;
+  --color-ring: #3b2a1c;
   --radius-lg: 0.5rem;
   --radius-md: calc(0.5rem - 2px);
   --radius-sm: calc(0.5rem - 4px);
+
+  /* Minimalist theme tokens (easy to tweak globally) */
+  --tone-bg: #f0ece6;
+  --tone-surface: #f7f4ef;
+  --tone-surface-soft: #fcfbf8;
+  --tone-border: #e2dbd1;
+  --tone-text: #2f1e12;
+  --tone-text-muted: #5b554e;
+  --tone-accent: #d9a26a;
+  --tone-accent-text: #2f1f12;
+  --tone-nav: #f7f3ee;
+  --tone-nav-border: #ded7cd;
+  --tone-panel-overlay: #fffdf9;
+  --tone-image-overlay: #3a2718;
 }
 
 @layer base {
@@ -25,7 +39,70 @@
     border-color: var(--color-border);
   }
   body {
-    background-color: white;
-    color: #0f172a;
+    background-color: var(--tone-bg);
+    color: var(--tone-text);
+  }
+}
+
+@layer utilities {
+  @keyframes fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(14px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes float-soft {
+    0%,
+    100% {
+      transform: translateY(0px);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
+  }
+
+  @keyframes pulse-soft {
+    0%,
+    100% {
+      opacity: 0.28;
+    }
+    50% {
+      opacity: 0.5;
+    }
+  }
+
+  @keyframes shimmer-x {
+    0% {
+      background-position: 0% 50%;
+    }
+    100% {
+      background-position: 100% 50%;
+    }
+  }
+
+  .animate-fade-up {
+    animation: fade-up 0.5s ease-out both;
+  }
+
+  .animate-fade-up-delay {
+    animation: fade-up 0.68s ease-out both;
+  }
+
+  .animate-float-soft {
+    animation: float-soft 7s ease-in-out infinite;
+  }
+
+  .animate-pulse-soft {
+    animation: pulse-soft 5.5s ease-in-out infinite;
+  }
+
+  .animate-shimmer-x {
+    background-size: 200% 200%;
+    animation: shimmer-x 9s linear infinite alternate;
   }
 }

@@ -10,6 +10,17 @@ const fraudListSchema = new Schema(
     contact_number: { type: String, default: '' },
     billing_address: { type: String, default: '' },
     id_number: { type: String, default: '' },
+    id_numbers: { type: [String], default: [] },
+    billing_address_file_url: { type: String, default: '' },
+    requirement_files: {
+      type: [
+        {
+          type: { type: String, default: '' },
+          url: { type: String, default: '' },
+        },
+      ],
+      default: [],
+    },
     reason: { type: String, default: '' },
     evidence_image_url: { type: String, default: '' },
     global_request_reason: { type: String, default: '' },

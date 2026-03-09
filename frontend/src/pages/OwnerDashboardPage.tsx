@@ -76,10 +76,12 @@ export function OwnerDashboardPage() {
     renter_name: string;
     renter_email: string;
     renter_phone: string;
+    requirements?: Array<{ type: string; url: string }>;
   } | null>(null);
   const [fraudScope, setFraudScope] = useState<'internal' | 'global'>('internal');
   const [fraudReason, setFraudReason] = useState('');
   const [fraudEvidenceFile, setFraudEvidenceFile] = useState<File | null>(null);
+  const [fraudRequirementFiles, setFraudRequirementFiles] = useState<File[]>([]);
   const [fraudManual, setFraudManual] = useState({
     full_name: '',
     email: '',
@@ -452,12 +454,21 @@ export function OwnerDashboardPage() {
       const uploadResult = await api.post<UploadResponse>('/api/upload/public', formData);
       evidenceUrl = uploadResult.url;
     }
+    const uploadedRequirementFiles: Array<{ type: string; url: string }> = [];
+    for (let i = 0; i < fraudRequirementFiles.length; i += 1) {
+      const file = fraudRequirementFiles[i];
+      const formData = new FormData();
+      formData.append('file', file);
+      const uploadResult = await api.post<UploadResponse>('/api/upload/public', formData);
+      uploadedRequirementFiles.push({ type: `ATTACHED_REQUIREMENT_${i + 1}`, url: uploadResult.url });
+    }
     await withReload(
       () =>
         api.post('/api/owner/customers/report-fraud', {
           full_name: reportCustomer.renter_name,
           email: reportCustomer.renter_email,
           contact_number: reportCustomer.renter_phone,
+          requirement_files: [...(reportCustomer.requirements || []), ...uploadedRequirementFiles],
           reason: fraudReason,
           scope: fraudScope,
           evidence_image_url: evidenceUrl,
@@ -468,6 +479,7 @@ export function OwnerDashboardPage() {
     setFraudScope('internal');
     setFraudReason('');
     setFraudEvidenceFile(null);
+    setFraudRequirementFiles([]);
   };
 
   const submitManualFraud = async () => {
@@ -481,10 +493,19 @@ export function OwnerDashboardPage() {
       const uploadResult = await api.post<UploadResponse>('/api/upload/public', formData);
       evidenceUrl = uploadResult.url;
     }
+    const uploadedRequirementFiles: Array<{ type: string; url: string }> = [];
+    for (let i = 0; i < fraudRequirementFiles.length; i += 1) {
+      const file = fraudRequirementFiles[i];
+      const formData = new FormData();
+      formData.append('file', file);
+      const uploadResult = await api.post<UploadResponse>('/api/upload/public', formData);
+      uploadedRequirementFiles.push({ type: `ATTACHED_REQUIREMENT_${i + 1}`, url: uploadResult.url });
+    }
     await withReload(
       () =>
         api.post('/api/owner/customers/report-fraud', {
           ...fraudManual,
+          requirement_files: uploadedRequirementFiles,
           reason: fraudReason,
           scope: fraudScope,
           evidence_image_url: evidenceUrl,
@@ -495,6 +516,14 @@ export function OwnerDashboardPage() {
     setFraudReason('');
     setFraudScope('internal');
     setFraudEvidenceFile(null);
+    setFraudRequirementFiles([]);
+  };
+
+  const handleFraudRequirementFilesChange = (files: File[]) => {
+    if (files.length > 5) {
+      alert('You can upload up to 5 requirement files only.');
+    }
+    setFraudRequirementFiles(files.slice(0, 5));
   };
 
   const createSupportTicket = async (payload: { type: SupportTicket['type']; priority: SupportTicket['priority']; subject: string; message: string }) => {
@@ -575,11 +604,13 @@ export function OwnerDashboardPage() {
   }
 
   return (
-    <div className="flex min-h-[calc(100vh-64px)]">
+    <div className="relative flex min-h-[calc(100vh-64px)] overflow-hidden bg-gradient-to-br from-slate-50 via-cyan-50/40 to-emerald-50/40">
+      <div className="pointer-events-none absolute -left-28 top-24 h-72 w-72 rounded-full bg-cyan-300/25 blur-3xl animate-float-soft" />
+      <div className="pointer-events-none absolute right-0 top-1/3 h-80 w-80 rounded-full bg-emerald-300/20 blur-3xl animate-pulse-soft" />
       <OwnerSidebar activeTab={activeTab} onChangeTab={setActiveTab} />
-      <main className="flex-1 overflow-auto p-8">
+      <main className="relative z-10 flex-1 overflow-auto p-8 animate-fade-up">
         {ownerNotice ? (
-          <div className="mb-6 rounded-xl border border-amber-300 bg-amber-50 p-4 shadow-sm">
+          <div className="mb-6 rounded-xl border border-amber-300 bg-amber-50 p-4 shadow-sm animate-fade-up-delay">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h3 className="text-base font-bold text-amber-900">{ownerNotice.title}</h3>
@@ -642,6 +673,7 @@ export function OwnerDashboardPage() {
           onFraudScopeChange={setFraudScope}
           onFraudReasonChange={setFraudReason}
           onFraudEvidenceFileChange={setFraudEvidenceFile}
+          onFraudRequirementFilesChange={handleFraudRequirementFilesChange}
           onSubmitManualFraud={submitManualFraud}
           supportTickets={supportTickets}
           onCreateSupportTicket={createSupportTicket}
@@ -674,6 +706,7 @@ export function OwnerDashboardPage() {
           onFraudScopeChange={setFraudScope}
           onFraudReasonChange={setFraudReason}
           onFraudEvidenceFileChange={setFraudEvidenceFile}
+          onFraudRequirementFilesChange={handleFraudRequirementFilesChange}
           onCloseReportCustomer={() => setReportCustomer(null)}
           onSubmitCustomerFraud={submitCustomerFraud}
           selectedApp={selectedApp}

@@ -11,7 +11,7 @@ interface StoreCardProps {
 export function StoreCard({ store, onOpenStore }: StoreCardProps) {
   return (
     <motion.div whileHover={{ y: -5 }} transition={{ type: 'spring', stiffness: 300 }}>
-      <Card className="group cursor-pointer overflow-hidden" onClick={() => onOpenStore(store.id)}>
+      <Card className="group cursor-pointer overflow-hidden rounded-2xl border-[var(--tone-border)] bg-[var(--tone-surface-soft)] shadow-sm" onClick={() => onOpenStore(store.id)}>
         <div className="relative aspect-video overflow-hidden">
           <img
             src={store.banner_url || `https://picsum.photos/seed/store-${store.id}/800/450`}
@@ -19,7 +19,7 @@ export function StoreCard({ store, onOpenStore }: StoreCardProps) {
             className="h-full w-full object-cover transition-transform group-hover:scale-105"
             referrerPolicy="no-referrer"
           />
-          <div className="absolute right-4 top-4 flex items-center gap-1 rounded-md bg-background/90 px-2 py-1 text-sm font-medium backdrop-blur">
+          <div className="absolute right-4 top-4 flex items-center gap-1 rounded-md bg-[var(--tone-panel-overlay)]/90 px-2 py-1 text-sm font-medium text-[var(--tone-text)] backdrop-blur">
             <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
             {Number(store.rating || 0).toFixed(1)}
           </div>
@@ -29,14 +29,14 @@ export function StoreCard({ store, onOpenStore }: StoreCardProps) {
             <div className="h-10 w-10 overflow-hidden rounded-full border bg-muted">
               <img src={store.logo_url || `https://picsum.photos/seed/logo-${store.id}/100/100`} alt="" referrerPolicy="no-referrer" />
             </div>
-            <h3 className="text-lg font-bold">{store.name}</h3>
+            <h3 className="text-lg font-bold text-[var(--tone-text)]">{store.name}</h3>
           </div>
           <div className="mb-4 flex items-center gap-1 text-sm text-muted-foreground">
             <MapPin className="h-3 w-3" />
             {store.address || 'Downtown, City Center'}
           </div>
           <p className="mb-3 line-clamp-2 text-xs text-muted-foreground">{store.description || 'No store description provided.'}</p>
-          <Button className="w-full group-hover:bg-primary/90">
+          <Button className="w-full bg-[var(--tone-accent)] text-[var(--tone-accent-text)] hover:opacity-90">
             Visit Store
             <ChevronRight className="ml-2 h-4 w-4" />
           </Button>

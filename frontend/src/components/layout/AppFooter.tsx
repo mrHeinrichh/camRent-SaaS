@@ -1,4 +1,5 @@
 import type { AppPage } from '@/src/types/app';
+import { siteTheme } from '@/src/config/siteTheme';
 
 interface AppFooterProps {
   onNavigate: (page: AppPage) => void;
@@ -6,11 +7,10 @@ interface AppFooterProps {
 
 export function AppFooter({ onNavigate }: AppFooterProps) {
   return (
-    <footer className="mt-16 border-t bg-muted/20">
+    <footer className="mt-16 border-t border-[var(--tone-nav-border)] bg-[var(--tone-surface)]">
       <div className="container mx-auto grid grid-cols-1 gap-8 px-4 py-10 md:grid-cols-2 lg:grid-cols-5">
         <div className="space-y-3">
-          <h4 className="text-sm font-bold uppercase tracking-wide">Company</h4>
-          <p className="text-base font-semibold">CamRent PH</p>
+          <p className="text-base font-extrabold text-[var(--tone-text)]">{siteTheme.brandName}</p>
           <p className="text-sm text-muted-foreground">
             Camera rental workflow platform built for inventory management, renter history, and fraud monitoring for rental businesses.
           </p>
@@ -83,7 +83,7 @@ export function AppFooter({ onNavigate }: AppFooterProps) {
           </div>
         </div>
       </div>
-      <div className="border-t py-4 text-center text-xs text-muted-foreground">© {new Date().getFullYear()} CamRent PH. All rights reserved.</div>
+      <div className="border-t border-[var(--tone-nav-border)] py-4 text-center text-xs text-muted-foreground">© {new Date().getFullYear()} {siteTheme.brandName}. All rights reserved.</div>
     </footer>
   );
 }

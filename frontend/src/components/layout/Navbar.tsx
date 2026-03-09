@@ -1,5 +1,6 @@
 import { Camera, LogOut, Search, ShoppingCart, User } from 'lucide-react';
 import { Button, Input } from '@/src/components/ui';
+import { siteTheme } from '@/src/config/siteTheme';
 import { useAppStore } from '@/src/store';
 import type { AppPage } from '@/src/types/app';
 
@@ -11,18 +12,18 @@ export function Navbar({ onNavigate }: NavbarProps) {
   const { user, cart, logout, page, homeSearchQuery, setHomeSearchQuery } = useAppStore();
 
   return (
-    <nav className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <nav className="sticky top-0 z-50 w-full border-b border-[var(--tone-nav-border)] bg-[var(--tone-nav)]">
       <div className="container relative mx-auto flex h-16 items-center justify-between gap-4 px-4">
         <div className="flex cursor-pointer items-center gap-2" onClick={() => (user?.role === 'owner' ? onNavigate('owner') : onNavigate('home'))}>
-          <Camera className="h-6 w-6 text-primary" />
-          <span className="text-xl font-bold tracking-tight">CamRent PH</span>
+          <Camera className="h-6 w-6 text-[var(--tone-text)]" />
+          <span className="text-xl font-bold tracking-tight text-[var(--tone-text)]">{siteTheme.brandName}</span>
         </div>
 
         {page === 'home' && user?.role !== 'owner' && user?.role !== 'admin' ? (
           <div className="pointer-events-none absolute left-1/2 z-10 w-full max-w-xl -translate-x-1/2 px-4">
             <div className="pointer-events-auto relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input className="pl-9" placeholder="Search gears, brands, stores..." value={homeSearchQuery} onChange={(event) => setHomeSearchQuery(event.target.value)} />
+              <Input className="border-[var(--tone-border)] bg-white pl-9" placeholder="Search gears, brands, stores..." value={homeSearchQuery} onChange={(event) => setHomeSearchQuery(event.target.value)} />
             </div>
           </div>
         ) : null}

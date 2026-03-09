@@ -20,7 +20,12 @@ interface OwnerTabsProps {
   onExportInventory: () => void;
   onExportFraud: () => void;
   onSelectApplication: (application: OwnerApplication) => void;
-  onSelectReportCustomer: (customer: { renter_name: string; renter_email: string; renter_phone: string }) => void;
+  onSelectReportCustomer: (customer: {
+    renter_name: string;
+    renter_email: string;
+    renter_phone: string;
+    requirements?: Array<{ type: string; url: string }>;
+  }) => void;
   onApprove: (id: string) => void;
   onReject: (id: string) => void;
   onReportFraud: (id: string) => void;
@@ -69,6 +74,7 @@ interface OwnerTabsProps {
   onFraudScopeChange: (value: 'internal' | 'global') => void;
   onFraudReasonChange: (value: string) => void;
   onFraudEvidenceFileChange: (file: File | null) => void;
+  onFraudRequirementFilesChange: (files: File[]) => void;
   onSubmitManualFraud: () => void;
   supportTickets: SupportTicket[];
   onCreateSupportTicket: (payload: { type: SupportTicket['type']; priority: SupportTicket['priority']; subject: string; message: string }) => Promise<void>;
@@ -137,6 +143,7 @@ export function OwnerTabs({
   onFraudScopeChange,
   onFraudReasonChange,
   onFraudEvidenceFileChange,
+  onFraudRequirementFilesChange,
   onSubmitManualFraud,
   supportTickets,
   onCreateSupportTicket,
@@ -906,7 +913,14 @@ export function OwnerTabs({
                       variant="outline"
                       size="sm"
                       disabled={data.store?.status !== 'approved'}
-                      onClick={() => onSelectReportCustomer({ renter_name: customer.renter_name, renter_email: customer.renter_email, renter_phone: customer.renter_phone })}
+                      onClick={() =>
+                        onSelectReportCustomer({
+                          renter_name: customer.renter_name,
+                          renter_email: customer.renter_email,
+                          renter_phone: customer.renter_phone,
+                          requirements: customer.requirements || [],
+                        })
+                      }
                     >
                       Flag as Fraud
                     </Button>
@@ -1458,7 +1472,7 @@ export function OwnerTabs({
               <p className="text-sm text-muted-foreground">Standard fields remain fixed. Add extra fields required by your store.</p>
               <div className='pt-5'>
               <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
-             More editable features will coom soon! Thank you for your patience
+             More editable features will come soon! Thank you for your patience
                 </p>
                 </div>
             </div>
@@ -1581,6 +1595,10 @@ export function OwnerTabs({
                 <Input type="file" accept="image/*" onChange={(event) => onFraudEvidenceFileChange(event.target.files?.[0] ?? null)} />
               </div>
               <div className="md:col-span-2">
+                <Input type="file" accept=".pdf,image/*" multiple onChange={(event) => onFraudRequirementFilesChange(Array.from(event.target.files || []))} />
+                <p className="mt-1 text-xs text-muted-foreground">Requirements: upload up to 5 image/PDF files.</p>
+              </div>
+              <div className="md:col-span-2">
                 <Button onClick={onSubmitManualFraud}>Add Fraud Person</Button>
               </div>
             </Card>
@@ -1612,6 +1630,21 @@ export function OwnerTabs({
                         <a href={entry.evidence_image_url} target="_blank" rel="noreferrer" className="text-xs underline">
                           View evidence
                         </a>
+                      ) : null}
+                      {(entry.requirement_files || []).length ? (
+                        <div className="mt-2 grid grid-cols-2 gap-2">
+                          {(entry.requirement_files || []).map((file, index) => (
+                            <a
+                              key={`${entry.id}-req-${index}`}
+                              href={file.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="truncate rounded border px-2 py-1 text-xs underline"
+                            >
+                              {file.type || `Requirement ${index + 1}`}
+                            </a>
+                          ))}
+                        </div>
                       ) : null}
                     </td>
                     <td className="p-4">

@@ -6,6 +6,7 @@ interface GlobalFraudForm {
   full_name: string;
   email: string;
   contact_number: string;
+  requirement_files_text: string;
   reason: string;
   evidence_image_url: string;
 }
@@ -74,6 +75,12 @@ export function FraudTab({
           value={globalFraudForm.evidence_image_url}
           onChange={(event) => onGlobalFraudFormChange({ ...globalFraudForm, evidence_image_url: event.target.value })}
         />
+        <textarea
+          className="min-h-24 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring md:col-span-2"
+          placeholder="Requirement files (optional). One per line. Format: TYPE|https://file-url"
+          value={globalFraudForm.requirement_files_text}
+          onChange={(event) => onGlobalFraudFormChange({ ...globalFraudForm, requirement_files_text: event.target.value })}
+        />
         <div className="md:col-span-2">
           <Button onClick={onCreateGlobalFraud}>Add Global Fraud</Button>
         </div>
@@ -109,6 +116,13 @@ export function FraudTab({
                       View evidence
                     </a>
                   ) : null}
+                  {(entry.requirement_files || []).map((file, index) => (
+                    <p key={`${entry.id}-req-${index}`}>
+                      <a href={file.url} target="_blank" rel="noreferrer" className="text-[10px] underline">
+                        {file.type || `Requirement ${index + 1}`}
+                      </a>
+                    </p>
+                  ))}
                   <p className="text-[10px] text-muted-foreground">By: {entry.reported_by_email}</p>
                 </td>
                 <td className="p-4">
@@ -144,4 +158,3 @@ export function FraudTab({
     </div>
   );
 }
-

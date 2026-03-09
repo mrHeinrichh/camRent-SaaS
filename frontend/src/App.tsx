@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { Navbar } from '@/src/components/layout/Navbar';
+import { siteTheme } from '@/src/config/siteTheme';
 import { useAppStore } from '@/src/store';
 import { AccountPage } from '@/src/pages/AccountPage';
 import { AdminDashboardPage } from '@/src/pages/AdminDashboardPage';
@@ -24,6 +25,20 @@ export default function App() {
     }
   }, [page, setPage, user]);
 
+  useEffect(() => {
+    const root = document.documentElement;
+    root.style.setProperty('--tone-bg', siteTheme.palette.bg);
+    root.style.setProperty('--tone-surface', siteTheme.palette.surface);
+    root.style.setProperty('--tone-surface-soft', siteTheme.palette.surfaceSoft);
+    root.style.setProperty('--tone-border', siteTheme.palette.border);
+    root.style.setProperty('--tone-text', siteTheme.palette.text);
+    root.style.setProperty('--tone-text-muted', siteTheme.palette.textMuted);
+    root.style.setProperty('--tone-accent', siteTheme.palette.accent);
+    root.style.setProperty('--tone-accent-text', siteTheme.palette.accentText);
+    root.style.setProperty('--tone-nav', siteTheme.palette.nav);
+    root.style.setProperty('--tone-nav-border', siteTheme.palette.navBorder);
+  }, []);
+
   const navigateToStore = (id: string) => {
     if (user?.role === 'owner') return;
     openStore(id);
@@ -35,7 +50,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-background font-sans antialiased">
+    <div className="min-h-screen bg-[var(--tone-bg)] font-sans antialiased">
       <Navbar onNavigate={setPage} />
 
       <main>

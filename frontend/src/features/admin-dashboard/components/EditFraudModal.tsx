@@ -43,6 +43,12 @@ export function EditFraudModal({ open, form, saving, onChange, onCancel, onSave 
             onChange={(event) => onChange({ ...form, evidence_image_url: event.target.value })}
           />
           <Input className="md:col-span-2" placeholder="Reason" value={form.reason} onChange={(event) => onChange({ ...form, reason: event.target.value })} />
+          <textarea
+            className="min-h-24 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring md:col-span-2"
+            placeholder="Requirement files (optional). One per line. Format: TYPE|https://file-url"
+            value={form.requirement_files_text}
+            onChange={(event) => onChange({ ...form, requirement_files_text: event.target.value })}
+          />
         </div>
         <div className="mt-5 flex justify-end gap-2">
           <Button variant="outline" onClick={onCancel} disabled={saving}>Cancel</Button>
@@ -52,4 +58,3 @@ export function EditFraudModal({ open, form, saving, onChange, onCancel, onSave 
     </div>
   );
 }
-

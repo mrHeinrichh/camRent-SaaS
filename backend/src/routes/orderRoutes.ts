@@ -13,6 +13,7 @@ import { serialize, serializeMany, toId } from '../utils/mongo';
 import { hasBookingConflict, hasBookingConflictForQuantity } from '../services/bookingService';
 
 export const orderRoutes = Router();
+const normalizeComparable = (value: unknown) => String(value || '').trim().toLowerCase();
 
 orderRoutes.get('/orders/id-requirements', async (req, res) => {
   const storeId = String(req.query.store_id || '');
@@ -84,9 +85,18 @@ orderRoutes.post('/orders', authenticate, async (req: AuthedRequest, res) => {
     }
   }
 
-  const fraudMatch = await FraudList.findOne({
-    $or: [renter_name ? { full_name: renter_name } : null, renter_email ? { email: renter_email } : null, renter_phone ? { contact_number: renter_phone } : null, renter_address ? { billing_address: renter_address } : null].filter(Boolean),
+  const normalizedRenterName = normalizeComparable(renter_name);
+  const normalizedRenterEmail = normalizeComparable(renter_email);
+  const normalizedRenterPhone = normalizeComparable(renter_phone);
+  const fraudCandidates = await FraudList.find({
+    $or: [{ scope: 'internal', store_id: toId(store_id) }, { scope: 'global', status: 'approved' }],
   }).lean();
+  const fraudMatch = fraudCandidates.find(
+    (entry) =>
+      normalizeComparable(entry.full_name) === normalizedRenterName &&
+      normalizeComparable(entry.email) === normalizedRenterEmail &&
+      normalizeComparable(entry.contact_number) === normalizedRenterPhone,
+  );
 
   try {
     for (const item of items) {
@@ -257,6 +267,19 @@ orderRoutes.post('/orders/:id/report-fraud', authenticate, checkRole(['owner', '
   const { reason } = req.body;
   const order = await Order.findById(req.params.id);
   if (!order) return res.status(404).json({ error: 'Order not found' });
+  const orderDocuments = await OrderDocument.find({ order_id: order._id }).lean();
+  const requirementFiles = orderDocuments
+    .map((doc: any) => ({
+      type: String(doc.document_type || '').trim(),
+      url: String(doc.file_url || '').trim(),
+    }))
+    .filter((entry) => entry.url);
+  if (order.lease_agreement_submission_url && String(order.lease_agreement_submission_url).trim()) {
+    requirementFiles.push({
+      type: 'LEASE_AGREEMENT_SUBMISSION',
+      url: String(order.lease_agreement_submission_url).trim(),
+    });
+  }
 
   order.status = 'FRAUD_REPORTED';
   await order.save();
@@ -267,6 +290,7 @@ orderRoutes.post('/orders/:id/report-fraud', authenticate, checkRole(['owner', '
     email: order.renter_email,
     contact_number: order.renter_phone,
     billing_address: order.renter_address,
+    requirement_files: requirementFiles,
     reason,
     reported_by: toId(req.user!.id),
   });

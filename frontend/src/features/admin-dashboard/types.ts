@@ -8,4 +8,5 @@ export interface EditFraudForm {
   status: 'approved' | 'pending';
   reason: string;
   evidence_image_url: string;
+  requirement_files_text: string;
 }

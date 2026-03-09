@@ -4,6 +4,7 @@ import { useAppStore } from '@/src/store';
 import type { Announcement, Store } from '@/src/types/domain';
 import { Button } from '@/src/components/ui';
 import { AppFooter } from '@/src/components/layout/AppFooter';
+import { siteTheme } from '@/src/config/siteTheme';
 import { HomeFilterBar } from '@/src/features/home/components/HomeFilterBar';
 import { GearCard } from '@/src/features/home/components/GearCard';
 import { StoreCard } from '@/src/features/home/components/StoreCard';
@@ -164,99 +165,150 @@ export function HomePage({ onNavigate }: HomePageProps) {
   };
 
   if (user?.role === 'owner') return null;
-  if (loading) return <div className="flex h-96 items-center justify-center">Loading...</div>;
+  if (loading) return <div className="flex h-96 items-center justify-center bg-[var(--tone-bg)] text-[var(--tone-text)]">Loading...</div>;
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      {announcements.length ? (
-        <div className="mb-8">
-          {(() => {
-            const item = announcements[activeAnnouncement];
-            const content = (
-              <div className="h-60 w-full overflow-hidden rounded-xl bg-muted">
-                {item?.image_url ? (
-                  <img src={item.image_url} alt="Announcement" className="h-full w-full object-cover" />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center px-6 text-center text-sm font-medium text-muted-foreground">
-                    {item?.title || item?.description || 'Announcement'}
-                  </div>
-                )}
+    <div className="min-h-screen bg-[var(--tone-bg)]">
+      <div className="container mx-auto px-4 py-8">
+        <section className="mb-8 rounded-sm border border-[var(--tone-border)] bg-[var(--tone-surface)] p-4 shadow-sm md:p-7">
+          <div className="grid items-center gap-8 md:grid-cols-[0.8fr_1.2fr]">
+            <div className="space-y-5 animate-fade-up">
+              <p className="inline-block border-2 border-[var(--tone-text-muted)] px-3 py-1 text-4xl font-bold tracking-tight text-[var(--tone-text-muted)]">{siteTheme.home.badge}</p>
+              <h1 className="max-w-xs text-3xl font-semibold leading-tight text-[var(--tone-text)] md:text-4xl">{siteTheme.home.title}</h1>
+              <p className="max-w-sm text-sm leading-relaxed text-[var(--tone-text-muted)]">{siteTheme.home.subtitle}</p>
+              <div className="flex gap-3 text-xs text-[var(--tone-text-muted)]">
+                <span>{stores.length} Stores</span>
+                <span>•</span>
+                <span>{gears.length} Gears</span>
               </div>
-            );
-            return item?.cta_url ? (
-              <a href={item.cta_url} target="_blank" rel="noreferrer" className="block">
-                {content}
-              </a>
-            ) : (
-              content
-            );
-          })()}
-          {announcements.length > 1 ? (
-            <div className="mt-2 flex justify-center gap-1.5">
-              {announcements.map((entry, index) => (
-                <button key={entry.id} type="button" className={`h-1.5 w-8 rounded-full ${index === activeAnnouncement ? 'bg-primary' : 'bg-muted'}`} onClick={() => setActiveAnnouncement(index)} />
-              ))}
             </div>
-          ) : null}
-        </div>
-      ) : null}
 
-      <div className="mb-12 text-center">
-        <h1 className="mb-4 text-4xl font-extrabold tracking-tight lg:text-5xl">
-          Rent Professional Gear <br /> from Local Stores
-        </h1>
+            <div className="relative h-[330px] animate-fade-up-delay md:h-[420px]">
+              <div className="absolute right-[12%] top-2 h-[78%] w-[72%] overflow-hidden rounded-sm border border-[var(--tone-border)] bg-white shadow-lg">
+                <img
+                  src={siteTheme.home.heroImages[0]}
+                  alt="Camera setup"
+                  className="h-full w-full object-cover"
+                  referrerPolicy="no-referrer"
+                />
+              </div>
+              <div className="absolute left-[2%] top-[28%] h-[62%] w-[68%] overflow-hidden rounded-sm border border-[var(--tone-border)] bg-white shadow-lg">
+                <img
+                  src={siteTheme.home.heroImages[1]}
+                  alt="Studio gear"
+                  className="h-full w-full object-cover"
+                  referrerPolicy="no-referrer"
+                />
+              </div>
+              <div className="absolute bottom-0 right-0 h-[45%] w-[34%] overflow-hidden rounded-sm border border-[var(--tone-border)] bg-white shadow-lg">
+                <img
+                  src={siteTheme.home.heroImages[2]}
+                  alt="Lens close-up"
+                  className="h-full w-full object-cover"
+                  referrerPolicy="no-referrer"
+                />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {announcements.length ? (
+          <section className="mb-7 animate-fade-up">
+            {(() => {
+              const item = announcements[activeAnnouncement];
+              const content = (
+                <div className="h-48 w-full overflow-hidden rounded-2xl border border-[var(--tone-nav-border)] bg-[var(--tone-surface-soft)]">
+                  {item?.image_url ? (
+                    <img src={item.image_url} alt="Announcement" className="h-full w-full object-cover transition-transform duration-700 hover:scale-[1.02]" />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center px-6 text-center text-sm font-medium text-[var(--tone-text-muted)]">{item?.title || item?.description || 'Announcement'}</div>
+                  )}
+                </div>
+              );
+              return item?.cta_url ? (
+                <a href={item.cta_url} target="_blank" rel="noreferrer" className="block">
+                  {content}
+                </a>
+              ) : (
+                content
+              );
+            })()}
+            {announcements.length > 1 ? (
+              <div className="mt-2 flex justify-center gap-1.5">
+                {announcements.map((entry, index) => (
+                  <button key={entry.id} type="button" className={`h-1.5 w-8 rounded-full ${index === activeAnnouncement ? 'bg-[var(--tone-text)]' : 'bg-[var(--tone-nav-border)]'}`} onClick={() => setActiveAnnouncement(index)} />
+                ))}
+              </div>
+            ) : null}
+          </section>
+        ) : null}
+
+        <HomeFilterBar
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
+          onClearSearch={() => setHomeSearchQuery('')}
+          selectedCategory={selectedCategory}
+          availableCategories={availableCategories}
+          onCategoryChange={setSelectedCategory}
+          selectedBrand={selectedBrand}
+          onBrandChange={setSelectedBrand}
+          minRating={minRating}
+          onMinRatingChange={setMinRating}
+          sortMode={sortMode}
+          onSortModeChange={setSortMode}
+          nearMeOnly={nearMeOnly}
+          locating={locating}
+          onToggleNearMe={handleToggleNearMe}
+        />
+
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-xl font-semibold text-[var(--tone-text)]">{viewMode === 'gears' ? 'Available Gears' : 'Available Stores'}</h2>
+          <p className="text-xs text-[var(--tone-text-muted)]">{activeTotal} result(s)</p>
+        </div>
+
+        {viewMode === 'gears' ? (
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 animate-fade-up">
+            {pagedGears.map((gear) => (
+              <GearCard key={gear.id} gear={gear} onOpenStore={onNavigate} onAddToCart={handleAddToCart} />
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 animate-fade-up">
+            {pagedStores.map((store) => (
+              <StoreCard key={store.id} store={store} onOpenStore={onNavigate} />
+            ))}
+          </div>
+        )}
+
+        <div className="mt-8 flex items-center justify-between gap-4 rounded-2xl border border-[var(--tone-border)] bg-[var(--tone-surface)] p-3">
+          <p className="text-sm text-[var(--tone-text-muted)]">
+            Showing {activeTotal ? (currentPage - 1) * 30 + 1 : 0}-{Math.min(currentPage * 30, activeTotal)} of {activeTotal}
+          </p>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              className="border-[var(--tone-border)] bg-white text-[var(--tone-text)] hover:bg-[var(--tone-surface)]"
+              disabled={currentPage <= 1}
+              onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+            >
+              Previous
+            </Button>
+            <span className="text-sm text-[var(--tone-text-muted)]">
+              Page {currentPage} / {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              className="border-[var(--tone-border)] bg-white text-[var(--tone-text)] hover:bg-[var(--tone-surface)]"
+              disabled={currentPage >= totalPages}
+              onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+            >
+              Next
+            </Button>
+          </div>
+        </div>
+
+        <AppFooter onNavigate={setPage} />
       </div>
-
-      <HomeFilterBar
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
-        onClearSearch={() => setHomeSearchQuery('')}
-        selectedCategory={selectedCategory}
-        availableCategories={availableCategories}
-        onCategoryChange={setSelectedCategory}
-        selectedBrand={selectedBrand}
-        onBrandChange={setSelectedBrand}
-        minRating={minRating}
-        onMinRatingChange={setMinRating}
-        sortMode={sortMode}
-        onSortModeChange={setSortMode}
-        nearMeOnly={nearMeOnly}
-        locating={locating}
-        onToggleNearMe={handleToggleNearMe}
-      />
-
-      {viewMode === 'gears' ? (
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {pagedGears.map((gear) => (
-            <GearCard key={gear.id} gear={gear} onOpenStore={onNavigate} onAddToCart={handleAddToCart} />
-          ))}
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {pagedStores.map((store) => (
-            <StoreCard key={store.id} store={store} onOpenStore={onNavigate} />
-          ))}
-        </div>
-      )}
-
-      <div className="mt-8 flex items-center justify-between gap-4">
-        <p className="text-sm text-muted-foreground">
-          Showing {activeTotal ? (currentPage - 1) * 30 + 1 : 0}-{Math.min(currentPage * 30, activeTotal)} of {activeTotal}
-        </p>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" disabled={currentPage <= 1} onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}>
-            Previous
-          </Button>
-          <span className="text-sm">
-            Page {currentPage} / {totalPages}
-          </span>
-          <Button variant="outline" disabled={currentPage >= totalPages} onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}>
-            Next
-          </Button>
-        </div>
-      </div>
-
-      <AppFooter onNavigate={setPage} />
     </div>
   );
 }

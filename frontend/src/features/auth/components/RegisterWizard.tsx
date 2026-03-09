@@ -35,6 +35,7 @@ export function RegisterWizard({ submitting, onSubmit, onOpenPolicies }: Registe
   const [branchSearchResults, setBranchSearchResults] = useState<Record<number, Array<{ name: string; lat: string; lon: string }>>>({});
   const [branchLocationLoading, setBranchLocationLoading] = useState<Record<number, boolean>>({});
   const [agreePolicies, setAgreePolicies] = useState(false);
+  const [policyError, setPolicyError] = useState('');
 
   const totalSteps = role === 'owner' ? 3 : 2;
 
@@ -68,10 +69,12 @@ export function RegisterWizard({ submitting, onSubmit, onOpenPolicies }: Registe
   const handleNext = () => {
     const nextStep = Math.min(totalSteps, step + 1);
     if (!validateStep(nextStep)) return;
+    setPolicyError('');
     setStep(nextStep);
   };
 
   const handleBack = () => {
+    setPolicyError('');
     setStep((current) => Math.max(1, current - 1));
   };
 
@@ -154,11 +157,16 @@ export function RegisterWizard({ submitting, onSubmit, onOpenPolicies }: Registe
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     if (submitting) return;
-    if (!validateStep(totalSteps)) return;
-    if (!agreePolicies) {
-      alert('Please confirm that you have read the Policies and Terms & Conditions.');
+    if (step < totalSteps) {
+      handleNext();
       return;
     }
+    if (!validateStep(totalSteps)) return;
+    if (!agreePolicies) {
+      setPolicyError('Please confirm that you have read the Policies and Terms & Conditions.');
+      return;
+    }
+    setPolicyError('');
     if (role === 'owner') {
       const invalidBranch = storeBranches.find((branch, index) => {
         const address = (index === 0 ? storeAddress : branch.address).trim();
@@ -405,7 +413,10 @@ export function RegisterWizard({ submitting, onSubmit, onOpenPolicies }: Registe
           <button
             type="button"
             className={`relative mt-0.5 inline-flex h-5 w-9 items-center rounded-full transition-colors ${agreePolicies ? 'bg-emerald-500' : 'bg-slate-300'}`}
-            onClick={() => setAgreePolicies((prev) => !prev)}
+            onClick={() => {
+              setAgreePolicies((prev) => !prev);
+              setPolicyError('');
+            }}
             aria-label="Toggle policy agreement"
           >
             <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${agreePolicies ? 'translate-x-4' : 'translate-x-0.5'}`} />
@@ -419,6 +430,7 @@ export function RegisterWizard({ submitting, onSubmit, onOpenPolicies }: Registe
           </p>
         </div>
       )}
+      {step === totalSteps && policyError ? <p className="text-xs font-medium text-red-600">{policyError}</p> : null}
 
       <div className="flex items-center justify-between">
         <Button type="button" variant="outline" onClick={handleBack} disabled={step === 1 || submitting}>Back</Button>

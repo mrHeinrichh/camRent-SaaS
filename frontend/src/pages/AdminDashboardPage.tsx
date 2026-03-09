@@ -20,6 +20,7 @@ const defaultEditFraudForm: EditFraudForm = {
   status: 'approved',
   reason: '',
   evidence_image_url: '',
+  requirement_files_text: '',
 };
 
 export function AdminDashboardPage() {
@@ -58,6 +59,7 @@ export function AdminDashboardPage() {
     full_name: '',
     email: '',
     contact_number: '',
+    requirement_files_text: '',
     reason: '',
     evidence_image_url: '',
   });
@@ -109,8 +111,28 @@ export function AdminDashboardPage() {
     if (!globalFraudForm.full_name.trim() || !globalFraudForm.email.trim() || !globalFraudForm.reason.trim()) {
       return alert('Full name, email, and reason are required');
     }
-    await api.post('/api/admin/fraud-list', globalFraudForm);
-    setGlobalFraudForm({ full_name: '', email: '', contact_number: '', reason: '', evidence_image_url: '' });
+    await api.post('/api/admin/fraud-list', {
+      ...globalFraudForm,
+      requirement_files: globalFraudForm.requirement_files_text
+        .split('\n')
+        .map((line) => line.trim())
+        .filter(Boolean)
+        .map((line, index) => {
+          const [typePart, ...urlParts] = line.split('|');
+          const maybeUrl = (urlParts.length ? urlParts.join('|') : typePart).trim();
+          const maybeType = (urlParts.length ? typePart : `ATTACHMENT_${index + 1}`).trim();
+          return { type: maybeType || `ATTACHMENT_${index + 1}`, url: maybeUrl };
+        })
+        .filter((entry) => entry.url),
+    });
+    setGlobalFraudForm({
+      full_name: '',
+      email: '',
+      contact_number: '',
+      requirement_files_text: '',
+      reason: '',
+      evidence_image_url: '',
+    });
     await loadData();
   };
 
@@ -124,6 +146,9 @@ export function AdminDashboardPage() {
       status: entry.status === 'pending' ? 'pending' : 'approved',
       reason: entry.reason || '',
       evidence_image_url: entry.evidence_image_url || '',
+      requirement_files_text: (entry.requirement_files || [])
+        .map((file) => `${file.type || 'ATTACHMENT'}|${file.url}`)
+        .join('\n'),
     });
   };
 
@@ -134,7 +159,20 @@ export function AdminDashboardPage() {
     }
     try {
       setSavingFraud(true);
-      await api.put(`/api/admin/fraud-list/${editingFraudId}`, editFraudForm);
+      await api.put(`/api/admin/fraud-list/${editingFraudId}`, {
+        ...editFraudForm,
+        requirement_files: editFraudForm.requirement_files_text
+          .split('\n')
+          .map((line) => line.trim())
+          .filter(Boolean)
+          .map((line, index) => {
+            const [typePart, ...urlParts] = line.split('|');
+            const maybeUrl = (urlParts.length ? urlParts.join('|') : typePart).trim();
+            const maybeType = (urlParts.length ? typePart : `ATTACHMENT_${index + 1}`).trim();
+            return { type: maybeType || `ATTACHMENT_${index + 1}`, url: maybeUrl };
+          })
+          .filter((entry) => entry.url),
+      });
       setEditingFraudId(null);
       await loadData();
     } finally {

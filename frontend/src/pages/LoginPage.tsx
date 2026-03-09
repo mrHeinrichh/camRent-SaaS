@@ -1,10 +1,11 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { api } from '@/src/lib/api';
 import { useAppStore } from '@/src/store';
 import type { AppPage } from '@/src/types/app';
 import type { User } from '@/src/types/domain';
 import { Card } from '@/src/components/ui';
 import { AppFooter } from '@/src/components/layout/AppFooter';
+import { siteTheme } from '@/src/config/siteTheme';
 import { LoginForm } from '@/src/features/auth/components/LoginForm';
 import { RegisterWizard } from '@/src/features/auth/components/RegisterWizard';
 import type { RegisterFormState } from '@/src/features/auth/types';
@@ -27,7 +28,17 @@ export function LoginPage({ onNavigate }: LoginPageProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [activeWallpaper, setActiveWallpaper] = useState(0);
   const { setSession } = useAppStore();
+
+  useEffect(() => {
+    const total = siteTheme.login.wallpapers.length;
+    if (total <= 1) return;
+    const timer = setInterval(() => {
+      setActiveWallpaper((prev) => (prev + 1) % total);
+    }, 6000);
+    return () => clearInterval(timer);
+  }, []);
 
   const uploadImage = async (file: File | null) => {
     if (!file) return undefined;
@@ -120,35 +131,50 @@ export function LoginPage({ onNavigate }: LoginPageProps) {
   };
 
   return (
-    <div className="relative min-h-[calc(100vh-64px)] overflow-hidden">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,theme(colors.primary/15),transparent_45%),radial-gradient(ellipse_at_bottom_right,theme(colors.secondary/20),transparent_45%)]" />
-      <div className="container relative mx-auto max-w-2xl px-4 py-12">
-        <Card className="border-white/20 bg-card/95 p-8 shadow-2xl backdrop-blur">
-          <h1 className="mb-1 text-center text-3xl font-bold">{isRegister ? 'Create Account' : 'Welcome Back'}</h1>
-          <p className="mb-6 text-center text-sm text-muted-foreground">
-            {isRegister ? 'Use the step-by-step flow to finish signup faster.' : 'Sign in to continue.'}
-          </p>
+    <div className="min-h-[calc(100vh-64px)] bg-[var(--tone-bg)] px-4 py-10 md:px-8">
+      <div className="mx-auto w-full max-w-6xl rounded-sm border border-[var(--tone-border)] bg-[var(--tone-surface)] p-3 shadow-sm">
+        <div className="grid min-h-[680px] grid-cols-1 overflow-hidden rounded-sm bg-[var(--tone-surface-soft)] md:grid-cols-2">
+          <div className="flex items-center justify-center px-5 py-8 md:px-12">
+            <div className="w-full max-w-md animate-fade-up">
+              <h1 className="mb-2 text-4xl font-semibold tracking-tight text-[var(--tone-text)]">{isRegister ? siteTheme.login.titleRegister : siteTheme.login.titleLogin}</h1>
+              <p className="mb-8 text-sm text-[var(--tone-text-muted)]">{isRegister ? siteTheme.login.subtitleRegister : siteTheme.login.subtitleLogin}</p>
 
-          {isRegister ? (
-            <RegisterWizard submitting={submitting} onSubmit={handleRegister} onOpenPolicies={() => onNavigate('policies')} />
-          ) : (
-            <LoginForm
-              email={email}
-              password={password}
-              submitting={submitting}
-              onEmailChange={setEmail}
-              onPasswordChange={setPassword}
-              onSubmit={handleLogin}
-            />
-          )}
+              {isRegister ? (
+                <Card className="border border-[var(--tone-border)] bg-[var(--tone-surface-soft)] p-5 shadow-none">
+                  <RegisterWizard submitting={submitting} onSubmit={handleRegister} onOpenPolicies={() => onNavigate('policies')} />
+                </Card>
+              ) : (
+                <LoginForm
+                  email={email}
+                  password={password}
+                  submitting={submitting}
+                  onEmailChange={setEmail}
+                  onPasswordChange={setPassword}
+                  onSubmit={handleLogin}
+                />
+              )}
 
-          <p className="mt-6 text-center text-sm text-muted-foreground">
-            {isRegister ? 'Already have an account?' : "Don't have an account?"}{' '}
-            <button type="button" className="font-medium text-primary hover:underline" onClick={() => setIsRegister((value) => !value)}>
-              {isRegister ? 'Login' : 'Sign Up'}
-            </button>
-          </p>
-        </Card>
+              <p className="mt-6 text-center text-sm text-[var(--tone-text-muted)]">
+                {isRegister ? 'Already have an account?' : "Don't have an account?"}{' '}
+                <button type="button" className="font-medium text-[var(--tone-text)] hover:underline" onClick={() => setIsRegister((value) => !value)}>
+                  {isRegister ? 'Login' : 'Sign Up'}
+                </button>
+              </p>
+            </div>
+          </div>
+
+          <div className="relative hidden min-h-[680px] md:block">
+            {siteTheme.login.wallpapers.map((wallpaper, index) => (
+              <img
+                key={wallpaper}
+                src={wallpaper}
+                alt="Camera wallpaper"
+                className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ${index === activeWallpaper ? 'opacity-100' : 'opacity-0'}`}
+              />
+            ))}
+            <div className="absolute inset-0 bg-gradient-to-t from-[var(--tone-image-overlay)]/15 to-transparent" />
+          </div>
+        </div>
       </div>
 
       <AppFooter onNavigate={onNavigate} />

@@ -26,12 +26,18 @@ interface OwnerModalsProps {
   onBlockEndDateChange: (value: string) => void;
   onBlockReasonChange: (value: string) => void;
   onSubmitBlockDates: () => void;
-  reportCustomer: { renter_name: string; renter_email: string; renter_phone: string } | null;
+  reportCustomer: {
+    renter_name: string;
+    renter_email: string;
+    renter_phone: string;
+    requirements?: Array<{ type: string; url: string }>;
+  } | null;
   fraudScope: 'internal' | 'global';
   fraudReason: string;
   onFraudScopeChange: (value: 'internal' | 'global') => void;
   onFraudReasonChange: (value: string) => void;
   onFraudEvidenceFileChange: (file: File | null) => void;
+  onFraudRequirementFilesChange: (files: File[]) => void;
   onCloseReportCustomer: () => void;
   onSubmitCustomerFraud: () => void;
   selectedApp: OwnerApplication | null;
@@ -66,6 +72,7 @@ export function OwnerModals({
   onFraudScopeChange,
   onFraudReasonChange,
   onFraudEvidenceFileChange,
+  onFraudRequirementFilesChange,
   onCloseReportCustomer,
   onSubmitCustomerFraud,
   selectedApp,
@@ -272,6 +279,8 @@ export function OwnerModals({
                 </select>
                 <Input placeholder="Reason" value={fraudReason} onChange={(event) => onFraudReasonChange(event.target.value)} />
                 <Input type="file" accept="image/*" onChange={(event) => onFraudEvidenceFileChange(event.target.files?.[0] ?? null)} />
+                <Input type="file" accept=".pdf,image/*" multiple onChange={(event) => onFraudRequirementFilesChange(Array.from(event.target.files || []))} />
+                <p className="text-xs text-muted-foreground">Requirements: upload up to 5 image/PDF files.</p>
                 <div className="flex justify-end gap-2">
                   <Button variant="outline" onClick={onCloseReportCustomer}>
                     Cancel
@@ -347,7 +356,7 @@ export function OwnerModals({
                           <ShieldAlert className="mt-0.5 h-5 w-5 text-red-600" />
                           <div>
                             <p className="text-sm font-bold text-red-700">Potential Fraud Match Detected</p>
-                            <p className="text-xs text-red-600">This customer matches an entry in the fraud list. Verify documents before approval.</p>
+                            <p className="text-xs text-red-600">This person matches records in our fraud list (internal/global). Verify documents before approval.</p>
                           </div>
                         </div>
                       )}

@@ -1,5 +1,6 @@
 import type { Router } from 'express';
 import { authenticate, checkRole } from '../../middleware/auth';
+import { FraudList } from '../../models/FraudList';
 import { Item } from '../../models/Item';
 import { Order } from '../../models/Order';
 import { OrderDocument } from '../../models/OrderDocument';
@@ -10,6 +11,8 @@ import type { AuthedRequest } from '../../types/auth';
 import { serialize, serializeMany, toId } from '../../utils/mongo';
 
 export function registerOwnerDashboardRoutes(router: Router) {
+  const normalizeComparable = (value: unknown) => String(value || '').trim().toLowerCase();
+
   router.get('/dashboard/owner', authenticate, checkRole(['owner']), async (req: AuthedRequest, res) => {
     const storeDoc = await Store.findOne({ owner_id: toId(req.user!.id) });
     if (!storeDoc) {
@@ -307,6 +310,12 @@ export function registerOwnerDashboardRoutes(router: Router) {
     }
 
     const orders = await Order.find({ store_id: store._id }).sort({ created_at: -1 }).lean();
+    const fraudEntries = await FraudList.find({
+      $or: [{ scope: 'internal', store_id: store._id }, { scope: 'global', status: 'approved' }],
+    }).lean();
+    const fraudMatchKeySet = new Set(
+      fraudEntries.map((entry) => `${normalizeComparable(entry.full_name)}|${normalizeComparable(entry.email)}|${normalizeComparable(entry.contact_number)}`),
+    );
     const payload = [];
 
     for (const order of orders) {
@@ -318,6 +327,9 @@ export function registerOwnerDashboardRoutes(router: Router) {
 
       payload.push({
         ...(serialize(order as any) as Record<string, unknown>),
+        fraud_flag:
+          Boolean((order as any).fraud_flag) ||
+          fraudMatchKeySet.has(`${normalizeComparable(order.renter_name)}|${normalizeComparable(order.renter_email)}|${normalizeComparable(order.renter_phone)}`),
         items: orderItems.map((orderItem) => ({
           id: orderItem.item_id.toString(),
           name: itemsById.get(orderItem.item_id.toString())?.name || '',

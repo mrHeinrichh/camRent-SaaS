@@ -151,7 +151,7 @@ export interface FraudListEntry {
   full_name: string;
   email: string;
   contact_number: string;
-  billing_address?: string;
+  requirement_files?: Array<{ type: string; url: string }>;
   reason: string;
   evidence_image_url?: string;
   global_request_reason?: string;

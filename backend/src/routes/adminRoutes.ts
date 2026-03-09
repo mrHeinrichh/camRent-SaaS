@@ -14,6 +14,18 @@ export const adminRoutes = Router();
 
 const adminTicketStatusValues = new Set(['open', 'in_progress', 'resolved', 'closed']);
 const adminTicketPriorityValues = new Set(['low', 'medium', 'high']);
+const normalize = (value: unknown) => String(value || '').trim();
+const normalizeEmail = (value: unknown) => normalize(value).toLowerCase();
+const sanitizeRequirementFiles = (value: unknown) => {
+  if (!Array.isArray(value)) return [] as Array<{ type: string; url: string }>;
+  return value
+    .map((entry: any) => ({
+      type: normalize(entry?.type),
+      url: normalize(entry?.url),
+    }))
+    .filter((entry) => entry.url)
+    .slice(0, 5);
+};
 
 adminRoutes.get('/admin/fraud-list', authenticate, checkRole(['admin']), async (_req, res) => {
   const list = await FraudList.find().sort({ created_at: -1 }).lean();
@@ -58,18 +70,24 @@ adminRoutes.post('/admin/fraud-list/:id/approve-global', authenticate, checkRole
 });
 
 adminRoutes.post('/admin/fraud-list', authenticate, checkRole(['admin']), async (req: any, res) => {
-  const { full_name, email, contact_number, reason, evidence_image_url } = req.body || {};
+  const { full_name, email, contact_number, requirement_files, reason, evidence_image_url } = req.body || {};
   if (!full_name || !email || !reason) {
     return res.status(400).json({ error: 'Full name, email, and reason are required' });
+  }
+  if (Array.isArray(requirement_files) && requirement_files.length > 5) {
+    return res.status(400).json({ error: 'You can upload up to 5 requirement files only' });
   }
   const entry = await FraudList.create({
     store_id: null,
     scope: 'global',
     status: 'approved',
-    full_name: String(full_name).trim(),
-    email: String(email).trim().toLowerCase(),
-    contact_number: String(contact_number || '').trim(),
+    full_name: normalize(full_name),
+    email: normalizeEmail(email),
+    contact_number: normalize(contact_number),
     billing_address: '',
+    id_number: '',
+    id_numbers: [],
+    requirement_files: sanitizeRequirementFiles(requirement_files),
     reason: String(reason).trim(),
     evidence_image_url: String(evidence_image_url || '').trim(),
     reported_by: req.user?.id,
@@ -91,6 +109,7 @@ adminRoutes.put('/admin/fraud-list/:id', authenticate, checkRole(['admin']), asy
   const contactNumber = req.body?.contact_number;
   const reason = req.body?.reason;
   const evidenceImageUrl = req.body?.evidence_image_url;
+  const requirementFiles = req.body?.requirement_files;
   const scope = req.body?.scope;
   const status = req.body?.status;
 
@@ -99,6 +118,12 @@ adminRoutes.put('/admin/fraud-list/:id', authenticate, checkRole(['admin']), asy
   if (contactNumber !== undefined) fraud.contact_number = String(contactNumber || '').trim();
   if (reason !== undefined) fraud.reason = String(reason || '').trim();
   if (evidenceImageUrl !== undefined) fraud.evidence_image_url = String(evidenceImageUrl || '').trim();
+  if (requirementFiles !== undefined) {
+    if (Array.isArray(requirementFiles) && requirementFiles.length > 5) {
+      return res.status(400).json({ error: 'You can upload up to 5 requirement files only' });
+    }
+    (fraud as any).requirement_files = sanitizeRequirementFiles(requirementFiles);
+  }
   if (scope !== undefined) {
     if (scope !== 'internal' && scope !== 'global') return res.status(400).json({ error: 'Invalid scope value' });
     fraud.scope = scope;
