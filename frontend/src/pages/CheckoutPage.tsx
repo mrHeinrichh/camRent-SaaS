@@ -40,13 +40,15 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
     reference_image_url: '',
     reference_image_position: 'top',
   });
-  const [showBranchMap, setShowBranchMap] = useState(true);
+  const [submittingApplication, setSubmittingApplication] = useState(false);
   const [loadingStore, setLoadingStore] = useState(true);
   const [formData, setFormData] = useState({
     fullName: '',
     email: user?.email || '',
     phone: '',
+    emergencyContactName: '',
     emergencyContact: '',
+    presentAddress: '',
     storeBranchId: '',
     deliveryMode: '',
     deliveryAddress: '',
@@ -94,7 +96,6 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
             reference_image_url: schema.settings?.reference_image_url || '',
             reference_image_position: schema.settings?.reference_image_position === 'mid' ? 'mid' : 'top',
           });
-          setShowBranchMap(schema.settings?.show_branch_map !== false);
         } catch {
           setCustomFields([]);
           setRentalFormSettings({
@@ -103,7 +104,6 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
             reference_image_url: '',
             reference_image_position: 'top',
           });
-          setShowBranchMap(true);
         }
         if (!formData.deliveryMode && storeData.delivery_modes?.length) {
           setFormData((previous) => ({ ...previous, deliveryMode: storeData.delivery_modes![0] }));
@@ -146,13 +146,16 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
+    if (submittingApplication) return;
     if (!store) return alert('Store details are not available. Please try again.');
     const effectiveStoreBranchId = formData.storeBranchId || String(store.branches?.[0]?._id || 'main');
     const missingFields: string[] = [];
     if (!formData.fullName.trim()) missingFields.push('Full Name');
     if (!formData.email.trim()) missingFields.push('Email');
     if (!formData.phone.trim()) missingFields.push('Contact Number');
+    if (!formData.emergencyContactName.trim()) missingFields.push('Emergency Contact Name');
     if (!formData.emergencyContact.trim()) missingFields.push('Emergency Contact Number');
+    if (!formData.presentAddress.trim()) missingFields.push('Present Address');
     if (!billingAddressFile) missingFields.push('Billing Address File');
     if (!effectiveStoreBranchId.trim()) missingFields.push('Store Branch');
     if (!formData.deliveryMode.trim()) missingFields.push('Delivery Mode');
@@ -168,6 +171,7 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
     }
 
     try {
+      setSubmittingApplication(true);
       let leaseAgreementSubmissionUrl = '';
       if (leaseAgreementSubmissionFile) {
         leaseAgreementSubmissionUrl = await uploadPublicFile(leaseAgreementSubmissionFile);
@@ -191,8 +195,9 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
         renter_name: formData.fullName,
         renter_email: formData.email,
         renter_phone: formData.phone,
+        renter_emergency_contact_name: formData.emergencyContactName,
         renter_emergency_contact: formData.emergencyContact,
-        renter_address: billingAddressFileUrl,
+        renter_address: formData.presentAddress,
         store_branch_id: effectiveStoreBranchId,
         delivery_mode: formData.deliveryMode,
         delivery_address: formData.deliveryAddress,
@@ -211,8 +216,10 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
         customerName: formData.fullName,
         customerEmail: formData.email,
         customerPhone: formData.phone,
+        customerEmergencyContactName: formData.emergencyContactName,
         customerEmergencyContact: formData.emergencyContact,
-        customerAddress: billingAddressFileUrl,
+        customerAddress: formData.presentAddress,
+        billingAddressFileUrl: billingAddressFileUrl,
         storeBranchId: effectiveStoreBranchId,
         storeBranchName: store.branches?.find((branch) => String(branch._id) === effectiveStoreBranchId)?.name || '',
         storeBranchAddress: store.branches?.find((branch) => String(branch._id) === effectiveStoreBranchId)?.address || store.address || '',
@@ -228,6 +235,7 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
           daily_price: item.daily_price,
           deposit_amount: item.deposit_amount,
           quantity: Math.max(1, item.quantity || 1),
+          image_url: item.image_url,
         })),
         totalAmount,
       };
@@ -243,6 +251,8 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
       onComplete();
     } catch (error: any) {
       alert(error.message);
+    } finally {
+      setSubmittingApplication(false);
     }
   };
 
@@ -280,6 +290,18 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
                 <p className="whitespace-pre-line text-sm text-muted-foreground">{store.payment_details}</p>
               </div>
             )}
+            {(store.payment_detail_images || []).length ? (
+              <div className="space-y-2">
+                <p className="text-sm font-semibold">Payment QR / Reference Images</p>
+                <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+                  {(store.payment_detail_images || []).map((url, index) => (
+                    <a key={`${url}-${index}`} href={url} target="_blank" rel="noreferrer" className="block overflow-hidden rounded border bg-muted">
+                      <img src={url} alt={`Payment reference ${index + 1}`} className="h-24 w-full object-cover" />
+                    </a>
+                  ))}
+                </div>
+              </div>
+            ) : null}
             <div>
               <p className="text-sm font-semibold">Delivery Modes</p>
               <ul className="list-disc pl-6 text-sm text-muted-foreground">
@@ -340,14 +362,18 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
               <Input required value={formData.fullName} onChange={(event) => setFormData({ ...formData, fullName: event.target.value })} />
             </div>
             <div className="space-y-2">
-            <label className="text-sm font-medium">Contact Number</label>
-            <Input required value={formData.phone} onChange={(event) => setFormData({ ...formData, phone: event.target.value })} />
+              <label className="text-sm font-medium">Contact Number</label>
+              <Input required value={formData.phone} onChange={(event) => setFormData({ ...formData, phone: event.target.value })} />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Emergency Contact Name</label>
+              <Input required value={formData.emergencyContactName} onChange={(event) => setFormData({ ...formData, emergencyContactName: event.target.value })} />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Emergency Contact Number</label>
+              <Input required value={formData.emergencyContact} onChange={(event) => setFormData({ ...formData, emergencyContact: event.target.value })} />
+            </div>
           </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Emergency Contact Number</label>
-            <Input required value={formData.emergencyContact} onChange={(event) => setFormData({ ...formData, emergencyContact: event.target.value })} />
-          </div>
-        </div>
 
           <div className="space-y-2">
             <label className="text-sm font-medium">Email</label>
@@ -361,9 +387,8 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium">Billing Address File (Image/PDF)</label>
-            <Input required type="file" accept="image/*,.pdf" onChange={(event) => setBillingAddressFile(event.target.files?.[0] ?? null)} />
-            <p className="text-xs text-muted-foreground">Upload a billing address document that can be reviewed by the store owner.</p>
+            <label className="text-sm font-medium">Present Address</label>
+            <Input required value={formData.presentAddress} onChange={(event) => setFormData({ ...formData, presentAddress: event.target.value })} />
           </div>
 
           <div className="space-y-2">
@@ -396,13 +421,7 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
 
           {rentalFormSettings.show_branch_map && branchMapSrc && (
             <div className="space-y-2">
-              <label className="flex items-center gap-2 text-sm font-semibold">
-                <input type="checkbox" checked={showBranchMap} onChange={(event) => setShowBranchMap(event.target.checked)} />
-                Show branch map in rental agreement form
-              </label>
-              {showBranchMap && (
-                <iframe title="Selected Branch Map" src={branchMapSrc} className="h-56 w-full rounded-md border" loading="lazy" referrerPolicy="no-referrer-when-downgrade" />
-              )}
+              <iframe title="Selected Branch Map" src={branchMapSrc} className="h-56 w-full rounded-md border" loading="lazy" referrerPolicy="no-referrer-when-downgrade" />
             </div>
           )}
 
@@ -459,13 +478,18 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
           <div className="space-y-3 rounded-xl border bg-muted/20 p-4">
             <h3 className="font-semibold">Rented Gear Details</h3>
             {cart.map((item) => (
-              <div key={`${item.id}-${item.startDate}-${item.endDate}`} className="rounded-md border bg-background p-3 text-sm">
-                <p className="font-medium">{item.name}</p>
-                <p className="text-muted-foreground">
-                  {item.startDate} to {item.endDate}
-                </p>
-                <p className="text-muted-foreground">Daily rate: {formatPHP(item.daily_price)}</p>
-                <p className="text-muted-foreground">Quantity: {Math.max(1, item.quantity || 1)}</p>
+              <div key={`${item.id}-${item.startDate}-${item.endDate}`} className="flex items-center gap-3 rounded-md border bg-background p-3 text-sm">
+                <div className="h-16 w-16 overflow-hidden rounded border bg-muted">
+                  <img src={item.image_url || `https://picsum.photos/seed/cart-item-${item.id}/120/120`} alt={item.name} className="h-full w-full object-cover" />
+                </div>
+                <div className="flex-1">
+                  <p className="font-medium">{item.name}</p>
+                  <p className="text-muted-foreground">
+                    {item.startDate} to {item.endDate}
+                  </p>
+                  <p className="text-muted-foreground">Daily rate: {formatPHP(item.daily_price)}</p>
+                  <p className="text-muted-foreground">Quantity: {Math.max(1, item.quantity || 1)}</p>
+                </div>
               </div>
             ))}
           </div>
@@ -499,7 +523,11 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
               </div>
             </div>
           </div>
-
+ <div className="space-y-2">
+            <label className="text-sm font-medium">Billing Address File (Image/PDF)</label>
+            <Input required type="file" accept="image/*,.pdf" onChange={(event) => setBillingAddressFile(event.target.files?.[0] ?? null)} />
+            <p className="text-xs text-muted-foreground">Upload a billing address document that can be reviewed by the store owner.</p>
+          </div>
           {customFields.length > 0 && (
             <div className="space-y-4 rounded-xl border bg-muted/20 p-4">
               <h3 className="font-semibold">Additional Store Requirements</h3>
@@ -549,11 +577,20 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
             </p>
           </div>
 
-          <Button type="submit" className="h-12 w-full">
-            Submit Application
+          <Button type="submit" className="h-12 w-full" disabled={submittingApplication}>
+            {submittingApplication ? 'Submitting Application...' : 'Submit Application'}
           </Button>
         </form>
       </Card>
+
+      {submittingApplication && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-sm rounded-xl bg-white p-6 text-center text-slate-900 shadow-2xl">
+            <p className="text-lg font-semibold">Uploading and submitting...</p>
+            <p className="mt-2 text-sm text-slate-600">Please wait. Do not close this page.</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

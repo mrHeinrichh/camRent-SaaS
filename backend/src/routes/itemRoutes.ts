@@ -41,11 +41,12 @@ itemRoutes.get('/:id', authenticate, async (req: AuthedRequest, res) => {
   const bookings = [];
   for (const orderItem of orderItems) {
     const order = await Order.findById(orderItem.order_id).lean();
-    if (!order || !['APPROVED', 'ONGOING'].includes(order.status)) continue;
+    if (!order || !['APPROVED', 'ONGOING', 'PENDING_REVIEW'].includes(order.status)) continue;
     bookings.push({
       start_date: orderItem.start_date,
       end_date: orderItem.end_date,
       status: order.status,
+      renter_name: order.renter_name,
     });
   }
 

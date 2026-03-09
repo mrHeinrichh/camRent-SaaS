@@ -1,14 +1,19 @@
 import { Router } from 'express';
+import { Announcement } from '../models/Announcement';
 import { authenticate, checkRole } from '../middleware/auth';
 import { FraudList } from '../models/FraudList';
 import { Item } from '../models/Item';
 import { Order } from '../models/Order';
 import { Store } from '../models/Store';
+import { SupportTicket } from '../models/SupportTicket';
 import { User } from '../models/User';
 import { enforceStoreDueDeactivation } from '../services/billingService';
 import { serialize, serializeMany } from '../utils/mongo';
 
 export const adminRoutes = Router();
+
+const adminTicketStatusValues = new Set(['open', 'in_progress', 'resolved', 'closed']);
+const adminTicketPriorityValues = new Set(['low', 'medium', 'high']);
 
 adminRoutes.get('/admin/fraud-list', authenticate, checkRole(['admin']), async (_req, res) => {
   const list = await FraudList.find().sort({ created_at: -1 }).lean();
@@ -228,5 +233,111 @@ adminRoutes.post('/admin/customers/:id/active', authenticate, checkRole(['admin'
   if (!user || user.role !== 'renter') return res.status(404).json({ error: 'Customer not found' });
   user.is_active = isActive;
   await user.save();
+  res.json({ success: true });
+});
+
+adminRoutes.get('/admin/support-tickets', authenticate, checkRole(['admin']), async (_req, res) => {
+  const tickets = await SupportTicket.find().sort({ updated_at: -1 }).lean();
+  const storeIds = tickets.map((ticket) => ticket.store_id).filter(Boolean);
+  const ownerIds = tickets.map((ticket) => ticket.owner_id).filter(Boolean);
+  const [stores, owners] = await Promise.all([
+    Store.find({ _id: { $in: storeIds } }).lean(),
+    User.find({ _id: { $in: ownerIds } }).lean(),
+  ]);
+  const storesById = new Map(stores.map((store) => [store._id.toString(), store]));
+  const ownersById = new Map(owners.map((owner) => [owner._id.toString(), owner]));
+
+  res.json(
+    tickets.map((ticket) => ({
+      ...serialize(ticket as any),
+      store_name: storesById.get(ticket.store_id.toString())?.name || '',
+      owner_email: ownersById.get(ticket.owner_id.toString())?.email || '',
+      owner_name: ownersById.get(ticket.owner_id.toString())?.full_name || '',
+    })),
+  );
+});
+
+adminRoutes.put('/admin/support-tickets/:id', authenticate, checkRole(['admin']), async (req, res) => {
+  const ticket = await SupportTicket.findById(req.params.id);
+  if (!ticket) return res.status(404).json({ error: 'Support ticket not found' });
+
+  if (req.body?.status !== undefined) {
+    const status = String(req.body.status || '').trim().toLowerCase();
+    if (!adminTicketStatusValues.has(status)) return res.status(400).json({ error: 'Invalid status value' });
+    (ticket as any).status = status;
+    (ticket as any).resolved_at = status === 'resolved' || status === 'closed' ? new Date() : null;
+  }
+  if (req.body?.priority !== undefined) {
+    const priority = String(req.body.priority || '').trim().toLowerCase();
+    if (!adminTicketPriorityValues.has(priority)) return res.status(400).json({ error: 'Invalid priority value' });
+    (ticket as any).priority = priority;
+  }
+  if (req.body?.admin_reply !== undefined) {
+    (ticket as any).admin_reply = String(req.body.admin_reply || '').trim();
+  }
+  await ticket.save();
+  res.json({ success: true, ticket: serialize(ticket as any) });
+});
+
+adminRoutes.delete('/admin/support-tickets/:id', authenticate, checkRole(['admin']), async (req, res) => {
+  await SupportTicket.findByIdAndDelete(req.params.id);
+  res.json({ success: true });
+});
+
+adminRoutes.get('/announcements', async (_req, res) => {
+  const announcements = await Announcement.find({ is_active: true }).sort({ sort_order: 1, updated_at: -1 }).lean();
+  res.json(serializeMany(announcements as any[]));
+});
+
+adminRoutes.get('/admin/announcements', authenticate, checkRole(['admin']), async (_req, res) => {
+  const announcements = await Announcement.find().sort({ sort_order: 1, updated_at: -1 }).lean();
+  res.json(serializeMany(announcements as any[]));
+});
+
+adminRoutes.post('/admin/announcements', authenticate, checkRole(['admin']), async (req, res) => {
+  const title = String(req.body?.title || '').trim();
+  const description = String(req.body?.description || '').trim();
+  const imageUrl = String(req.body?.image_url || '').trim();
+  if (!title && !description && !imageUrl) {
+    return res.status(400).json({ error: 'Provide at least text (title/description) or image' });
+  }
+  const announcement = await Announcement.create({
+    title,
+    description,
+    image_url: imageUrl,
+    cta_label: String(req.body?.cta_label || '').trim(),
+    cta_url: String(req.body?.cta_url || '').trim(),
+    is_active: req.body?.is_active !== false,
+    sort_order: Number.isFinite(Number(req.body?.sort_order)) ? Number(req.body?.sort_order) : 0,
+  });
+  res.json({ success: true, announcement: serialize(announcement as any) });
+});
+
+adminRoutes.put('/admin/announcements/:id', authenticate, checkRole(['admin']), async (req, res) => {
+  const announcement = await Announcement.findById(req.params.id);
+  if (!announcement) return res.status(404).json({ error: 'Announcement not found' });
+
+  if (req.body?.title !== undefined) {
+    (announcement as any).title = String(req.body.title || '').trim();
+  }
+  if (req.body?.description !== undefined) (announcement as any).description = String(req.body.description || '').trim();
+  if (req.body?.image_url !== undefined) (announcement as any).image_url = String(req.body.image_url || '').trim();
+  if (req.body?.cta_label !== undefined) (announcement as any).cta_label = String(req.body.cta_label || '').trim();
+  if (req.body?.cta_url !== undefined) (announcement as any).cta_url = String(req.body.cta_url || '').trim();
+  if (req.body?.is_active !== undefined) (announcement as any).is_active = Boolean(req.body.is_active);
+  if (req.body?.sort_order !== undefined) {
+    const sortOrder = Number(req.body.sort_order);
+    if (!Number.isFinite(sortOrder)) return res.status(400).json({ error: 'sort_order must be a number' });
+    (announcement as any).sort_order = sortOrder;
+  }
+  if (!(announcement as any).title && !(announcement as any).description && !(announcement as any).image_url) {
+    return res.status(400).json({ error: 'Provide at least text (title/description) or image' });
+  }
+  await announcement.save();
+  res.json({ success: true, announcement: serialize(announcement as any) });
+});
+
+adminRoutes.delete('/admin/announcements/:id', authenticate, checkRole(['admin']), async (req, res) => {
+  await Announcement.findByIdAndDelete(req.params.id);
   res.json({ success: true });
 });

@@ -34,6 +34,7 @@ orderRoutes.post('/orders', authenticate, async (req: AuthedRequest, res) => {
     renter_name,
     renter_email,
     renter_phone,
+    renter_emergency_contact_name,
     renter_emergency_contact,
     renter_address,
     store_branch_id,
@@ -47,7 +48,7 @@ orderRoutes.post('/orders', authenticate, async (req: AuthedRequest, res) => {
     document_urls,
   } = req.body;
 
-  if (!renter_name || !renter_email || !renter_phone || !renter_emergency_contact || !renter_address || !store_branch_id || !delivery_mode || !delivery_address || !payment_mode) {
+  if (!renter_name || !renter_email || !renter_phone || !renter_emergency_contact_name || !renter_emergency_contact || !renter_address || !store_branch_id || !delivery_mode || !delivery_address || !payment_mode) {
     return res.status(400).json({ error: 'Please complete all required standard fields' });
   }
   if (!Array.isArray(items) || items.length === 0) return res.status(400).json({ error: 'At least one gear is required' });
@@ -100,6 +101,7 @@ orderRoutes.post('/orders', authenticate, async (req: AuthedRequest, res) => {
       renter_name,
       renter_email: normalizedEmail,
       renter_phone,
+      renter_emergency_contact_name,
       renter_emergency_contact,
       renter_address,
       store_branch_id: String(branchToUse._id),

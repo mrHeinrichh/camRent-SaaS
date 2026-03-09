@@ -1,4 +1,4 @@
-import { LayoutDashboard, ShieldAlert, Store as StoreIcon, Users } from 'lucide-react';
+import { LayoutDashboard, Megaphone, MessageSquare, ShieldAlert, Store as StoreIcon, Users } from 'lucide-react';
 import { Button } from '@/src/components/ui';
 import type { AdminTab } from '@/src/features/admin-dashboard/types';
 
@@ -22,7 +22,12 @@ export function AdminSidebar({ activeTab, onChangeTab }: AdminSidebarProps) {
       <Button variant={activeTab === 'insights' ? 'secondary' : 'ghost'} className="w-full justify-start" onClick={() => onChangeTab('insights')}>
         <LayoutDashboard className="mr-2 h-4 w-4" /> Insights
       </Button>
+      <Button variant={activeTab === 'support' ? 'secondary' : 'ghost'} className="w-full justify-start" onClick={() => onChangeTab('support')}>
+        <MessageSquare className="mr-2 h-4 w-4" /> Owner Support
+      </Button>
+      <Button variant={activeTab === 'announcements' ? 'secondary' : 'ghost'} className="w-full justify-start" onClick={() => onChangeTab('announcements')}>
+        <Megaphone className="mr-2 h-4 w-4" /> Announcements
+      </Button>
     </aside>
   );
 }
-

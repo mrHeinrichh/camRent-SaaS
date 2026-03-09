@@ -26,6 +26,20 @@ export async function startServer() {
   const io = new Server(httpServer, { cors: { origin: '*' } });
 
   app.locals.io = io;
+  app.use((req, res, next) => {
+    const origin = req.headers.origin || '';
+    const allowedOrigins = new Set(['http://localhost:5173', 'http://127.0.0.1:5173']);
+    if (allowedOrigins.has(origin)) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Vary', 'Origin');
+    }
+    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    if (req.method === 'OPTIONS') {
+      return res.status(204).end();
+    }
+    next();
+  });
   app.use(express.json({ limit: '10mb' }));
   app.use('/uploads', express.static(uploadsDir));
 
@@ -37,6 +51,17 @@ export async function startServer() {
   app.use('/api', orderRoutes);
   app.use('/api', ownerRoutes);
   app.use('/api', adminRoutes);
+
+  app.use((error: any, req: express.Request, res: express.Response, _next: express.NextFunction) => {
+    console.error('[server] unhandled error', {
+      method: req.method,
+      path: req.path,
+      message: error?.message,
+      stack: error?.stack,
+    });
+    if (res.headersSent) return;
+    res.status(500).json({ error: 'Internal server error' });
+  });
 
   httpServer.listen(env.port, '0.0.0.0', () => {
     console.log(`Server running on http://0.0.0.0:${env.port}`);

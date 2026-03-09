@@ -23,6 +23,7 @@ export function RegisterWizard({ submitting, onSubmit }: RegisterWizardProps) {
   const [facebookUrl, setFacebookUrl] = useState('');
   const [instagramUrl, setInstagramUrl] = useState('');
   const [paymentDetails, setPaymentDetails] = useState('');
+  const [paymentDetailImages, setPaymentDetailImages] = useState<File[]>([]);
   const [leaseAgreementFile, setLeaseAgreementFile] = useState<File | null>(null);
   const [securityDeposit, setSecurityDeposit] = useState('');
   const [deliveryModes, setDeliveryModes] = useState<string[]>(['Store Pickup']);
@@ -177,6 +178,7 @@ export function RegisterWizard({ submitting, onSubmit }: RegisterWizardProps) {
       facebookUrl,
       instagramUrl,
       paymentDetails,
+      paymentDetailImages,
       leaseAgreementFile,
       securityDeposit,
       deliveryModes,
@@ -262,6 +264,11 @@ export function RegisterWizard({ submitting, onSubmit }: RegisterWizardProps) {
               onChange={(event) => setPaymentDetails(event.target.value)}
               className="min-h-20 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Payment QR / Reference Images (optional)</label>
+            <Input type="file" accept="image/*" multiple onChange={(event) => setPaymentDetailImages(Array.from(event.target.files || []))} />
+            {paymentDetailImages.length ? <p className="text-xs text-muted-foreground">{paymentDetailImages.length} image(s) selected</p> : null}
           </div>
           <div className="space-y-2">
             <div className="flex items-center justify-between">
@@ -397,4 +404,3 @@ export function RegisterWizard({ submitting, onSubmit }: RegisterWizardProps) {
     </form>
   );
 }
-

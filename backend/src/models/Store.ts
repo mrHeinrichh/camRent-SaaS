@@ -17,6 +17,7 @@ const storeSchema = new Schema(
     facebook_url: { type: String, default: '' },
     instagram_url: { type: String, default: '' },
     payment_details: { type: String, default: '' },
+    payment_detail_images: { type: [String], default: [] },
     delivery_modes: { type: [String], default: [] },
     branches: {
       type: [

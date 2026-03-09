@@ -3,6 +3,9 @@ import { useAppStore } from '@/src/store';
 async function request<T>(input: string, init?: RequestInit): Promise<T> {
   const token = useAppStore.getState().token;
   const headers = new Headers(init?.headers);
+  const envMeta = (import.meta as any).env || {};
+  const devApiBase = envMeta.DEV ? (envMeta.VITE_API_URL || 'http://127.0.0.1:3000') : '';
+  const resolvedInput = typeof input === 'string' && input.startsWith('/api') && devApiBase ? `${devApiBase}${input}` : input;
 
   if (!headers.has('Content-Type') && init?.body && !(init.body instanceof FormData)) {
     headers.set('Content-Type', 'application/json');
@@ -12,14 +15,42 @@ async function request<T>(input: string, init?: RequestInit): Promise<T> {
     headers.set('Authorization', `Bearer ${token}`);
   }
 
-  const response = await fetch(input, {
+  const response = await fetch(resolvedInput, {
     ...init,
     headers,
   });
 
-  const data = await response.json();
+  const contentType = response.headers.get('content-type') || '';
+  const rawText = await response.text();
+  let data: any = null;
+
+  if (rawText) {
+    try {
+      data = JSON.parse(rawText);
+    } catch {
+      console.error('[api] non-JSON response', {
+        input,
+        resolvedInput,
+        method: init?.method || 'GET',
+        status: response.status,
+        contentType,
+        bodyPreview: rawText.slice(0, 300),
+      });
+      throw new Error(`Server returned non-JSON response (${response.status}) for ${input}. Check backend/proxy logs.`);
+    }
+  }
+
   if (!response.ok) {
-    throw new Error(data.error || 'Request failed');
+    console.error('[api] request failed', {
+      input,
+      resolvedInput,
+      method: init?.method || 'GET',
+      status: response.status,
+      contentType,
+      error: data?.error,
+      bodyPreview: rawText.slice(0, 300),
+    });
+    throw new Error(data?.error || `Request failed (${response.status})`);
   }
 
   return data as T;

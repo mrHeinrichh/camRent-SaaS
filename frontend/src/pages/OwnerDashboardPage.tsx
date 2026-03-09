@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '@/src/lib/api';
-import type { Booking, FraudListEntry, Item, ManualBlock, OwnerApplication, OwnerDashboardData, RentalFormField, RentalFormSchemaResponse } from '@/src/types/domain';
+import type { Booking, FraudListEntry, Item, ManualBlock, OwnerApplication, OwnerDashboardData, RentalFormField, RentalFormSchemaResponse, SupportTicket } from '@/src/types/domain';
 import { exportRowsToCsv } from '@/src/lib/export';
 import { Button } from '@/src/components/ui';
 import type { ItemEditor, OwnerTab } from '@/src/features/owner-dashboard/types';
@@ -84,6 +84,8 @@ export function OwnerDashboardPage() {
     email: '',
     contact_number: '',
   });
+  const [supportTickets, setSupportTickets] = useState<SupportTicket[]>([]);
+  const [ownerNotice, setOwnerNotice] = useState<{ title: string; message: string } | null>(null);
 
   const loadData = async () => {
     setLoading(true);
@@ -120,6 +122,12 @@ export function OwnerDashboardPage() {
           reference_image_position: 'top',
         });
       }
+      try {
+        const tickets = await api.get<SupportTicket[]>('/api/owner/support-tickets');
+        setSupportTickets(tickets);
+      } catch {
+        setSupportTickets([]);
+      }
       setData(stats);
       setApplications(apps);
       setInventory(items);
@@ -133,6 +141,36 @@ export function OwnerDashboardPage() {
   useEffect(() => {
     void loadData();
   }, []);
+
+  useEffect(() => {
+    const store = data?.store;
+    if (!store) return;
+
+    if (store.status === 'pending') {
+      setOwnerNotice({
+        title: 'Store Pending Approval',
+        message:
+          'Your store is still pending and is not yet publicly available. Please contact the administrator for approval.\nEmail: heinrichsorbaf02@gmail.com\nPhone: 09569749935',
+      });
+      return;
+    }
+
+    if (store.status === 'approved' && store.payment_due_date) {
+      const dueDate = new Date(store.payment_due_date);
+      if (Number.isNaN(dueDate.getTime())) return;
+      const now = new Date();
+      const diffDays = Math.ceil((dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+      if (diffDays <= 7) {
+        setOwnerNotice({
+          title: diffDays < 0 ? 'Store Payment Overdue' : 'Store Payment Due Soon',
+          message:
+            diffDays < 0
+              ? `Your store payment due date passed on ${dueDate.toLocaleDateString()}. Please settle immediately to avoid inactivity.\nEmail: heinrichsorbaf02@gmail.com\nPhone: 09569749935`
+              : `Your store payment is due on ${dueDate.toLocaleDateString()} (in ${diffDays} day${diffDays === 1 ? '' : 's'}).\nPlease settle early to avoid inactivity.\nEmail: heinrichsorbaf02@gmail.com\nPhone: 09569749935`,
+        });
+      }
+    }
+  }, [data?.store?.status, data?.store?.payment_due_date, data?.store?.id]);
 
   const loadCalendarData = async () => {
     if (!inventory.length) {
@@ -309,6 +347,23 @@ export function OwnerDashboardPage() {
     setReferenceImageFile(null);
   };
 
+  const saveStoreProfile = async (payload: {
+    name: string;
+    description: string;
+    address: string;
+    logo_url?: string;
+    banner_url?: string;
+    facebook_url: string;
+    instagram_url: string;
+    payment_details: string;
+    payment_detail_images?: string[];
+    branches?: Array<{ name?: string; address: string; location_lat?: number | null; location_lng?: number | null }>;
+    location_lat?: number | null;
+    location_lng?: number | null;
+  }) => {
+    await withReload(() => api.put('/api/owner/store-profile', payload), 'Store profile updated');
+  };
+
   const exportOverviewExcel = () => {
     exportRowsToCsv(
       'overview_report.csv',
@@ -439,6 +494,25 @@ export function OwnerDashboardPage() {
     setFraudEvidenceFile(null);
   };
 
+  const createSupportTicket = async (payload: { type: SupportTicket['type']; priority: SupportTicket['priority']; subject: string; message: string }) => {
+    await api.post('/api/owner/support-tickets', payload);
+    await loadData();
+  };
+
+  const updateSupportTicket = async (
+    id: string,
+    payload: { type?: SupportTicket['type']; priority?: SupportTicket['priority']; subject?: string; message?: string; status?: SupportTicket['status'] },
+  ) => {
+    await api.put(`/api/owner/support-tickets/${id}`, payload);
+    await loadData();
+  };
+
+  const deleteSupportTicket = async (id: string) => {
+    if (!confirm('Delete this feedback/support ticket?')) return;
+    await api.delete(`/api/owner/support-tickets/${id}`);
+    await loadData();
+  };
+
   const calendarItems = useMemo(
     () => (selectedCalendarItemId === 'all' ? inventory : inventory.filter((item) => item.id === selectedCalendarItemId)),
     [inventory, selectedCalendarItemId],
@@ -501,6 +575,19 @@ export function OwnerDashboardPage() {
     <div className="flex min-h-[calc(100vh-64px)]">
       <OwnerSidebar activeTab={activeTab} onChangeTab={setActiveTab} />
       <main className="flex-1 overflow-auto p-8">
+        {ownerNotice ? (
+          <div className="mb-6 rounded-xl border border-amber-300 bg-amber-50 p-4 shadow-sm">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h3 className="text-base font-bold text-amber-900">{ownerNotice.title}</h3>
+                <p className="mt-1 whitespace-pre-wrap text-sm text-amber-800">{ownerNotice.message}</p>
+              </div>
+              <Button variant="outline" size="sm" onClick={() => setOwnerNotice(null)}>
+                Dismiss
+              </Button>
+            </div>
+          </div>
+        ) : null}
         <OwnerTabs
           activeTab={activeTab}
           data={data}
@@ -553,6 +640,11 @@ export function OwnerDashboardPage() {
           onFraudReasonChange={setFraudReason}
           onFraudEvidenceFileChange={setFraudEvidenceFile}
           onSubmitManualFraud={submitManualFraud}
+          supportTickets={supportTickets}
+          onCreateSupportTicket={createSupportTicket}
+          onUpdateSupportTicket={updateSupportTicket}
+          onDeleteSupportTicket={deleteSupportTicket}
+          onSaveStoreProfile={saveStoreProfile}
         />
 
         <OwnerModals
@@ -592,4 +684,3 @@ export function OwnerDashboardPage() {
     </div>
   );
 }
-

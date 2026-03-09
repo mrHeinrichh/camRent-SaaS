@@ -1,4 +1,4 @@
-export type OwnerTab = 'overview' | 'applications' | 'inventory' | 'calendar' | 'customers' | 'transactions' | 'form' | 'fraud';
+export type OwnerTab = 'overview' | 'applications' | 'inventory' | 'calendar' | 'customers' | 'transactions' | 'form' | 'fraud' | 'support';
 
 export type ItemEditor = {
   id?: string;
@@ -10,4 +10,3 @@ export type ItemEditor = {
   is_available: boolean;
   image_url: string;
 };
-

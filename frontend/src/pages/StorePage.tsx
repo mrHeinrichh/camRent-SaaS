@@ -81,6 +81,21 @@ export function StorePage({ storeId, onNavigateItem }: StorePageProps) {
                 </div>
               </div>
             ) : null}
+            {(store.payment_details || (store.payment_detail_images || []).length) ? (
+              <div>
+                <h4 className="mb-2 font-semibold">Payment Details</h4>
+                {store.payment_details ? <p className="mb-2 whitespace-pre-line text-sm text-muted-foreground">{store.payment_details}</p> : null}
+                {(store.payment_detail_images || []).length ? (
+                  <div className="grid grid-cols-2 gap-2">
+                    {(store.payment_detail_images || []).map((url, index) => (
+                      <a key={`${url}-${index}`} href={url} target="_blank" rel="noreferrer" className="block overflow-hidden rounded border bg-muted/20">
+                        <img src={url} alt={`Payment reference ${index + 1}`} className="h-20 w-full object-cover" />
+                      </a>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
           </aside>
 
           <main className="flex-1">

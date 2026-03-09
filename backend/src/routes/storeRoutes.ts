@@ -56,6 +56,7 @@ storeRoutes.post('/', authenticate, checkRole(['owner']), async (req: AuthedRequ
     facebook_url,
     instagram_url,
     payment_details,
+    payment_detail_images,
     delivery_modes,
     branches,
     lease_agreement_file_url,
@@ -76,6 +77,7 @@ storeRoutes.post('/', authenticate, checkRole(['owner']), async (req: AuthedRequ
     facebook_url: facebook_url || '',
     instagram_url: instagram_url || '',
     payment_details: payment_details || '',
+    payment_detail_images: Array.isArray(payment_detail_images) ? payment_detail_images.map((url: unknown) => String(url || '').trim()).filter(Boolean) : [],
     delivery_modes: Array.isArray(delivery_modes) ? delivery_modes.filter((mode) => typeof mode === 'string' && mode.trim()) : [],
     branches: Array.isArray(branches)
       ? branches

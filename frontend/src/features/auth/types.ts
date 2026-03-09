@@ -22,10 +22,10 @@ export interface RegisterFormState {
   facebookUrl: string;
   instagramUrl: string;
   paymentDetails: string;
+  paymentDetailImages: File[];
   leaseAgreementFile: File | null;
   securityDeposit: string;
   deliveryModes: string[];
   storeLogo: File | null;
   storeBanner: File | null;
 }
-

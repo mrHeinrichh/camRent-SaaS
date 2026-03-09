@@ -7,6 +7,7 @@ const orderSchema = new Schema(
     renter_name: { type: String, required: true },
     renter_email: { type: String, default: '' },
     renter_phone: { type: String, default: '' },
+    renter_emergency_contact_name: { type: String, default: '' },
     renter_emergency_contact: { type: String, default: '' },
     renter_address: { type: String, default: '' },
     store_branch_id: { type: String, default: '' },

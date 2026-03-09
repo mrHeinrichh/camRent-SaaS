@@ -25,6 +25,7 @@ export interface Store {
   facebook_url?: string;
   instagram_url?: string;
   payment_details?: string;
+  payment_detail_images?: string[];
   delivery_modes?: string[];
   branches?: Array<{
     _id?: string;
@@ -42,6 +43,7 @@ export interface Booking {
   start_date: string;
   end_date: string;
   status: string;
+  renter_name?: string;
 }
 
 export interface ManualBlock {
@@ -120,6 +122,7 @@ export interface OrderHistory {
   status: string;
   total_amount: number;
   renter_emergency_contact?: string;
+  renter_emergency_contact_name?: string;
   store_branch_id?: string;
   store_branch_name?: string;
   store_branch_address?: string;
@@ -154,6 +157,8 @@ export interface OwnerApplication {
   renter_name: string;
   renter_email: string;
   renter_phone: string;
+  renter_emergency_contact_name?: string;
+  renter_emergency_contact?: string;
   renter_address: string;
   delivery_mode: string;
   payment_mode: string;
@@ -162,7 +167,39 @@ export interface OwnerApplication {
   status: string;
   fraud_flag: boolean | number;
   custom_answers?: Record<string, string>;
-  items: Array<{ id: string; name: string; start_date: string; end_date: string; quantity?: number }>;
+  documents?: Array<{ type: string; url: string }>;
+  items: Array<{ id: string; name: string; image_url?: string; start_date: string; end_date: string; quantity?: number }>;
+}
+
+export interface SupportTicket {
+  id: string;
+  store_id: string;
+  owner_id: string;
+  type: 'feedback' | 'support' | 'bug';
+  subject: string;
+  message: string;
+  status: 'open' | 'in_progress' | 'resolved' | 'closed';
+  priority: 'low' | 'medium' | 'high';
+  admin_reply?: string;
+  resolved_at?: string | null;
+  created_at: string;
+  updated_at: string;
+  store_name?: string;
+  owner_email?: string;
+  owner_name?: string;
+}
+
+export interface Announcement {
+  id: string;
+  title: string;
+  description?: string;
+  image_url?: string;
+  cta_label?: string;
+  cta_url?: string;
+  is_active: boolean;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface OwnerDashboardData {
@@ -177,10 +214,23 @@ export interface OwnerDashboardData {
     id: string;
     renter_name: string;
     renter_email: string;
+    renter_phone?: string;
+    renter_emergency_contact_name?: string;
+    renter_emergency_contact?: string;
+    renter_address?: string;
+    store_branch_name?: string;
+    store_branch_address?: string;
+    delivery_mode?: string;
+    delivery_address?: string;
+    payment_mode?: string;
     total_amount: number;
     status: string;
     created_at: string;
     id_types: string[];
+    start_date?: string | null;
+    end_date?: string | null;
+    items?: Array<{ name: string; start_date: string; end_date: string; quantity?: number }>;
+    documents?: Array<{ type: string; url: string }>;
   }>;
   customers?: Array<{
     renter_name: string;
@@ -191,6 +241,19 @@ export interface OwnerDashboardData {
     id_types: string[];
     requirements?: Array<{ type: string; url: string }>;
     mostly_rented_gears: Array<{ name: string; count: number }>;
+    transactions?: Array<{
+      id: string;
+      status: string;
+      total_amount: number;
+      created_at: string;
+      payment_mode?: string;
+      delivery_mode?: string;
+      renter_address?: string;
+      store_branch_name?: string;
+      store_branch_address?: string;
+      items: Array<{ name: string; start_date: string; end_date: string; quantity?: number }>;
+      documents?: Array<{ type: string; url: string }>;
+    }>;
   }>;
   ownerAnalytics?: {
     totalCustomers: number;
@@ -199,6 +262,8 @@ export interface OwnerDashboardData {
     pendingCount: number;
     reservedCount: number;
     peakRentalDates: Array<{ date: string; count: number }>;
+    mostRentedCameras?: Array<{ name: string; count: number }>;
+    topRentersOfMonth?: Array<{ renter_name: string; renter_email: string; rentals: number; amount: number }>;
   };
 }
 
@@ -231,8 +296,10 @@ export interface SubmittedApplication {
   customerName: string;
   customerEmail: string;
   customerPhone: string;
+  customerEmergencyContactName?: string;
   customerEmergencyContact?: string;
   customerAddress: string;
+  billingAddressFileUrl?: string;
   storeBranchId?: string;
   storeBranchName?: string;
   storeBranchAddress?: string;
@@ -241,6 +308,6 @@ export interface SubmittedApplication {
   paymentMode: string;
   leaseAgreementSubmissionUrl: string;
   customAnswers?: Record<string, string>;
-  items: Array<{ name: string; startDate: string; endDate: string; daily_price: number; deposit_amount: number; quantity?: number }>;
+  items: Array<{ name: string; image_url?: string; startDate: string; endDate: string; daily_price: number; deposit_amount: number; quantity?: number }>;
   totalAmount: number;
 }

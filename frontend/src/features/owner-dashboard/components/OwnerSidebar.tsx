@@ -1,4 +1,4 @@
-import { Calendar as CalendarIcon, Camera, Clock, LayoutDashboard, ReceiptText, ShieldAlert, Users } from 'lucide-react';
+import { Calendar as CalendarIcon, Camera, Clock, LayoutDashboard, MessageSquare, ReceiptText, ShieldAlert, Users } from 'lucide-react';
 import { Button } from '@/src/components/ui';
 import type { OwnerTab } from '@/src/features/owner-dashboard/types';
 
@@ -34,7 +34,9 @@ export function OwnerSidebar({ activeTab, onChangeTab }: OwnerSidebarProps) {
       <Button variant={activeTab === 'fraud' ? 'secondary' : 'ghost'} className="w-full justify-start" onClick={() => onChangeTab('fraud')}>
         <ShieldAlert className="mr-2 h-4 w-4" /> Fraud List
       </Button>
+      <Button variant={activeTab === 'support' ? 'secondary' : 'ghost'} className="w-full justify-start" onClick={() => onChangeTab('support')}>
+        <MessageSquare className="mr-2 h-4 w-4" /> Support & Feedback
+      </Button>
     </aside>
   );
 }
-

@@ -36,6 +36,12 @@ export function LoginPage({ onNavigate }: LoginPageProps) {
     return url;
   };
 
+  const uploadImages = async (files: File[]) => {
+    if (!files.length) return [] as string[];
+    const urls = await Promise.all(files.map((file) => uploadImage(file)));
+    return urls.filter(Boolean) as string[];
+  };
+
   const handleLogin = async (event: FormEvent) => {
     event.preventDefault();
     if (submitting) return;
@@ -55,11 +61,12 @@ export function LoginPage({ onNavigate }: LoginPageProps) {
     if (submitting) return;
     setSubmitting(true);
     try {
-      const [profileImageUrl, storeLogoUrl, storeBannerUrl, leaseAgreementFileUrl] = await Promise.all([
+      const [profileImageUrl, storeLogoUrl, storeBannerUrl, leaseAgreementFileUrl, paymentDetailImageUrls] = await Promise.all([
         uploadImage(state.profileImage),
         state.role === 'owner' ? uploadImage(state.storeLogo) : Promise.resolve(undefined),
         state.role === 'owner' ? uploadImage(state.storeBanner) : Promise.resolve(undefined),
         state.role === 'owner' ? uploadImage(state.leaseAgreementFile) : Promise.resolve(undefined),
+        state.role === 'owner' ? uploadImages(state.paymentDetailImages || []) : Promise.resolve([]),
       ]);
 
       const payload = {
@@ -95,6 +102,7 @@ export function LoginPage({ onNavigate }: LoginPageProps) {
         facebook_url: state.role === 'owner' ? state.facebookUrl : undefined,
         instagram_url: state.role === 'owner' ? state.instagramUrl : undefined,
         payment_details: state.role === 'owner' ? state.paymentDetails : undefined,
+        payment_detail_images: state.role === 'owner' ? paymentDetailImageUrls : undefined,
         delivery_modes: state.role === 'owner' ? state.deliveryModes.filter((mode) => mode.trim()) : undefined,
         lease_agreement_file_url: state.role === 'owner' ? leaseAgreementFileUrl : undefined,
         security_deposit: state.role === 'owner' && state.securityDeposit.trim() ? Number.parseFloat(state.securityDeposit) : undefined,
@@ -144,4 +152,3 @@ export function LoginPage({ onNavigate }: LoginPageProps) {
     </div>
   );
 }
-
