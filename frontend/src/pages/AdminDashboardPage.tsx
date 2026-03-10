@@ -35,7 +35,7 @@ export function AdminDashboardPage() {
     message: string;
     is_active: boolean;
     qr_codes: Array<{ label: string; url: string; file: File | null }>;
-    bank_details: Array<{ label: string; account_name: string; account_number: string; notes: string }>;
+    bank_details: Array<{ label: string; url: string; file: File | null }>;
   }>({
     message: '',
     is_active: true,
@@ -95,12 +95,7 @@ export function AdminDashboardPage() {
       message: donationData?.message || '',
       is_active: donationData?.is_active !== false,
       qr_codes: (donationData?.qr_codes || []).map((entry) => ({ label: entry.label || '', url: entry.url || '', file: null })),
-      bank_details: (donationData?.bank_details || []).map((entry) => ({
-        label: entry.label || '',
-        account_name: entry.account_name || '',
-        account_number: entry.account_number || '',
-        notes: entry.notes || '',
-      })),
+      bank_details: (donationData?.bank_details || []).map((entry) => ({ label: entry.label || '', url: entry.url || '', file: null })),
     });
   };
 
@@ -402,18 +397,22 @@ export function AdminDashboardPage() {
           return { label: entry.label.trim(), url: entry.url.trim() };
         }),
       );
+      const bankDetails = await Promise.all(
+        donationForm.bank_details.map(async (entry) => {
+          if (entry.file) {
+            const form = new FormData();
+            form.append('file', entry.file);
+            const upload = await api.post<{ url: string }>('/api/upload/public', form);
+            return { label: entry.label.trim(), url: upload.url };
+          }
+          return { label: entry.label.trim(), url: entry.url.trim() };
+        }),
+      );
       await api.put('/api/admin/donation-settings', {
         message: donationForm.message.trim(),
         is_active: donationForm.is_active,
         qr_codes: qrCodes.filter((entry) => entry.url),
-        bank_details: donationForm.bank_details
-          .map((entry) => ({
-            label: entry.label.trim(),
-            account_name: entry.account_name.trim(),
-            account_number: entry.account_number.trim(),
-            notes: entry.notes.trim(),
-          }))
-          .filter((entry) => entry.label || entry.account_name || entry.account_number || entry.notes),
+        bank_details: bankDetails.filter((entry) => entry.label || entry.url),
       });
       await loadData();
       alert('Donation settings updated');
@@ -442,10 +441,10 @@ export function AdminDashboardPage() {
   const exportDonationsExcel = () => {
     exportRowsToCsv(
       'superadmin_donations.csv',
-      ['Message', 'Active', 'QR Label', 'QR URL', 'Bank Label', 'Account Name', 'Account Number', 'Notes'],
+      ['Message', 'Active', 'QR Label', 'QR URL', 'Bank Label', 'Bank Image URL'],
       [
-        ...donationForm.qr_codes.map((entry) => [donationForm.message, donationForm.is_active ? 'yes' : 'no', entry.label, entry.url, '', '', '', '']),
-        ...donationForm.bank_details.map((entry) => [donationForm.message, donationForm.is_active ? 'yes' : 'no', '', '', entry.label, entry.account_name, entry.account_number, entry.notes]),
+        ...donationForm.qr_codes.map((entry) => [donationForm.message, donationForm.is_active ? 'yes' : 'no', entry.label, entry.url, '', '']),
+        ...donationForm.bank_details.map((entry) => [donationForm.message, donationForm.is_active ? 'yes' : 'no', '', '', entry.label, entry.url]),
       ],
     );
   };

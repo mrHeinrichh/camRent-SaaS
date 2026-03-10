@@ -9,9 +9,8 @@ interface DonationQrInput {
 
 interface DonationBankInput {
   label: string;
-  account_name: string;
-  account_number: string;
-  notes: string;
+  url: string;
+  file: File | null;
 }
 
 interface DonationsTabProps {
@@ -42,7 +41,7 @@ export function DonationsTab({ form, saving, onChange, onSave, onExport }: Donat
     });
   };
   const removeBank = (index: number) => onChange({ bank_details: form.bank_details.filter((_, current) => current !== index) });
-  const addBank = () => onChange({ bank_details: [...form.bank_details, { label: '', account_name: '', account_number: '', notes: '' }] });
+  const addBank = () => onChange({ bank_details: [...form.bank_details, { label: '', url: '', file: null }] });
 
   return (
     <div className="space-y-6">
@@ -106,15 +105,19 @@ export function DonationsTab({ form, saving, onChange, onSave, onExport }: Donat
         <div className="space-y-3">
           {form.bank_details.map((entry, index) => (
             <div key={`donation-bank-${index}`} className="space-y-2 rounded-md border p-3">
-              <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+              <div className="grid grid-cols-1 gap-2 md:grid-cols-[1fr,1fr,auto]">
                 <Input placeholder="Bank / Channel Label" value={entry.label} onChange={(event) => updateBank(index, { label: event.target.value })} />
-                <Input placeholder="Account Name" value={entry.account_name} onChange={(event) => updateBank(index, { account_name: event.target.value })} />
-                <Input placeholder="Account Number" value={entry.account_number} onChange={(event) => updateBank(index, { account_number: event.target.value })} />
-                <Input placeholder="Notes (optional)" value={entry.notes} onChange={(event) => updateBank(index, { notes: event.target.value })} />
+                <Input placeholder="Image URL (optional)" value={entry.url} onChange={(event) => updateBank(index, { url: event.target.value })} />
+                <Button type="button" variant="ghost" className="text-red-600" onClick={() => removeBank(index)}>
+                  <Trash2 className="mr-1 h-3.5 w-3.5" /> Remove
+                </Button>
               </div>
-              <Button type="button" variant="ghost" className="text-red-600" onClick={() => removeBank(index)}>
-                <Trash2 className="mr-1 h-3.5 w-3.5" /> Remove
-              </Button>
+              <Input type="file" accept="image/*" onChange={(event) => updateBank(index, { file: event.target.files?.[0] ?? null })} />
+              {(entry.file || entry.url) ? (
+                <div className="flex h-48 items-center justify-center overflow-hidden rounded-md border bg-muted/30 p-2">
+                  <img src={entry.file ? URL.createObjectURL(entry.file) : entry.url} alt={entry.label || `Bank ${index + 1}`} className="h-full w-full object-contain" />
+                </div>
+              ) : null}
             </div>
           ))}
           {!form.bank_details.length && <p className="text-sm text-muted-foreground">No bank details yet.</p>}

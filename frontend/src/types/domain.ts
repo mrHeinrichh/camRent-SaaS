@@ -233,7 +233,7 @@ export interface DonationSettings {
   id?: string | null;
   message: string;
   qr_codes: Array<{ label: string; url: string }>;
-  bank_details: Array<{ label: string; account_name?: string; account_number?: string; notes?: string }>;
+  bank_details: Array<{ label: string; url: string }>;
   is_active?: boolean;
 }
 

@@ -16,9 +16,7 @@ const donationSettingsSchema = new Schema(
       type: [
         {
           label: { type: String, default: '' },
-          account_name: { type: String, default: '' },
-          account_number: { type: String, default: '' },
-          notes: { type: String, default: '' },
+          url: { type: String, default: '' },
         },
       ],
       default: [],

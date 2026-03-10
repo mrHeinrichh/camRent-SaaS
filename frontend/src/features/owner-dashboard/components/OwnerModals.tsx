@@ -6,7 +6,7 @@ import { api } from '@/src/lib/api';
 import { formatPHP } from '@/src/lib/currency';
 import type { Item, OwnerApplication } from '@/src/types/domain';
 import type { ItemEditor } from '@/src/features/owner-dashboard/types';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 interface OwnerModalsProps {
   editingOpen: boolean;
@@ -121,6 +121,7 @@ export function OwnerModals({
   const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
   const [previewFile, setPreviewFile] = useState<{ url: string; type: string; sourceUrl: string } | null>(null);
   const [fileLoading, setFileLoading] = useState(false);
+  const detailsScrollRef = useRef<HTMLDivElement | null>(null);
   const resolveFileAccess = async (url: string) => {
     const result = await api.get<{ view_url: string; download_url: string; request_id?: string }>(`/api/upload/public/access?url=${encodeURIComponent(url)}`);
     console.log('[owner/file] access resolved', { sourceUrl: url, viewUrl: result.view_url, downloadUrl: result.download_url, requestId: result.request_id });
@@ -157,6 +158,17 @@ export function OwnerModals({
       setFileLoading(false);
     }
   };
+  useEffect(() => {
+    if (!selectedApp) return;
+    const restore = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    if (detailsScrollRef.current) {
+      detailsScrollRef.current.scrollTop = 0;
+    }
+    return () => {
+      document.body.style.overflow = restore;
+    };
+  }, [selectedApp]);
   return (
     <>
       <AnimatePresence>
@@ -292,19 +304,26 @@ export function OwnerModals({
 
       <AnimatePresence>
         {selectedApp && (
-          <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="max-h-[92vh] w-full max-w-5xl overflow-auto rounded-2xl border border-slate-200 bg-white p-8 text-slate-900 shadow-2xl">
-              <div className="mb-8 flex items-start justify-between">
+          <div className="fixed inset-0 z-[70] flex items-end justify-center bg-black/70 backdrop-blur-sm md:items-center md:p-4" onClick={onCloseSelectedApp}>
+            <motion.div
+              initial={{ scale: 0.98, opacity: 0, y: 24 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.98, opacity: 0, y: 24 }}
+              className="flex h-[100dvh] w-full flex-col overflow-hidden border border-slate-200 bg-white text-slate-900 shadow-2xl md:h-auto md:max-h-[92vh] md:max-w-5xl md:rounded-2xl"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b bg-white/95 px-4 py-3 backdrop-blur md:px-6 md:py-4">
                 <div>
-                  <h2 className="mb-1 text-2xl font-bold">Application Details</h2>
-                  <p className="text-sm text-slate-600">Order #{selectedApp.id} • Submitted {format(parseISO(selectedApp.created_at), 'MMM dd, yyyy hh:mm a')}</p>
+                  <h2 className="text-xl font-bold md:text-2xl">Application Details</h2>
+                  <p className="text-xs text-slate-600 md:text-sm">Order #{selectedApp.id} • Submitted {format(parseISO(selectedApp.created_at), 'MMM dd, yyyy hh:mm a')}</p>
                 </div>
-                <Button variant="ghost" size="icon" onClick={onCloseSelectedApp}>
-                  &times;
+                <Button variant="outline" size="sm" onClick={onCloseSelectedApp}>
+                  Back
                 </Button>
               </div>
-                <div className="grid grid-cols-1 gap-12 md:grid-cols-2">
-                <div className="space-y-8">
+              <div ref={detailsScrollRef} className="flex-1 overflow-y-auto px-4 py-5 md:px-8">
+                <div className="grid grid-cols-1 gap-8 md:grid-cols-2 md:gap-12">
+                  <div className="space-y-8">
                   <section className="rounded-xl border border-slate-200 bg-slate-50 p-4">
                     <h4 className="mb-4 text-sm font-bold uppercase tracking-wider text-muted-foreground">Customer Details</h4>
                     <div className="space-y-3">
@@ -378,7 +397,7 @@ export function OwnerModals({
                     </div>
                   )}
                 </div>
-                <div className="space-y-8">
+                  <div className="space-y-8">
                   <section className="rounded-xl border border-slate-200 bg-slate-50 p-4">
                     <h4 className="mb-4 text-sm font-bold uppercase tracking-wider text-muted-foreground">Rented Items</h4>
                     <div className="grid grid-cols-1 gap-3">
@@ -460,6 +479,7 @@ export function OwnerModals({
                     </div>
                     {!(selectedApp.documents || []).length && <p className="text-xs text-muted-foreground">No requirement files uploaded.</p>}
                   </section>
+                  </div>
                 </div>
               </div>
             </motion.div>

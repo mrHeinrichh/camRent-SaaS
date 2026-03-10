@@ -42,15 +42,13 @@ const sanitizeDonationQrCodes = (value: unknown) => {
 };
 
 const sanitizeDonationBankDetails = (value: unknown) => {
-  if (!Array.isArray(value)) return [] as Array<{ label: string; account_name: string; account_number: string; notes: string }>;
+  if (!Array.isArray(value)) return [] as Array<{ label: string; url: string }>;
   return value
     .map((entry: any) => ({
       label: normalize(entry?.label),
-      account_name: normalize(entry?.account_name),
-      account_number: normalize(entry?.account_number),
-      notes: normalize(entry?.notes),
+      url: normalize(entry?.url),
     }))
-    .filter((entry) => entry.label || entry.account_name || entry.account_number || entry.notes);
+    .filter((entry) => entry.label || entry.url);
 };
 
 const verifyAdminPassword = async (adminUserId: string, adminPassword: string) => {

@@ -66,13 +66,17 @@ export function DonatePage({ onNavigate }: DonatePageProps) {
               {(settings.bank_details || []).length ? (
                 <section className="space-y-3">
                   <h2 className="text-lg font-semibold">Bank Details</h2>
-                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     {(settings.bank_details || []).map((entry, index) => (
-                      <Card key={`${entry.label}-${index}`} className="space-y-1 p-4">
+                      <Card key={`${entry.label}-${index}`} className="space-y-2 p-4">
                         <p className="text-sm font-semibold">{entry.label || `Bank ${index + 1}`}</p>
-                        {entry.account_name ? <p className="text-sm text-muted-foreground">Account Name: {entry.account_name}</p> : null}
-                        {entry.account_number ? <p className="text-sm text-muted-foreground">Account Number: {entry.account_number}</p> : null}
-                        {entry.notes ? <p className="text-sm text-muted-foreground">Notes: {entry.notes}</p> : null}
+                        {entry.url ? (
+                          <div className="flex h-56 items-center justify-center overflow-hidden rounded-md border bg-muted/30 p-3">
+                            <img src={entry.url} alt={entry.label || `Bank ${index + 1}`} className="h-full w-full object-contain" referrerPolicy="no-referrer" />
+                          </div>
+                        ) : (
+                          <p className="text-sm text-muted-foreground">No bank image uploaded.</p>
+                        )}
                       </Card>
                     ))}
                   </div>
