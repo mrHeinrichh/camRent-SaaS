@@ -1,5 +1,7 @@
 import { useMemo, useState, type FormEvent } from 'react';
 import { Button, Card, Input } from '@/src/components/ui';
+import { PhoneInput } from '@/src/components/PhoneInput';
+import { validatePhone } from '@/src/lib/phone';
 import type { RegisterFormState, StoreBranchInput } from '@/src/features/auth/types';
 
 interface RegisterWizardProps {
@@ -14,6 +16,7 @@ export function RegisterWizard({ submitting, onSubmit, onOpenPolicies }: Registe
   const [step, setStep] = useState(1);
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState<'renter' | 'owner'>('renter');
   const [profileImage, setProfileImage] = useState<File | null>(null);
@@ -43,8 +46,13 @@ export function RegisterWizard({ submitting, onSubmit, onOpenPolicies }: Registe
 
   const validateStep = (targetStep: number) => {
     if (targetStep === 1) return true;
-    if (!fullName.trim() || !email.trim() || !password.trim()) {
-      alert('Full name, email, and password are required.');
+    if (!fullName.trim() || !email.trim() || !password.trim() || !phone.trim()) {
+      alert('Full name, email, phone, and password are required.');
+      return false;
+    }
+    const phoneCheck = validatePhone(phone);
+    if (!phoneCheck.valid) {
+      alert(phoneCheck.error);
       return false;
     }
     if (role === 'renter') return true;
@@ -187,6 +195,7 @@ export function RegisterWizard({ submitting, onSubmit, onOpenPolicies }: Registe
     await onSubmit({
       fullName,
       email,
+      phone,
       password,
       role,
       profileImage,
@@ -231,6 +240,7 @@ export function RegisterWizard({ submitting, onSubmit, onOpenPolicies }: Registe
             <label className="text-sm font-medium">Email</label>
             <Input type="email" required value={email} onChange={(event) => setEmail(event.target.value)} />
           </div>
+          <PhoneInput label="Contact Number" value={phone} required onChange={setPhone} />
           <div className="space-y-2">
             <label className="text-sm font-medium">Password</label>
             <Input type="password" required value={password} onChange={(event) => setPassword(event.target.value)} />
@@ -353,6 +363,7 @@ export function RegisterWizard({ submitting, onSubmit, onOpenPolicies }: Registe
           <p>Review your account details and submit to create your renter account.</p>
           <p>Name: <span className="font-medium text-foreground">{fullName}</span></p>
           <p>Email: <span className="font-medium text-foreground">{email}</span></p>
+          <p>Contact: <span className="font-medium text-foreground">{phone}</span></p>
         </Card>
       )}
 

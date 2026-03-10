@@ -6,6 +6,8 @@ import { useAppStore } from '@/src/store';
 import type { AppPage } from '@/src/types/app';
 import type { RentalFormField, RentalFormSchemaResponse, Store, SubmittedApplication } from '@/src/types/domain';
 import { Button, Card, Input } from '@/src/components/ui';
+import { PhoneInput } from '@/src/components/PhoneInput';
+import { validatePhone } from '@/src/lib/phone';
 
 interface CheckoutPageProps {
   onComplete: () => void;
@@ -46,7 +48,7 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
   const [formData, setFormData] = useState({
     fullName: '',
     email: user?.email || '',
-    phone: '',
+    phone: user?.phone || '',
     emergencyContactName: '',
     emergencyContact: '',
     presentAddress: '',
@@ -222,6 +224,10 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
       return alert(`Please complete all required fields: ${missingFields.join(', ')}`);
     }
     if (!formData.agree) return alert('Please agree to the terms');
+    const phoneCheck = validatePhone(formData.phone);
+    if (!phoneCheck.valid) return alert(phoneCheck.error);
+    const emergencyCheck = validatePhone(formData.emergencyContact);
+    if (!emergencyCheck.valid) return alert(emergencyCheck.error);
     if (store.lease_agreement_file_url && !leaseAgreementSubmissionFile) return alert('Please upload your completed lease agreement file.');
     if (!documentFiles.id1_front || !documentFiles.id1_back || !documentFiles.id2_front || !documentFiles.id2_back || !documentFiles.selfie_id) {
       return alert('2 valid IDs (both front and back) and selfie with ID are required.');
@@ -484,16 +490,14 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
               <Input required value={formData.fullName} onChange={(event) => setFormData({ ...formData, fullName: event.target.value })} />
               </div>
               <div className="space-y-2">
-              <label className="text-sm font-medium">Contact Number</label>
-              <Input required value={formData.phone} onChange={(event) => setFormData({ ...formData, phone: event.target.value })} />
+              <PhoneInput label="Contact Number" value={formData.phone} required onChange={(value) => setFormData({ ...formData, phone: value })} />
               </div>
               <div className="space-y-2">
               <label className="text-sm font-medium">Emergency Contact Name</label>
               <Input required value={formData.emergencyContactName} onChange={(event) => setFormData({ ...formData, emergencyContactName: event.target.value })} />
               </div>
               <div className="space-y-2">
-              <label className="text-sm font-medium">Emergency Contact Number</label>
-              <Input required value={formData.emergencyContact} onChange={(event) => setFormData({ ...formData, emergencyContact: event.target.value })} />
+              <PhoneInput label="Emergency Contact Number" value={formData.emergencyContact} required onChange={(value) => setFormData({ ...formData, emergencyContact: value })} />
               </div>
             </div>
 

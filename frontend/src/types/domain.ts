@@ -6,6 +6,7 @@ export interface User {
   role: UserRole;
   full_name: string;
   avatar_url: string;
+  phone?: string;
   is_active?: boolean;
 }
 

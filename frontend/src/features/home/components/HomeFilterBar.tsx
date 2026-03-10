@@ -72,6 +72,13 @@ export function HomeFilterBar({
             placeholder="Brand (choose or type custom)"
             value={selectedBrand}
             onChange={(event) => onBrandChange(event.target.value)}
+            onFocus={() => {
+              const normalized = selectedBrand.toLowerCase().replace(/\s+/g, '');
+              if (normalized === 'allbrands') onBrandChange('');
+            }}
+            onBlur={(event) => {
+              if (!event.target.value.trim()) onBrandChange('All Brands');
+            }}
           />
           <datalist id="homepage-brand-options">
             {BRAND_OPTIONS.map((brand) => (

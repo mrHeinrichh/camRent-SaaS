@@ -10,6 +10,7 @@ import { OrderItem } from '../models/OrderItem';
 import { Store } from '../models/Store';
 import { Voucher } from '../models/Voucher';
 import type { AuthedRequest } from '../types/auth';
+import { validateE164Phone } from '../utils/phone';
 import { serialize, serializeMany, toId } from '../utils/mongo';
 import { hasBookingConflict, hasBookingConflictForQuantity } from '../services/bookingService';
 
@@ -54,6 +55,10 @@ orderRoutes.post('/orders', authenticate, async (req: AuthedRequest, res) => {
   if (!renter_name || !renter_email || !renter_phone || !renter_emergency_contact_name || !renter_emergency_contact || !renter_address || !store_branch_id || !delivery_mode || !delivery_address || !payment_mode) {
     return res.status(400).json({ error: 'Please complete all required standard fields' });
   }
+  const phoneCheck = validateE164Phone(renter_phone);
+  if (!phoneCheck.valid) return res.status(400).json({ error: phoneCheck.error });
+  const emergencyCheck = validateE164Phone(renter_emergency_contact);
+  if (!emergencyCheck.valid) return res.status(400).json({ error: emergencyCheck.error });
   if (!Array.isArray(items) || items.length === 0) return res.status(400).json({ error: 'At least one gear is required' });
 
   const store = await Store.findById(store_id).lean();

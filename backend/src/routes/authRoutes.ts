@@ -7,6 +7,7 @@ import { authenticate, checkRole, requireAuth } from '../middleware/auth';
 import { Store } from '../models/Store';
 import { User } from '../models/User';
 import type { AuthedRequest } from '../types/auth';
+import { validateE164Phone } from '../utils/phone';
 import { serialize } from '../utils/mongo';
 
 export const authRoutes = Router();
@@ -14,6 +15,7 @@ export const authRoutes = Router();
 authRoutes.post('/register', async (req, res) => {
   const {
     email,
+    phone,
     password,
     role,
     full_name,
@@ -40,12 +42,15 @@ authRoutes.post('/register', async (req, res) => {
   } = req.body;
   try {
     const hashedPassword = await bcrypt.hash(password, 10);
+    const phoneCheck = validateE164Phone(phone);
+    if (!phoneCheck.valid) return res.status(400).json({ error: phoneCheck.error });
     const user = await User.create({
       email,
       password: hashedPassword,
       role: role || 'renter',
       full_name,
       avatar_url: profile_image_url || DEFAULT_USER_AVATAR_URL,
+      phone: String(phone || '').trim(),
     });
 
     if (user.role === 'owner') {
@@ -155,9 +160,12 @@ authRoutes.put('/profile', authenticate, requireAuth, checkRole(['renter']), asy
   const fullName = String(req.body?.full_name || '').trim();
   const email = String(req.body?.email || '').trim().toLowerCase();
   const avatarUrl = String(req.body?.avatar_url || '').trim();
+  const phone = String(req.body?.phone || '').trim();
 
   if (!fullName) return res.status(400).json({ error: 'Full name is required' });
   if (!email || !/^\S+@\S+\.\S+$/.test(email)) return res.status(400).json({ error: 'Valid email is required' });
+  const phoneCheck = validateE164Phone(phone);
+  if (!phoneCheck.valid) return res.status(400).json({ error: phoneCheck.error });
 
   if (email !== user.email) {
     const exists = await User.findOne({ email }).lean();
@@ -167,6 +175,7 @@ authRoutes.put('/profile', authenticate, requireAuth, checkRole(['renter']), asy
 
   user.full_name = fullName;
   if (avatarUrl) user.avatar_url = avatarUrl;
+  user.phone = phone;
   await user.save();
 
   const token = jwt.sign({ id: user._id.toString(), role: user.role, email: user.email }, env.jwtSecret);

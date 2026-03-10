@@ -122,6 +122,7 @@ export function OwnerModals({
   const [previewFile, setPreviewFile] = useState<{ url: string; type: string; sourceUrl: string } | null>(null);
   const [fileLoading, setFileLoading] = useState(false);
   const detailsScrollRef = useRef<HTMLDivElement | null>(null);
+  const previousBrandRef = useRef('');
   const resolveFileAccess = async (url: string) => {
     const result = await api.get<{ view_url: string; download_url: string; request_id?: string }>(`/api/upload/public/access?url=${encodeURIComponent(url)}`);
     console.log('[owner/file] access resolved', { sourceUrl: url, viewUrl: result.view_url, downloadUrl: result.download_url, requestId: result.request_id });
@@ -194,6 +195,17 @@ export function OwnerModals({
                     placeholder="Brand (choose or type custom)"
                     value={editor.brand}
                     onChange={(event) => onEditorChange({ ...editor, brand: event.target.value })}
+                    onFocus={() => {
+                      previousBrandRef.current = editor.brand || '';
+                      if ((editor.brand || '').trim()) {
+                        onEditorChange({ ...editor, brand: '' });
+                      }
+                    }}
+                    onBlur={() => {
+                      if (!(editor.brand || '').trim() && previousBrandRef.current) {
+                        onEditorChange({ ...editor, brand: previousBrandRef.current });
+                      }
+                    }}
                   />
                   <datalist id="gear-brand-options">
                     {PRESET_BRANDS.map((brand) => (

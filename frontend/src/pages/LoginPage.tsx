@@ -93,6 +93,7 @@ export function LoginPage({ onNavigate }: LoginPageProps) {
             })()
           : {}),
         email: state.email,
+        phone: state.phone,
         password: state.password,
         role: state.role,
         full_name: state.fullName,

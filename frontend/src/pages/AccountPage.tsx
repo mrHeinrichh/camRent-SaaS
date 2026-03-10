@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { addDays, format, parseISO } from 'date-fns';
-import { AlertCircle, Ban, CheckCircle2, FileDown, History, Package, RotateCcw, Clock, User } from 'lucide-react';
+import { AlertCircle, Ban, CheckCircle2, FileDown, History, Package, RotateCcw, Clock, Pencil, User } from 'lucide-react';
 import { PeriodCalendar } from '@/src/components/PeriodCalendar';
 import { api } from '@/src/lib/api';
 import { formatPHP } from '@/src/lib/currency';
@@ -8,6 +8,8 @@ import { useAppStore } from '@/src/store';
 import type { AppPage } from '@/src/types/app';
 import type { OrderHistory } from '@/src/types/domain';
 import { Button, Card, Input, cn } from '@/src/components/ui';
+import { PhoneInput } from '@/src/components/PhoneInput';
+import { validatePhone } from '@/src/lib/phone';
 import type { CalendarPeriodTone } from '@/src/components/PeriodCalendar';
 import { EmptyState } from '@/src/components/EmptyState';
 
@@ -24,6 +26,7 @@ interface ProfileUpdateResponse {
     role: 'renter' | 'owner' | 'admin';
     full_name: string;
     avatar_url: string;
+    phone?: string;
   };
 }
 
@@ -33,6 +36,7 @@ export function AccountPage({ onNavigate }: AccountPageProps) {
   const [selectedOrder, setSelectedOrder] = useState<OrderHistory | null>(null);
   const [cancellingOrderId, setCancellingOrderId] = useState<string | null>(null);
   const [profileSaving, setProfileSaving] = useState(false);
+  const [profileEditing, setProfileEditing] = useState(false);
   const [profileImageFile, setProfileImageFile] = useState<File | null>(null);
   const [profileImagePreviewUrl, setProfileImagePreviewUrl] = useState('');
   const { addToCart, clearCart, user, token, setSession } = useAppStore();
@@ -40,6 +44,7 @@ export function AccountPage({ onNavigate }: AccountPageProps) {
     full_name: user?.full_name || '',
     email: user?.email || '',
     avatar_url: user?.avatar_url || '',
+    phone: user?.phone || '',
   });
 
   useEffect(() => {
@@ -47,8 +52,11 @@ export function AccountPage({ onNavigate }: AccountPageProps) {
       full_name: user?.full_name || '',
       email: user?.email || '',
       avatar_url: user?.avatar_url || '',
+      phone: user?.phone || '',
     });
-  }, [user?.full_name, user?.email, user?.avatar_url]);
+    setProfileEditing(false);
+    setProfileImageFile(null);
+  }, [user?.full_name, user?.email, user?.avatar_url, user?.phone]);
 
   useEffect(() => {
     if (!profileImageFile) {
@@ -128,7 +136,17 @@ export function AccountPage({ onNavigate }: AccountPageProps) {
       </div>
 
       <Card className="mb-8 space-y-4 p-4">
-        <h2 className="text-lg font-bold">Edit Profile</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-bold">Profile</h2>
+          <Button
+            type="button"
+            variant={profileEditing ? 'secondary' : 'outline'}
+            size="sm"
+            onClick={() => setProfileEditing((prev) => !prev)}
+          >
+            <Pencil className="mr-2 h-3 w-3" /> {profileEditing ? 'Stop Editing' : 'Edit'}
+          </Button>
+        </div>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-[96px,1fr]">
           <div className="space-y-2">
             <img
@@ -137,21 +155,24 @@ export function AccountPage({ onNavigate }: AccountPageProps) {
               className="h-24 w-24 rounded-full border object-cover"
               referrerPolicy="no-referrer"
             />
-            <Input type="file" accept="image/*" onChange={(event) => setProfileImageFile(event.target.files?.[0] || null)} />
+            <Input type="file" accept="image/*" disabled={!profileEditing} onChange={(event) => setProfileImageFile(event.target.files?.[0] || null)} />
           </div>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <div className="space-y-1">
               <label className="text-xs font-semibold uppercase text-muted-foreground">Full Name</label>
-              <Input value={profileForm.full_name} onChange={(event) => setProfileForm((prev) => ({ ...prev, full_name: event.target.value }))} />
+              <Input disabled={!profileEditing} value={profileForm.full_name} onChange={(event) => setProfileForm((prev) => ({ ...prev, full_name: event.target.value }))} />
             </div>
             <div className="space-y-1">
               <label className="text-xs font-semibold uppercase text-muted-foreground">Email</label>
-              <Input type="email" value={profileForm.email} onChange={(event) => setProfileForm((prev) => ({ ...prev, email: event.target.value }))} />
+              <Input disabled={!profileEditing} type="email" value={profileForm.email} onChange={(event) => setProfileForm((prev) => ({ ...prev, email: event.target.value }))} />
+            </div>
+            <div className="md:col-span-2">
+              <PhoneInput label="Contact Number" value={profileForm.phone} required disabled={!profileEditing} onChange={(value) => setProfileForm((prev) => ({ ...prev, phone: value }))} />
             </div>
             <div className="md:col-span-2">
               <Button
                 type="button"
-                disabled={profileSaving}
+                disabled={profileSaving || !profileEditing}
                 onClick={async () => {
                   try {
                     setProfileSaving(true);
@@ -162,18 +183,26 @@ export function AccountPage({ onNavigate }: AccountPageProps) {
                       const upload = await api.post<{ url: string }>('/api/upload/public', fd);
                       nextAvatarUrl = upload.url;
                     }
+                    const phoneCheck = validatePhone(profileForm.phone);
+                    if (!phoneCheck.valid) {
+                      alert(phoneCheck.error);
+                      return;
+                    }
                     const result = await api.put<ProfileUpdateResponse>('/api/auth/profile', {
                       full_name: profileForm.full_name,
                       email: profileForm.email,
                       avatar_url: nextAvatarUrl,
+                      phone: profileForm.phone,
                     });
                     setProfileImageFile(null);
                     setProfileForm({
                       full_name: result.user.full_name || '',
                       email: result.user.email || '',
                       avatar_url: result.user.avatar_url || '',
+                      phone: result.user.phone || '',
                     });
                     setSession(result.user, result.token || token);
+                    setProfileEditing(false);
                     alert('Profile updated');
                   } catch (error: any) {
                     alert(error?.message || 'Failed to update profile');

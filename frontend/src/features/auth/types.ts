@@ -12,6 +12,7 @@ export interface StoreBranchInput {
 export interface RegisterFormState {
   fullName: string;
   email: string;
+  phone: string;
   password: string;
   role: RegisterRole;
   profileImage: File | null;
