@@ -21,6 +21,7 @@ const fallbackSettings: DonationSettings = {
 export function DonatePage({ onNavigate, content }: DonatePageProps) {
   const [settings, setSettings] = useState<DonationSettings>(fallbackSettings);
   const [loading, setLoading] = useState(true);
+  const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
 
   useEffect(() => {
     api
@@ -55,9 +56,13 @@ export function DonatePage({ onNavigate, content }: DonatePageProps) {
                     {(settings.qr_codes || []).map((entry, index) => (
                       <Card key={`${entry.url}-${index}`} className="space-y-2 p-4">
                         <p className="text-sm font-semibold">{entry.label || `QR Code ${index + 1}`}</p>
-                        <div className="flex h-56 items-center justify-center overflow-hidden rounded-md border bg-muted/30 p-3">
+                        <button
+                          type="button"
+                          className="flex h-56 w-full items-center justify-center overflow-hidden rounded-md border bg-muted/30 p-3"
+                          onClick={() => setPreviewImageUrl(entry.url)}
+                        >
                           <img src={entry.url} alt={entry.label || `QR Code ${index + 1}`} className="h-full w-full object-contain" referrerPolicy="no-referrer" />
-                        </div>
+                        </button>
                       </Card>
                     ))}
                   </div>
@@ -72,9 +77,13 @@ export function DonatePage({ onNavigate, content }: DonatePageProps) {
                       <Card key={`${entry.label}-${index}`} className="space-y-2 p-4">
                         <p className="text-sm font-semibold">{entry.label || `Bank ${index + 1}`}</p>
                         {entry.url ? (
-                          <div className="flex h-56 items-center justify-center overflow-hidden rounded-md border bg-muted/30 p-3">
+                          <button
+                            type="button"
+                            className="flex h-56 w-full items-center justify-center overflow-hidden rounded-md border bg-muted/30 p-3"
+                            onClick={() => setPreviewImageUrl(entry.url)}
+                          >
                             <img src={entry.url} alt={entry.label || `Bank ${index + 1}`} className="h-full w-full object-contain" referrerPolicy="no-referrer" />
-                          </div>
+                          </button>
                         ) : (
                           <p className="text-sm text-muted-foreground">No bank image uploaded.</p>
                         )}
@@ -87,6 +96,13 @@ export function DonatePage({ onNavigate, content }: DonatePageProps) {
           )}
         </div>
       </div>
+      {previewImageUrl ? (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 p-4" onClick={() => setPreviewImageUrl(null)}>
+          <div className="max-h-[90vh] max-w-6xl overflow-auto rounded-xl bg-background p-3" onClick={(event) => event.stopPropagation()}>
+            <img src={previewImageUrl} alt="Preview" className="h-auto max-h-[85vh] w-auto max-w-full object-contain" />
+          </div>
+        </div>
+      ) : null}
       <AppFooter onNavigate={onNavigate} content={content} />
     </div>
   );
