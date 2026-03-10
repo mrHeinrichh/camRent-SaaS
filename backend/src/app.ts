@@ -30,7 +30,16 @@ export async function startServer() {
   app.use((req, res, next) => {
     const origin = req.headers.origin || '';
     const allowedOrigins = new Set(['http://localhost:5173', 'http://127.0.0.1:5173']);
-    if (allowedOrigins.has(origin)) {
+    const rawCorsOrigins = env.corsOrigins
+      .split(',')
+      .map((entry) => entry.trim())
+      .filter(Boolean);
+    for (const entry of rawCorsOrigins) {
+      allowedOrigins.add(entry);
+    }
+    if (rawCorsOrigins.includes('*')) {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+    } else if (allowedOrigins.has(origin)) {
       res.setHeader('Access-Control-Allow-Origin', origin);
       res.setHeader('Vary', 'Origin');
     }
