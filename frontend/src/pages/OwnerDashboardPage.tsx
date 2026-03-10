@@ -6,7 +6,7 @@ import { Button } from '@/src/components/ui';
 import type { ItemEditor, OwnerTab } from '@/src/features/owner-dashboard/types';
 import { OwnerSidebar } from '@/src/features/owner-dashboard/components/OwnerSidebar';
 import { OwnerTabs } from '@/src/features/owner-dashboard/components/OwnerTabs';
-import { OwnerModals } from '@/src/features/owner-dashboard/components/OwnerModals';
+import { OwnerDetailPages } from '@/src/features/owner-dashboard/components/OwnerDetailPages';
 
 interface UploadResponse {
   url: string;
@@ -49,7 +49,7 @@ export function OwnerDashboardPage() {
   const [editor, setEditor] = useState<ItemEditor>(emptyEditor);
   const [editorImageFile, setEditorImageFile] = useState<File | null>(null);
   const [editorSaving, setEditorSaving] = useState(false);
-  const [editingOpen, setEditingOpen] = useState(false);
+  const [detailView, setDetailView] = useState<'none' | 'edit-gear' | 'block-dates' | 'report-fraud' | 'application-details'>('none');
   const [calendarLoading, setCalendarLoading] = useState(false);
   const [selectedCalendarItemId, setSelectedCalendarItemId] = useState<string>('all');
   const [availabilityByItem, setAvailabilityByItem] = useState<Record<string, { bookings: Booking[]; manualBlocks: ManualBlock[] }>>({});
@@ -217,6 +217,7 @@ export function OwnerDashboardPage() {
       alert(successMessage);
       await loadData();
       setSelectedApp(null);
+      setDetailView('none');
       if (activeTab === 'calendar') await loadCalendarData();
     } catch (taskError: any) {
       alert(taskError.message);
@@ -249,7 +250,7 @@ export function OwnerDashboardPage() {
   const openCreateEditor = () => {
     setEditor(emptyEditor);
     setEditorImageFile(null);
-    setEditingOpen(true);
+    setDetailView('edit-gear');
   };
 
   const openEditEditor = (item: Item) => {
@@ -265,7 +266,7 @@ export function OwnerDashboardPage() {
       image_url: item.image_url,
     });
     setEditorImageFile(null);
-    setEditingOpen(true);
+    setDetailView('edit-gear');
   };
 
   const saveItem = async () => {
@@ -304,7 +305,7 @@ export function OwnerDashboardPage() {
       } else {
         await withReload(() => api.post('/api/items', payload), 'Item created');
       }
-      setEditingOpen(false);
+      setDetailView('none');
       setEditorImageFile(null);
     } finally {
       setEditorSaving(false);
@@ -457,6 +458,7 @@ export function OwnerDashboardPage() {
     setBlockStartDate('');
     setBlockEndDate('');
     setBlockReason('');
+    setDetailView('none');
   };
 
   const submitCustomerFraud = async () => {
@@ -487,6 +489,7 @@ export function OwnerDashboardPage() {
     setFraudScope('internal');
     setFraudReason('');
     setFraudRequirementFiles([]);
+    setDetailView('none');
   };
 
   const submitManualFraud = async () => {
@@ -606,11 +609,27 @@ export function OwnerDashboardPage() {
     );
   }
 
+  const handleChangeTab = (tab: OwnerTab) => {
+    setActiveTab(tab);
+    setDetailView('none');
+    setSelectedApp(null);
+    setBlockModalItem(null);
+    setReportCustomer(null);
+  };
+
+  const handleBack = (tab?: OwnerTab) => {
+    setDetailView('none');
+    setSelectedApp(null);
+    setBlockModalItem(null);
+    setReportCustomer(null);
+    if (tab) setActiveTab(tab);
+  };
+
   return (
     <div className="relative flex min-h-[calc(100vh-64px)] flex-col overflow-hidden bg-gradient-to-br from-slate-50 via-cyan-50/40 to-emerald-50/40 md:flex-row">
       <div className="pointer-events-none absolute -left-28 top-24 h-72 w-72 rounded-full bg-cyan-300/25 blur-3xl animate-float-soft" />
       <div className="pointer-events-none absolute right-0 top-1/3 h-80 w-80 rounded-full bg-emerald-300/20 blur-3xl animate-pulse-soft" />
-      <OwnerSidebar activeTab={activeTab} onChangeTab={setActiveTab} pendingApplicationsCount={pendingApplicationsCount} />
+      <OwnerSidebar activeTab={activeTab} onChangeTab={handleChangeTab} pendingApplicationsCount={pendingApplicationsCount} />
       <main className="relative z-10 flex-1 overflow-auto p-4 animate-fade-up sm:p-6 md:p-8">
         {ownerNotice ? (
           <div className="mb-6 rounded-xl border border-amber-300 bg-amber-50 p-4 shadow-sm animate-fade-up-delay">
@@ -625,101 +644,109 @@ export function OwnerDashboardPage() {
             </div>
           </div>
         ) : null}
-        <OwnerTabs
-          activeTab={activeTab}
-          data={data}
-          applications={applications}
-          pieSlices={pieSlices}
-          displayApprovedDate={displayApprovedDate}
-          onExportOverview={exportOverviewExcel}
-          onExportCustomers={exportCustomersExcel}
-          onExportTransactions={exportTransactionsExcel}
-          onExportInventory={exportInventoryExcel}
-          onExportFraud={exportFraudExcel}
-          onSelectApplication={setSelectedApp}
-          onSelectReportCustomer={setReportCustomer}
-          onApprove={handleApprove}
-          onReject={handleReject}
-          onReportFraud={handleReportFraud}
-          onCancelBooking={handleCancelBooking}
-          inventory={inventory}
-          categories={categories}
-          categoryFilter={categoryFilter}
-          onChangeCategoryFilter={setCategoryFilter}
-          filteredInventory={filteredInventory}
-          onOpenCreateEditor={openCreateEditor}
-          onOpenEditEditor={openEditEditor}
-          onDeleteItem={deleteItem}
-          onToggleItemAvailability={toggleItemAvailability}
-          onOpenBlockModal={setBlockModalItem}
-          calendarLoading={calendarLoading}
-          selectedCalendarItemId={selectedCalendarItemId}
-          onChangeSelectedCalendarItemId={setSelectedCalendarItemId}
-          onRefreshCalendar={loadCalendarData}
-          calendarItems={calendarItems}
-          availabilityByItem={availabilityByItem}
-          rentalFormFields={rentalFormFields}
-          rentalFormSettings={rentalFormSettings}
-          referenceImageFile={referenceImageFile}
-          onReferenceImageFileChange={setReferenceImageFile}
-          onRentalFormSettingsChange={setRentalFormSettings}
-          onAddCustomField={addCustomFormField}
-          onUpdateCustomField={updateCustomFormField}
-          onRemoveCustomField={removeCustomFormField}
-          onSaveCustomForm={saveCustomForm}
-          fraudEntries={fraudEntries}
-          fraudAccessError={fraudAccessError}
-          fraudManual={fraudManual}
-          fraudScope={fraudScope}
-          fraudReason={fraudReason}
-          onFraudManualChange={setFraudManual}
-          onFraudScopeChange={setFraudScope}
-          onFraudReasonChange={setFraudReason}
-          onFraudRequirementFilesChange={handleFraudRequirementFilesChange}
-          onSubmitManualFraud={submitManualFraud}
-          supportTickets={supportTickets}
-          onCreateSupportTicket={createSupportTicket}
-          onUpdateSupportTicket={updateSupportTicket}
-          onDeleteSupportTicket={deleteSupportTicket}
-          onSaveStoreProfile={saveStoreProfile}
-          vouchers={vouchers}
-          onCreateVoucher={createVoucher}
-          onUpdateVoucher={updateVoucher}
-        />
-
-        <OwnerModals
-          editingOpen={editingOpen}
-          editor={editor}
-          editorImageFile={editorImageFile}
-          editorSaving={editorSaving}
-          onCloseEditor={() => setEditingOpen(false)}
-          onEditorChange={setEditor}
-          onEditorImageFileChange={setEditorImageFile}
-          onSaveEditor={saveItem}
-          blockModalItem={blockModalItem}
-          blockStartDate={blockStartDate}
-          blockEndDate={blockEndDate}
-          blockReason={blockReason}
-          onCloseBlockModal={() => setBlockModalItem(null)}
-          onBlockStartDateChange={setBlockStartDate}
-          onBlockEndDateChange={setBlockEndDate}
-          onBlockReasonChange={setBlockReason}
-          onSubmitBlockDates={submitBlockDates}
-          reportCustomer={reportCustomer}
-          fraudScope={fraudScope}
-          fraudReason={fraudReason}
-          onFraudScopeChange={setFraudScope}
-          onFraudReasonChange={setFraudReason}
-          onFraudRequirementFilesChange={handleFraudRequirementFilesChange}
-          onCloseReportCustomer={() => setReportCustomer(null)}
-          onSubmitCustomerFraud={submitCustomerFraud}
-          selectedApp={selectedApp}
-          onCloseSelectedApp={() => setSelectedApp(null)}
-          onApprove={handleApprove}
-          onReject={handleReject}
-          onReportFraud={handleReportFraud}
-          onCancelBooking={handleCancelBooking}
-        />
+        {detailView === 'none' ? (
+          <OwnerTabs
+            activeTab={activeTab}
+            data={data}
+            applications={applications}
+            pieSlices={pieSlices}
+            displayApprovedDate={displayApprovedDate}
+            onExportOverview={exportOverviewExcel}
+            onExportCustomers={exportCustomersExcel}
+            onExportTransactions={exportTransactionsExcel}
+            onExportInventory={exportInventoryExcel}
+            onExportFraud={exportFraudExcel}
+            onSelectApplication={(application) => {
+              setSelectedApp(application);
+              setDetailView('application-details');
+            }}
+            onSelectReportCustomer={(customer) => {
+              setReportCustomer(customer);
+              setDetailView('report-fraud');
+            }}
+            onApprove={handleApprove}
+            onReject={handleReject}
+            onReportFraud={handleReportFraud}
+            onCancelBooking={handleCancelBooking}
+            inventory={inventory}
+            categories={categories}
+            categoryFilter={categoryFilter}
+            onChangeCategoryFilter={setCategoryFilter}
+            filteredInventory={filteredInventory}
+            onOpenCreateEditor={openCreateEditor}
+            onOpenEditEditor={openEditEditor}
+            onDeleteItem={deleteItem}
+            onToggleItemAvailability={toggleItemAvailability}
+            onOpenBlockModal={(item) => {
+              setBlockModalItem(item);
+              setDetailView('block-dates');
+            }}
+            calendarLoading={calendarLoading}
+            selectedCalendarItemId={selectedCalendarItemId}
+            onChangeSelectedCalendarItemId={setSelectedCalendarItemId}
+            onRefreshCalendar={loadCalendarData}
+            calendarItems={calendarItems}
+            availabilityByItem={availabilityByItem}
+            rentalFormFields={rentalFormFields}
+            rentalFormSettings={rentalFormSettings}
+            referenceImageFile={referenceImageFile}
+            onReferenceImageFileChange={setReferenceImageFile}
+            onRentalFormSettingsChange={setRentalFormSettings}
+            onAddCustomField={addCustomFormField}
+            onUpdateCustomField={updateCustomFormField}
+            onRemoveCustomField={removeCustomFormField}
+            onSaveCustomForm={saveCustomForm}
+            fraudEntries={fraudEntries}
+            fraudAccessError={fraudAccessError}
+            fraudManual={fraudManual}
+            fraudScope={fraudScope}
+            fraudReason={fraudReason}
+            onFraudManualChange={setFraudManual}
+            onFraudScopeChange={setFraudScope}
+            onFraudReasonChange={setFraudReason}
+            onFraudRequirementFilesChange={handleFraudRequirementFilesChange}
+            onSubmitManualFraud={submitManualFraud}
+            supportTickets={supportTickets}
+            onCreateSupportTicket={createSupportTicket}
+            onUpdateSupportTicket={updateSupportTicket}
+            onDeleteSupportTicket={deleteSupportTicket}
+            onSaveStoreProfile={saveStoreProfile}
+            vouchers={vouchers}
+            onCreateVoucher={createVoucher}
+            onUpdateVoucher={updateVoucher}
+          />
+        ) : (
+          <OwnerDetailPages
+            view={detailView}
+            onBack={handleBack}
+            editor={editor}
+            editorImageFile={editorImageFile}
+            editorSaving={editorSaving}
+            onEditorChange={setEditor}
+            onEditorImageFileChange={setEditorImageFile}
+            onSaveEditor={saveItem}
+            blockModalItem={blockModalItem}
+            blockStartDate={blockStartDate}
+            blockEndDate={blockEndDate}
+            blockReason={blockReason}
+            onBlockStartDateChange={setBlockStartDate}
+            onBlockEndDateChange={setBlockEndDate}
+            onBlockReasonChange={setBlockReason}
+            onSubmitBlockDates={submitBlockDates}
+            reportCustomer={reportCustomer}
+            fraudScope={fraudScope}
+            fraudReason={fraudReason}
+            onFraudScopeChange={setFraudScope}
+            onFraudReasonChange={setFraudReason}
+            onFraudRequirementFilesChange={handleFraudRequirementFilesChange}
+            onSubmitCustomerFraud={submitCustomerFraud}
+            selectedApp={selectedApp}
+            onApprove={handleApprove}
+            onReject={handleReject}
+            onReportFraud={handleReportFraud}
+            onCancelBooking={handleCancelBooking}
+          />
+        )}
       </main>
     </div>
   );

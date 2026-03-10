@@ -1,4 +1,4 @@
-import { HandHeart, LayoutDashboard, Megaphone, MessageSquare, ShieldAlert, Store as StoreIcon, Users } from 'lucide-react';
+import { HandHeart, LayoutDashboard, Megaphone, MessageSquare, ShieldAlert, Store as StoreIcon, Users, FileText } from 'lucide-react';
 import { Button } from '@/src/components/ui';
 import type { AdminTab } from '@/src/features/admin-dashboard/types';
 
@@ -40,6 +40,9 @@ export function AdminSidebar({ activeTab, onChangeTab, pendingMerchants = 0, nea
       </Button>
       <Button variant={activeTab === 'donations' ? 'secondary' : 'ghost'} className="shrink-0 justify-start whitespace-nowrap md:w-full" onClick={() => onChangeTab('donations')}>
         <HandHeart className="mr-2 h-4 w-4" /> Donations
+      </Button>
+      <Button variant={activeTab === 'content' ? 'secondary' : 'ghost'} className="shrink-0 justify-start whitespace-nowrap md:w-full" onClick={() => onChangeTab('content')}>
+        <FileText className="mr-2 h-4 w-4" /> Site Content
       </Button>
       </div>
     </aside>

@@ -7,6 +7,7 @@ import { Item } from '../models/Item';
 import { Store } from '../models/Store';
 import { StoreReview } from '../models/StoreReview';
 import { User } from '../models/User';
+import { SupportTicket } from '../models/SupportTicket';
 import { Order } from '../models/Order';
 import { enforceStoreDueDeactivation } from '../services/billingService';
 import type { AuthedRequest } from '../types/auth';
@@ -119,6 +120,37 @@ storeRoutes.post('/:id/reviews', authenticate, checkRole(['renter']), requireAut
   await store.save();
 
   res.json({ success: true, review: serialize(review as any), rating: store.rating });
+});
+
+storeRoutes.post('/:id/report', authenticate, checkRole(['renter']), requireAuth, async (req: AuthedRequest, res) => {
+  if (!Types.ObjectId.isValid(req.params.id)) return res.status(404).json({ error: 'Store not found' });
+  const store = await Store.findById(req.params.id).lean();
+  if (!store) return res.status(404).json({ error: 'Store not found' });
+
+  const subject = String(req.body?.subject || '').trim();
+  const message = String(req.body?.message || '').trim();
+  if (!subject) return res.status(400).json({ error: 'Subject is required' });
+  if (!message) return res.status(400).json({ error: 'Message is required' });
+
+  const reporter = await User.findById(toId(req.user!.id)).lean();
+  const ticket = await SupportTicket.create({
+    store_id: store._id,
+    owner_id: store.owner_id,
+    type: 'store_report',
+    subject,
+    message,
+    priority: 'high',
+    status: 'open',
+    admin_reply: '',
+    resolved_at: null,
+    reporter_id: toId(req.user!.id),
+    reporter_role: req.user?.role || 'renter',
+    reporter_name: String(reporter?.full_name || req.user?.email || 'Customer').trim(),
+    reporter_email: String(reporter?.email || req.user?.email || '').trim(),
+    reporter_phone: String(reporter?.phone || '').trim(),
+  });
+
+  res.json({ success: true, ticket: serialize(ticket as any) });
 });
 
 storeRoutes.post('/', authenticate, checkRole(['owner']), async (req: AuthedRequest, res) => {

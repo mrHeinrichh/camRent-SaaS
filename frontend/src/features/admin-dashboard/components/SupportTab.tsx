@@ -20,7 +20,7 @@ export function SupportTab({ tickets, onExport, onUpdateTicket, onDeleteTicket }
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-3xl font-bold">Owner Support & Feedback</h1>
+        <h1 className="text-3xl font-bold">Support, Feedback & Store Reports</h1>
         <Button variant="outline" onClick={onExport}>
           <Download className="mr-2 h-4 w-4" /> Export Excel
         </Button>
@@ -35,6 +35,11 @@ export function SupportTab({ tickets, onExport, onUpdateTicket, onDeleteTicket }
                 <p className="text-sm text-muted-foreground">
                   {ticket.store_name || '-'} • {ticket.owner_name || '-'} ({ticket.owner_email || '-'})
                 </p>
+                {ticket.type === 'store_report' ? (
+                  <p className="text-sm text-muted-foreground">
+                    Reporter: {ticket.reporter_name || '-'} ({ticket.reporter_email || '-'}) {ticket.reporter_phone ? `• ${ticket.reporter_phone}` : ''}
+                  </p>
+                ) : null}
                 <p className="mt-1 text-sm text-muted-foreground">
                   Type: {ticket.type} • Priority: {ticket.priority} • Status: {ticket.status}
                 </p>
@@ -45,7 +50,9 @@ export function SupportTab({ tickets, onExport, onUpdateTicket, onDeleteTicket }
             </div>
 
             <div className="rounded-lg bg-muted/30 p-3 text-sm">
-              <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Owner Message</p>
+              <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                {ticket.type === 'store_report' ? 'Reporter Message' : 'Owner Message'}
+              </p>
               <p className="whitespace-pre-wrap">{ticket.message}</p>
             </div>
 

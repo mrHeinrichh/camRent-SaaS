@@ -1,4 +1,4 @@
-export type AdminTab = 'stores' | 'customers' | 'fraud' | 'insights' | 'support' | 'announcements' | 'donations';
+export type AdminTab = 'stores' | 'customers' | 'fraud' | 'insights' | 'support' | 'announcements' | 'donations' | 'content';
 
 export interface EditFraudForm {
   full_name: string;

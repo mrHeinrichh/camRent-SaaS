@@ -12,6 +12,10 @@ export const faqItems = [
     a: 'Store owners control vouchers. Voucher rules, eligibility, and usage are store-managed and may differ per store.',
   },
   {
+    q: 'Who decides refunds and is CamRent PH liable?',
+    a: 'Refund decisions are at the sole discretion of the store owner. CamRent PH is not a payment provider and is not liable for losses or refund outcomes. Users should review store policies carefully before transacting.',
+  },
+  {
     q: 'How does fraud reporting work?',
     a: 'Stores can flag suspicious renters internally. They can escalate reports to global status for investigation and approval. Fraud reports are monitored as a high-priority safety workflow.',
   },

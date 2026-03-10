@@ -8,6 +8,7 @@ import type { DonationSettings } from '@/src/types/domain';
 
 interface DonatePageProps {
   onNavigate: (page: AppPage) => void;
+  content?: import('@/src/types/domain').SiteContent;
 }
 
 const fallbackSettings: DonationSettings = {
@@ -17,7 +18,7 @@ const fallbackSettings: DonationSettings = {
   is_active: true,
 };
 
-export function DonatePage({ onNavigate }: DonatePageProps) {
+export function DonatePage({ onNavigate, content }: DonatePageProps) {
   const [settings, setSettings] = useState<DonationSettings>(fallbackSettings);
   const [loading, setLoading] = useState(true);
 
@@ -86,7 +87,7 @@ export function DonatePage({ onNavigate }: DonatePageProps) {
           )}
         </div>
       </div>
-      <AppFooter onNavigate={onNavigate} />
+      <AppFooter onNavigate={onNavigate} content={content} />
     </div>
   );
 }

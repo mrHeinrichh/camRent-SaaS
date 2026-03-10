@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '@/src/lib/api';
 import { exportRowsToCsv } from '@/src/lib/export';
-import type { AdminDashboardData, Announcement, DonationSettings, FraudAnalytics, FraudListEntry, SupportTicket } from '@/src/types/domain';
+import type { AdminDashboardData, Announcement, AnnouncementSettings, DonationSettings, FraudAnalytics, FraudListEntry, SiteContent, SupportTicket } from '@/src/types/domain';
 import type { AdminTab, EditFraudForm } from '@/src/features/admin-dashboard/types';
 import { AdminSidebar } from '@/src/features/admin-dashboard/components/AdminSidebar';
 import { StoresTab } from '@/src/features/admin-dashboard/components/StoresTab';
@@ -12,6 +12,8 @@ import { EditFraudModal } from '@/src/features/admin-dashboard/components/EditFr
 import { SupportTab } from '@/src/features/admin-dashboard/components/SupportTab';
 import { AnnouncementsTab } from '@/src/features/admin-dashboard/components/AnnouncementsTab';
 import { DonationsTab } from '@/src/features/admin-dashboard/components/DonationsTab';
+import { SiteContentTab } from '@/src/features/admin-dashboard/components/SiteContentTab';
+import { defaultSiteContent } from '@/src/config/siteContentDefaults';
 
 const defaultEditFraudForm: EditFraudForm = {
   full_name: '',
@@ -43,6 +45,7 @@ export function AdminDashboardPage() {
     bank_details: [],
   });
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [announcementSettings, setAnnouncementSettings] = useState<AnnouncementSettings>({ is_enabled: true });
   const [announcementSaving, setAnnouncementSaving] = useState(false);
   const [editingAnnouncementId, setEditingAnnouncementId] = useState<string | null>(null);
   const [announcementForm, setAnnouncementForm] = useState<{
@@ -76,21 +79,68 @@ export function AdminDashboardPage() {
     reason: '',
     evidence_image_url: '',
   });
+  const [siteContent, setSiteContent] = useState<SiteContent>(defaultSiteContent as any);
+  const [siteContentSaving, setSiteContentSaving] = useState(false);
+  const [siteContentStatus, setSiteContentStatus] = useState<{ message: string; tone: 'success' | 'error' | 'neutral' } | null>(null);
+  const [siteContentForm, setSiteContentForm] = useState({
+    homeBadge: defaultSiteContent.home.badge,
+    homeTitle: defaultSiteContent.home.title,
+    homeSubtitle: defaultSiteContent.home.subtitle,
+    policySections: defaultSiteContent.policies.sections.map((section) => ({ ...section })),
+    faqText: defaultSiteContent.policies.faq_items.map((item) => `${item.q} || ${item.a}`).join('\n'),
+    rentalGuideText: defaultSiteContent.policies.rental_guide_items.join('\n'),
+    footerAboutText: defaultSiteContent.footer.about_text,
+    footerAboutLinksText: defaultSiteContent.footer.about_links.map((link) => `${link.label}|${link.page || ''}`).join('\n'),
+    footerPolicyLinksText: defaultSiteContent.footer.policy_links.map((link) => `${link.label}|${link.page || ''}`).join('\n'),
+    footerUsefulLinksText: defaultSiteContent.footer.useful_links.map((link) => `${link.label}|${link.page || ''}${link.requires_login ? '|login' : ''}`).join('\n'),
+    footerSocialLinksText: defaultSiteContent.footer.social_links.map((link) => `${link.label}|${link.url}`).join('\n'),
+  });
 
   const loadData = async () => {
-    const [storesData, list, analyticsData, supportData, announcementData, donationData] = await Promise.all([
+    const [storesData, list, analyticsData, supportData, announcementData, donationData, announcementSettingsData, siteContentData] = await Promise.all([
       api.get<AdminDashboardData>('/api/dashboard/admin'),
       api.get<FraudListEntry[]>('/api/admin/fraud-list'),
       api.get<FraudAnalytics>('/api/admin/fraud-analytics'),
       api.get<SupportTicket[]>('/api/admin/support-tickets'),
       api.get<Announcement[]>('/api/admin/announcements'),
       api.get<DonationSettings>('/api/admin/donation-settings'),
+      api.get<AnnouncementSettings>('/api/admin/announcement-settings'),
+      api.get<SiteContent>('/api/admin/site-content'),
     ]);
     setStores(storesData);
     setFraudList(list);
     setAnalytics(analyticsData);
     setSupportTickets(supportData);
     setAnnouncements(announcementData);
+    setAnnouncementSettings({ is_enabled: announcementSettingsData?.is_enabled !== false, id: announcementSettingsData?.id ?? null });
+    const resolvedContent = siteContentData || (defaultSiteContent as any);
+    setSiteContent(resolvedContent);
+    setSiteContentForm({
+      homeBadge: resolvedContent.home?.badge || defaultSiteContent.home.badge,
+      homeTitle: resolvedContent.home?.title || defaultSiteContent.home.title,
+      homeSubtitle: resolvedContent.home?.subtitle || defaultSiteContent.home.subtitle,
+      policySections: (resolvedContent.policies?.sections?.length ? resolvedContent.policies.sections : defaultSiteContent.policies.sections).map((section: any) => ({
+        title: section.title || '',
+        body: section.body || '',
+      })),
+      faqText: (resolvedContent.policies?.faq_items?.length ? resolvedContent.policies.faq_items : defaultSiteContent.policies.faq_items)
+        .map((item: any) => `${item.q} || ${item.a}`)
+        .join('\n'),
+      rentalGuideText: (resolvedContent.policies?.rental_guide_items?.length ? resolvedContent.policies.rental_guide_items : defaultSiteContent.policies.rental_guide_items).join('\n'),
+      footerAboutText: resolvedContent.footer?.about_text || defaultSiteContent.footer.about_text,
+      footerAboutLinksText: (resolvedContent.footer?.about_links?.length ? resolvedContent.footer.about_links : defaultSiteContent.footer.about_links)
+        .map((link: any) => `${link.label}|${link.page || link.url || ''}`)
+        .join('\n'),
+      footerPolicyLinksText: (resolvedContent.footer?.policy_links?.length ? resolvedContent.footer.policy_links : defaultSiteContent.footer.policy_links)
+        .map((link: any) => `${link.label}|${link.page || link.url || ''}`)
+        .join('\n'),
+      footerUsefulLinksText: (resolvedContent.footer?.useful_links?.length ? resolvedContent.footer.useful_links : defaultSiteContent.footer.useful_links)
+        .map((link: any) => `${link.label}|${link.page || link.url || ''}${link.requires_login ? '|login' : ''}`)
+        .join('\n'),
+      footerSocialLinksText: (resolvedContent.footer?.social_links?.length ? resolvedContent.footer.social_links : defaultSiteContent.footer.social_links)
+        .map((link: any) => `${link.label}|${link.url || ''}`)
+        .join('\n'),
+    });
     setDonationForm({
       message: donationData?.message || '',
       is_active: donationData?.is_active !== false,
@@ -290,7 +340,20 @@ export function AdminDashboardPage() {
   const exportSupportExcel = () => {
     exportRowsToCsv(
       'superadmin_support.csv',
-      ['Store', 'Owner', 'Email', 'Type', 'Subject', 'Status', 'Priority', 'Created At', 'Updated At'],
+      [
+        'Store',
+        'Owner',
+        'Owner Email',
+        'Type',
+        'Subject',
+        'Status',
+        'Priority',
+        'Reporter Name',
+        'Reporter Email',
+        'Reporter Phone',
+        'Created At',
+        'Updated At',
+      ],
       supportTickets.map((ticket) => [
         ticket.store_name || '',
         ticket.owner_name || '',
@@ -299,6 +362,9 @@ export function AdminDashboardPage() {
         ticket.subject,
         ticket.status,
         ticket.priority,
+        ticket.reporter_name || '',
+        ticket.reporter_email || '',
+        ticket.reporter_phone || '',
         ticket.created_at,
         ticket.updated_at,
       ]),
@@ -381,6 +447,88 @@ export function AdminDashboardPage() {
     if (!confirm('Delete this announcement?')) return;
     await api.delete(`/api/admin/announcements/${id}`);
     await loadData();
+  };
+
+  const handleToggleAnnouncement = async (id: string, nextValue: boolean) => {
+    await api.put(`/api/admin/announcements/${id}`, { is_active: nextValue });
+    await loadData();
+  };
+
+  const handleToggleAnnouncementGlobal = async (nextValue: boolean) => {
+    await api.put('/api/admin/announcement-settings', { is_enabled: nextValue });
+    await loadData();
+  };
+
+  const parseLinks = (value: string, withLoginFlag: boolean) =>
+    value
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line) => {
+        const [label, target, loginFlag] = line.split('|').map((part) => (part || '').trim());
+        const isUrl = target.startsWith('http');
+        return {
+          label,
+          page: isUrl ? '' : target,
+          url: isUrl ? target : '',
+          requires_login: withLoginFlag ? String(loginFlag || '').toLowerCase() === 'login' || String(loginFlag || '').toLowerCase() === 'true' : false,
+        };
+      })
+      .filter((entry) => entry.label && (entry.page || entry.url));
+
+  const handleSaveSiteContent = async () => {
+    try {
+      setSiteContentSaving(true);
+      setSiteContentStatus({ message: 'Saving...', tone: 'neutral' });
+      const payload: SiteContent = {
+        home: {
+          badge: siteContentForm.homeBadge.trim(),
+          title: siteContentForm.homeTitle.trim(),
+          subtitle: siteContentForm.homeSubtitle.trim(),
+        },
+        policies: {
+          sections: siteContentForm.policySections.map((section) => ({
+            title: String(section.title || '').trim(),
+            body: String(section.body || '').trim(),
+          })),
+          faq_items: siteContentForm.faqText
+            .split('\n')
+            .map((line) => line.trim())
+            .filter(Boolean)
+            .map((line) => {
+              const [q, a] = line.split('||').map((value) => (value || '').trim());
+              return { q, a };
+            })
+            .filter((item) => item.q || item.a),
+          rental_guide_items: siteContentForm.rentalGuideText
+            .split('\n')
+            .map((line) => line.trim())
+            .filter(Boolean),
+        },
+        footer: {
+          about_text: siteContentForm.footerAboutText.trim(),
+          about_links: parseLinks(siteContentForm.footerAboutLinksText, false),
+          policy_links: parseLinks(siteContentForm.footerPolicyLinksText, false),
+          useful_links: parseLinks(siteContentForm.footerUsefulLinksText, true),
+          social_links: siteContentForm.footerSocialLinksText
+            .split('\n')
+            .map((line) => line.trim())
+            .filter(Boolean)
+            .map((line) => {
+              const [label, url] = line.split('|').map((value) => (value || '').trim());
+              return { label, url };
+            })
+            .filter((entry) => entry.label && entry.url),
+        },
+      };
+      await api.put('/api/admin/site-content', payload);
+      await loadData();
+      setSiteContentStatus({ message: 'Site content saved.', tone: 'success' });
+    } catch (error: any) {
+      setSiteContentStatus({ message: error?.message || 'Failed to save site content.', tone: 'error' });
+    } finally {
+      setSiteContentSaving(false);
+    }
   };
 
   const handleSaveDonationSettings = async () => {
@@ -505,6 +653,7 @@ export function AdminDashboardPage() {
         {activeTab === 'announcements' && (
           <AnnouncementsTab
             announcements={announcements}
+            globalEnabled={announcementSettings.is_enabled !== false}
             form={announcementForm}
             editingId={editingAnnouncementId}
             saving={announcementSaving}
@@ -512,6 +661,8 @@ export function AdminDashboardPage() {
             onSubmit={handleSubmitAnnouncement}
             onEdit={handleEditAnnouncement}
             onDelete={handleDeleteAnnouncement}
+            onToggleActive={handleToggleAnnouncement}
+            onToggleGlobal={handleToggleAnnouncementGlobal}
             onExport={exportAnnouncementsExcel}
           />
         )}
@@ -523,6 +674,17 @@ export function AdminDashboardPage() {
             onChange={(next) => setDonationForm((prev) => ({ ...prev, ...next }))}
             onSave={handleSaveDonationSettings}
             onExport={exportDonationsExcel}
+          />
+        )}
+
+        {activeTab === 'content' && (
+          <SiteContentTab
+            form={siteContentForm}
+            saving={siteContentSaving}
+            statusMessage={siteContentStatus?.message}
+            statusTone={siteContentStatus?.tone}
+            onChange={(next) => setSiteContentForm((prev) => ({ ...prev, ...next }))}
+            onSave={handleSaveSiteContent}
           />
         )}
       </main>

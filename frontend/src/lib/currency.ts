@@ -1,7 +1,8 @@
 const phpCurrency = new Intl.NumberFormat('en-PH', {
   style: 'currency',
   currency: 'PHP',
-  maximumFractionDigits: 2,
+  maximumFractionDigits: 0,
+  minimumFractionDigits: 0,
 });
 
 export function formatPHP(value: number): string {

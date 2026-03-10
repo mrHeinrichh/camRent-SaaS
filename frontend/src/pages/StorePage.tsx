@@ -22,7 +22,10 @@ export function StorePage({ storeId, onNavigateItem }: StorePageProps) {
   const [reviewForm, setReviewForm] = useState({ rating: 5, description: '' });
   const [selectedCategory, setSelectedCategory] = useState<string>('All Gear');
   const [loading, setLoading] = useState(true);
-  const { user } = useAppStore();
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportSending, setReportSending] = useState(false);
+  const [reportForm, setReportForm] = useState({ subject: '', message: '' });
+  const { user, setPage } = useAppStore();
 
   useEffect(() => {
     if (user?.role === 'owner') return;
@@ -225,6 +228,30 @@ export function StorePage({ storeId, onNavigateItem }: StorePageProps) {
                 {!storeReviews.length && <p className="text-xs text-muted-foreground">No reviews yet.</p>}
               </div>
             </div>
+            <div>
+              <h4 className="mb-2 font-semibold">Report This Store</h4>
+              <p className="text-xs text-muted-foreground">
+                Reports are reviewed by the super admin. Please include clear details.
+              </p>
+              <Button
+                className="mt-3 w-full"
+                variant="destructive"
+                onClick={() => {
+                  if (!user) {
+                    alert('Please login to report this store.');
+                    setPage('login');
+                    return;
+                  }
+                  if (user.role !== 'renter') {
+                    alert('Only customers can report a store.');
+                    return;
+                  }
+                  setReportOpen(true);
+                }}
+              >
+                Report Store
+              </Button>
+            </div>
           </aside>
 
           <main className="flex-1">
@@ -281,6 +308,76 @@ export function StorePage({ storeId, onNavigateItem }: StorePageProps) {
           </main>
         </div>
       </div>
+
+      {reportOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <Card className="w-full max-w-lg space-y-4 p-5">
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <h3 className="text-lg font-semibold">Report {store.name}</h3>
+                <p className="text-xs text-muted-foreground">Only logged-in customers can submit a report.</p>
+              </div>
+              <Button variant="ghost" size="icon" onClick={() => setReportOpen(false)} aria-label="Close report dialog">
+                X
+              </Button>
+            </div>
+
+            <div className="rounded-md border bg-muted/30 p-3 text-sm text-muted-foreground">
+              <p className="font-semibold text-foreground">Reporter Details</p>
+              <p>{user?.full_name || 'Customer'}</p>
+              <p>{user?.email || '-'}</p>
+              <p>{user?.phone || '-'}</p>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Subject</label>
+              <Input
+                value={reportForm.subject}
+                onChange={(event) => setReportForm((prev) => ({ ...prev, subject: event.target.value }))}
+                placeholder="Short summary of the issue"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Message</label>
+              <textarea
+                className="min-h-28 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                value={reportForm.message}
+                onChange={(event) => setReportForm((prev) => ({ ...prev, message: event.target.value }))}
+                placeholder="Describe the problem in detail."
+              />
+            </div>
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <Button variant="ghost" onClick={() => setReportOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                disabled={reportSending}
+                onClick={async () => {
+                  if (!reportForm.subject.trim() || !reportForm.message.trim()) {
+                    alert('Subject and message are required.');
+                    return;
+                  }
+                  try {
+                    setReportSending(true);
+                    await api.post(`/api/stores/${storeId}/report`, {
+                      subject: reportForm.subject.trim(),
+                      message: reportForm.message.trim(),
+                    });
+                    setReportOpen(false);
+                    setReportForm({ subject: '', message: '' });
+                    alert('Report submitted. The admin will review it.');
+                  } finally {
+                    setReportSending(false);
+                  }
+                }}
+              >
+                {reportSending ? 'Submitting...' : 'Submit Report'}
+              </Button>
+            </div>
+          </Card>
+        </div>
+      ) : null}
     </div>
   );
 }

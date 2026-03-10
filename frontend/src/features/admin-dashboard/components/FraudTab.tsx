@@ -104,8 +104,8 @@ export function FraudTab({
         </div>
       </Card>
 
-      <Card className="overflow-hidden">
-        <div className="overflow-x-auto">
+      <Card>
+        <div className="-mx-4 overflow-x-auto px-4 pb-2 touch-pan-x">
         <table className="min-w-[980px] w-full border-collapse text-left">
           <thead className="bg-muted/50">
             <tr>

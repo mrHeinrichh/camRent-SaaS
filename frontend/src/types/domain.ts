@@ -203,7 +203,7 @@ export interface SupportTicket {
   id: string;
   store_id: string;
   owner_id: string;
-  type: 'feedback' | 'support' | 'bug';
+  type: 'feedback' | 'support' | 'bug' | 'store_report';
   subject: string;
   message: string;
   status: 'open' | 'in_progress' | 'resolved' | 'closed';
@@ -215,6 +215,9 @@ export interface SupportTicket {
   store_name?: string;
   owner_email?: string;
   owner_name?: string;
+  reporter_name?: string;
+  reporter_email?: string;
+  reporter_phone?: string;
 }
 
 export interface Announcement {
@@ -230,12 +233,38 @@ export interface Announcement {
   updated_at: string;
 }
 
+export interface AnnouncementSettings {
+  id?: string | null;
+  is_enabled: boolean;
+}
+
 export interface DonationSettings {
   id?: string | null;
   message: string;
   qr_codes: Array<{ label: string; url: string }>;
   bank_details: Array<{ label: string; url: string }>;
   is_active?: boolean;
+}
+
+export interface SiteContent {
+  id?: string | null;
+  home: {
+    badge: string;
+    title: string;
+    subtitle: string;
+  };
+  policies: {
+    sections: Array<{ title: string; body: string }>;
+    faq_items: Array<{ q: string; a: string }>;
+    rental_guide_items: string[];
+  };
+  footer: {
+    about_text: string;
+    about_links: Array<{ label: string; page?: string; url?: string; requires_login?: boolean }>;
+    policy_links: Array<{ label: string; page?: string; url?: string; requires_login?: boolean }>;
+    useful_links: Array<{ label: string; page?: string; url?: string; requires_login?: boolean }>;
+    social_links: Array<{ label: string; url: string }>;
+  };
 }
 
 export interface Voucher {

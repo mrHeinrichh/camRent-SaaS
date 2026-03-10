@@ -159,8 +159,6 @@ export function OwnerTabs({
   onUpdateVoucher,
   onSaveStoreProfile,
 }: OwnerTabsProps) {
-  const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
-  const [previewFile, setPreviewFile] = useState<{ url: string; type: string; sourceUrl: string } | null>(null);
   const [fileLoading, setFileLoading] = useState(false);
   const [expandedCustomerEmail, setExpandedCustomerEmail] = useState<string | null>(null);
   const [profileSaving, setProfileSaving] = useState(false);
@@ -1090,7 +1088,7 @@ export function OwnerTabs({
                           <div key={`${customer.renter_email}-${requirement.type}`} className="rounded-xl border bg-muted/20 p-3">
                             <p className="mb-2 line-clamp-1 text-xs font-semibold text-muted-foreground">{requirement.type}</p>
                             {isImage ? (
-                              <button type="button" className="h-90 w-full overflow-hidden rounded-lg border" onClick={() => setPreviewImageUrl(requirement.url)}>
+                              <button type="button" className="h-90 w-full overflow-hidden rounded-lg border" onClick={() => window.open(requirement.url, '_blank', 'noopener,noreferrer')}>
                                 <img src={requirement.url} alt={requirement.type} className="h-full w-full object-cover" />
                               </button>
                             ) : (
@@ -1107,7 +1105,7 @@ export function OwnerTabs({
                                     try {
                                       setFileLoading(true);
                                       const access = await resolveFileAccess(requirement.url);
-                                      setPreviewFile({ url: access.view_url, type: requirement.type, sourceUrl: requirement.url });
+                                      window.open(access.view_url, '_blank', 'noopener,noreferrer');
                                     } catch (error: any) {
                                       alert(error?.message || 'Unable to view file.');
                                     } finally {
@@ -1339,7 +1337,7 @@ export function OwnerTabs({
                               <p className="mb-2 line-clamp-1 text-[11px] font-semibold text-muted-foreground">{doc.type}</p>
                               {isImage ? (
                                 <div className="space-y-2">
-                                  <button type="button" className="h-100 w-full overflow-hidden rounded-lg border" onClick={() => setPreviewImageUrl(doc.url)}>
+                                  <button type="button" className="h-100 w-full overflow-hidden rounded-lg border" onClick={() => window.open(doc.url, '_blank', 'noopener,noreferrer')}>
                                     <img src={doc.url} alt={doc.type} className="h-full w-full object-cover" />
                                   </button>
                                   <div className="grid grid-cols-2 gap-2">
@@ -1365,7 +1363,7 @@ export function OwnerTabs({
                                       try {
                                         setFileLoading(true);
                                         const access = await resolveFileAccess(doc.url);
-                                        setPreviewFile({ url: access.view_url, type: doc.type, sourceUrl: doc.url });
+                                        window.open(access.view_url, '_blank', 'noopener,noreferrer');
                                       } catch (error: any) {
                                         alert(error?.message || 'Unable to view file.');
                                     } finally {
@@ -1791,7 +1789,7 @@ export function OwnerTabs({
                       {entry.evidence_image_url ? (
                         <div className="mt-2">
                           <p className="mb-1 text-xs font-semibold text-muted-foreground">Evidence</p>
-                          <button type="button" className="h-24 w-24 overflow-hidden rounded border" onClick={() => setPreviewImageUrl(entry.evidence_image_url || '')}>
+                          <button type="button" className="h-24 w-24 overflow-hidden rounded border" onClick={() => window.open(entry.evidence_image_url || '', '_blank', 'noopener,noreferrer')}>
                             <img src={entry.evidence_image_url} alt="Evidence" className="h-full w-full object-cover" />
                           </button>
                         </div>
@@ -1804,7 +1802,7 @@ export function OwnerTabs({
                                 key={`${entry.id}-req-${index}`}
                                 type="button"
                                 className="overflow-hidden rounded border bg-white"
-                                onClick={() => setPreviewImageUrl(file.url)}
+                                onClick={() => window.open(file.url, '_blank', 'noopener,noreferrer')}
                               >
                                 <img src={file.url} alt={file.type || `Requirement ${index + 1}`} className="h-20 w-full object-cover" />
                                 <p className="truncate px-1 py-1 text-[10px] font-semibold">{file.type || `Requirement ${index + 1}`}</p>
@@ -1821,7 +1819,7 @@ export function OwnerTabs({
                                     onClick={async () => {
                                       try {
                                         const access = await resolveFileAccess(file.url);
-                                        setPreviewFile({ url: access.view_url, type: file.type || `Requirement ${index + 1}`, sourceUrl: file.url });
+                                        window.open(access.view_url, '_blank', 'noopener,noreferrer');
                                       } catch (error: any) {
                                         alert(error?.message || 'Failed to preview file');
                                       }
@@ -2108,39 +2106,7 @@ export function OwnerTabs({
         </div>
       )}
 
-      {previewImageUrl && (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 p-4" onClick={() => setPreviewImageUrl(null)}>
-          <div className="max-h-[90vh] max-w-6xl overflow-auto rounded-xl bg-background p-3" onClick={(event) => event.stopPropagation()}>
-            <img src={previewImageUrl} alt="Preview" className="h-auto max-h-[85vh] w-auto max-w-full object-contain" />
-          </div>
-        </div>
-      )}
-
-      {previewFile && (
-        <div className="fixed inset-0 z-[85] flex items-center justify-center bg-black/70 p-4" onClick={() => setPreviewFile(null)}>
-          <div className="h-[90vh] w-full max-w-6xl overflow-hidden rounded-xl bg-white p-3 text-slate-900" onClick={(event) => event.stopPropagation()}>
-            <div className="mb-2 flex items-center justify-between">
-              <p className="text-sm font-semibold">{previewFile.type}</p>
-              <div className="flex items-center gap-2">
-                <a href={previewFile.url} target="_blank" rel="noreferrer" className="inline-flex items-center rounded border px-2 py-1 text-xs font-semibold">
-                  <ExternalLink className="mr-1 h-3 w-3" /> Open
-                </a>
-                <button type="button" onClick={() => downloadFile(previewFile.sourceUrl, `${previewFile.type}.pdf`)} className="inline-flex items-center rounded border px-2 py-1 text-xs font-semibold" disabled={fileLoading}>
-                  <Download className="mr-1 h-3 w-3" /> Download
-                </button>
-              </div>
-            </div>
-            <iframe title={previewFile.type} src={previewFile.url} className="h-[82vh] w-full rounded border" />
-            <p className="mt-2 text-xs text-muted-foreground">If preview fails, click Open.</p>
-          </div>
-        </div>
-      )}
-
-      {fileLoading && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/50">
-          <div className="rounded-lg bg-white px-4 py-3 text-sm font-medium text-slate-900">Preparing file...</div>
-        </div>
-      )}
+      {fileLoading ? <p className="mt-4 text-xs text-muted-foreground">Preparing file...</p> : null}
     </>
   );
 }

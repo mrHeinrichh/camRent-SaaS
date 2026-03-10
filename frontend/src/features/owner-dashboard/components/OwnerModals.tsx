@@ -175,17 +175,17 @@ export function OwnerModals({
       <AnimatePresence>
         {editingOpen && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4 backdrop-blur-md">
-            <motion.div initial={{ scale: 0.95, opacity: 0, y: 8 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 8 }} className="w-full max-w-2xl overflow-hidden rounded-3xl border border-slate-200 bg-white text-slate-900 shadow-2xl">
-              <div className="bg-gradient-to-r from-slate-900 to-slate-700 p-6 text-white">
-                <h2 className="text-2xl font-bold">{editor.id ? 'Edit Gear' : 'Add New Gear'}</h2>
-                <p className="mt-1 text-sm text-slate-200">Create clean, complete inventory details for renters.</p>
-              </div>
-              <div className="mb-4 flex items-center justify-between px-6 pt-4">
-                <Button variant="outline" size="icon" className="border-slate-300 bg-white text-slate-700 hover:bg-slate-100" onClick={onCloseEditor}>
-                  &times;
+            <motion.div initial={{ scale: 0.95, opacity: 0, y: 8 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 8 }} className="flex w-full max-w-2xl max-h-[92vh] flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white text-slate-900 shadow-2xl">
+              <div className="sticky top-0 z-10 flex items-start justify-between gap-4 bg-gradient-to-r from-slate-900 to-slate-700 p-6 text-white">
+                <div>
+                  <h2 className="text-2xl font-bold">{editor.id ? 'Edit Gear' : 'Add New Gear'}</h2>
+                  <p className="mt-1 text-sm text-slate-200">Create clean, complete inventory details for renters.</p>
+                </div>
+                <Button variant="outline" size="icon" className="border-white/30 bg-white/10 text-white hover:bg-white/20" onClick={onCloseEditor} aria-label="Close edit gear">
+                  X
                 </Button>
               </div>
-              <div className="space-y-4 px-6 pb-6">
+              <div className="flex-1 overflow-y-auto space-y-4 px-6 py-6">
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                   <Input className="h-11 border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-500" placeholder="Gear name" value={editor.name} onChange={(event) => onEditorChange({ ...editor, name: event.target.value })} />
                   <Input className="h-11 border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-500" placeholder="Category (Camera, Lens, Audio, etc.)" value={editor.category} onChange={(event) => onEditorChange({ ...editor, category: event.target.value })} />
@@ -243,7 +243,7 @@ export function OwnerModals({
                   className="min-h-24 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 shadow-sm placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-400"
                 />
               </div>
-              <div className="mt-2 flex justify-end gap-2 border-t border-slate-100 px-6 py-4">
+              <div className="sticky bottom-0 flex justify-end gap-2 border-t border-slate-100 bg-white px-6 py-4">
                 <Button variant="outline" onClick={onCloseEditor}>
                   Cancel
                 </Button>
@@ -259,9 +259,14 @@ export function OwnerModals({
       <AnimatePresence>
         {blockModalItem && (
           <div className="fixed inset-0 z-[65] flex items-center justify-center bg-black/50 p-4">
-            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-5 text-slate-900 shadow-xl">
-              <h3 className="mb-3 text-lg font-bold text-slate-900">Block Dates - {blockModalItem.name}</h3>
-              <div className="space-y-3">
+            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="flex w-full max-w-md max-h-[90vh] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white text-slate-900 shadow-xl">
+              <div className="flex items-start justify-between gap-2 border-b px-5 py-4">
+                <h3 className="text-lg font-bold text-slate-900">Block Dates - {blockModalItem.name}</h3>
+                <Button variant="outline" size="icon" className="border-slate-200 bg-white text-slate-700" onClick={onCloseBlockModal} aria-label="Close block dates">
+                  X
+                </Button>
+              </div>
+              <div className="flex-1 overflow-y-auto space-y-3 px-5 py-4">
                 <div>
                   <label className="mb-1 block text-sm font-medium text-slate-700">Start Date</label>
                   <Input className="border-slate-200 bg-slate-50 text-slate-900" type="date" value={blockStartDate} onChange={(event) => onBlockStartDateChange(event.target.value)} />
@@ -274,12 +279,12 @@ export function OwnerModals({
                   <label className="mb-1 block text-sm font-medium text-slate-700">Reason (optional)</label>
                   <Input className="border-slate-200 bg-slate-50 text-slate-900" value={blockReason} onChange={(event) => onBlockReasonChange(event.target.value)} />
                 </div>
-                <div className="flex justify-end gap-2">
-                  <Button variant="outline" onClick={onCloseBlockModal}>
-                    Cancel
-                  </Button>
-                  <Button onClick={onSubmitBlockDates}>Block Dates</Button>
-                </div>
+              </div>
+              <div className="flex justify-end gap-2 border-t px-5 py-4">
+                <Button variant="outline" onClick={onCloseBlockModal}>
+                  Cancel
+                </Button>
+                <Button onClick={onSubmitBlockDates}>Block Dates</Button>
               </div>
             </motion.div>
           </div>
@@ -289,12 +294,19 @@ export function OwnerModals({
       <AnimatePresence>
         {reportCustomer && (
           <div className="fixed inset-0 z-[65] flex items-center justify-center bg-black/50 p-4">
-            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="w-full max-w-lg rounded-xl bg-background p-5 shadow-xl">
-              <h3 className="mb-1 text-lg font-bold">Flag Customer as Fraud</h3>
-              <p className="mb-4 text-sm text-muted-foreground">
-                {reportCustomer.renter_name} ({reportCustomer.renter_email})
-              </p>
-              <div className="space-y-3">
+            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="flex w-full max-w-lg max-h-[90vh] flex-col overflow-hidden rounded-xl bg-background shadow-xl">
+              <div className="flex items-start justify-between gap-2 border-b px-5 py-4">
+                <div>
+                  <h3 className="text-lg font-bold">Flag Customer as Fraud</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {reportCustomer.renter_name} ({reportCustomer.renter_email})
+                  </p>
+                </div>
+                <Button variant="outline" size="icon" onClick={onCloseReportCustomer} aria-label="Close fraud modal">
+                  X
+                </Button>
+              </div>
+              <div className="flex-1 overflow-y-auto space-y-3 px-5 py-4">
                 <select className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm" value={fraudScope} onChange={(event) => onFraudScopeChange(event.target.value === 'global' ? 'global' : 'internal')}>
                   <option value="internal">Internal</option>
                   <option value="global">Global (admin approval)</option>
@@ -302,12 +314,12 @@ export function OwnerModals({
                 <Input placeholder="Reason" value={fraudReason} onChange={(event) => onFraudReasonChange(event.target.value)} />
                 <Input type="file" accept=".pdf,image/*" multiple onChange={(event) => onFraudRequirementFilesChange(Array.from(event.target.files || []))} />
                 <p className="text-xs text-muted-foreground">Optional requirements: upload up to 5 image/PDF files.</p>
-                <div className="flex justify-end gap-2">
-                  <Button variant="outline" onClick={onCloseReportCustomer}>
-                    Cancel
-                  </Button>
-                  <Button onClick={onSubmitCustomerFraud}>Submit</Button>
-                </div>
+              </div>
+              <div className="flex justify-end gap-2 border-t px-5 py-4">
+                <Button variant="outline" onClick={onCloseReportCustomer}>
+                  Cancel
+                </Button>
+                <Button onClick={onSubmitCustomerFraud}>Submit</Button>
               </div>
             </motion.div>
           </div>
@@ -316,14 +328,22 @@ export function OwnerModals({
 
       <AnimatePresence>
         {selectedApp && (
-          <div className="fixed inset-0 z-[70] flex items-end justify-center bg-black/70 backdrop-blur-sm md:items-center md:p-4" onClick={onCloseSelectedApp}>
+          <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 p-2 backdrop-blur-sm md:p-4" onClick={onCloseSelectedApp}>
             <motion.div
               initial={{ scale: 0.98, opacity: 0, y: 24 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.98, opacity: 0, y: 24 }}
-              className="flex h-[100dvh] w-full flex-col overflow-hidden border border-slate-200 bg-white text-slate-900 shadow-2xl md:h-auto md:max-h-[92vh] md:max-w-5xl md:rounded-2xl"
+              className="relative flex h-[92dvh] w-full flex-col overflow-hidden border border-slate-200 bg-white text-slate-900 shadow-2xl md:h-auto md:max-h-[92vh] md:max-w-5xl md:rounded-2xl"
               onClick={(event) => event.stopPropagation()}
             >
+              <button
+                type="button"
+                className="absolute right-3 top-3 z-20 rounded-full border border-slate-200 bg-white/90 px-3 py-1 text-xs font-semibold text-slate-700 shadow md:hidden"
+                onClick={onCloseSelectedApp}
+                aria-label="Close application details"
+              >
+                Close
+              </button>
               <div className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b bg-white/95 px-4 py-3 backdrop-blur md:px-6 md:py-4">
                 <div>
                   <h2 className="text-xl font-bold md:text-2xl">Application Details</h2>

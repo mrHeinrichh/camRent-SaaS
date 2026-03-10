@@ -5,6 +5,7 @@ import type { Announcement, Store } from '@/src/types/domain';
 import { Button } from '@/src/components/ui';
 import { AppFooter } from '@/src/components/layout/AppFooter';
 import { EmptyState } from '@/src/components/EmptyState';
+import { defaultSiteContent, mergeSiteContent } from '@/src/config/siteContentDefaults';
 import { siteTheme } from '@/src/config/siteTheme';
 import { HomeFilterBar } from '@/src/features/home/components/HomeFilterBar';
 import { GearCard } from '@/src/features/home/components/GearCard';
@@ -14,9 +15,11 @@ import type { GearFeedItem, SortMode, ViewMode } from '@/src/features/home/types
 
 interface HomePageProps {
   onNavigate: (id: string) => void;
+  content?: import('@/src/types/domain').SiteContent;
 }
 
-export function HomePage({ onNavigate }: HomePageProps) {
+export function HomePage({ onNavigate, content }: HomePageProps) {
+  const resolvedContent = mergeSiteContent(defaultSiteContent, content as any);
   const [stores, setStores] = useState<Store[]>([]);
   const [gears, setGears] = useState<GearFeedItem[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
@@ -172,19 +175,21 @@ export function HomePage({ onNavigate }: HomePageProps) {
     <div className="min-h-screen bg-[var(--tone-bg)]">
       <div className="container mx-auto px-4 py-8">
         <section className="mb-8 rounded-sm border border-[var(--tone-border)] bg-[var(--tone-surface)] p-4 shadow-sm md:p-7">
-          <div className="grid items-center gap-8 md:grid-cols-[0.8fr_1.2fr]">
-            <div className="space-y-5 animate-fade-up">
-              <p className="inline-block border-2 border-[var(--tone-text-muted)] px-3 py-1 text-4xl font-bold tracking-tight text-[var(--tone-text-muted)]">{siteTheme.home.badge}</p>
-              <h1 className="max-w-sm text-2xl font-semibold leading-tight text-[var(--tone-text)] sm:text-3xl md:text-4xl">{siteTheme.home.title}</h1>
-              <p className="max-w-sm text-sm leading-relaxed text-[var(--tone-text-muted)]">{siteTheme.home.subtitle}</p>
-              <div className="flex gap-3 text-xs text-[var(--tone-text-muted)]">
+          <div className="grid items-center gap-6 md:gap-8 md:grid-cols-[0.8fr_1.2fr]">
+            <div className="space-y-4 sm:space-y-5 animate-fade-up">
+              <p className="inline-block border-2 border-[var(--tone-text-muted)] px-2.5 py-0.5 text-2xl font-bold tracking-tight text-[var(--tone-text-muted)] sm:px-3 sm:py-1 sm:text-4xl">
+                {resolvedContent.home.badge}
+              </p>
+              <h1 className="max-w-sm text-lg font-semibold leading-snug text-[var(--tone-text)] sm:text-3xl md:text-4xl">{resolvedContent.home.title}</h1>
+              <p className="max-w-sm text-xs leading-relaxed text-[var(--tone-text-muted)] sm:text-sm">{resolvedContent.home.subtitle}</p>
+              <div className="flex gap-3 text-[10px] text-[var(--tone-text-muted)] sm:text-xs">
                 <span>{stores.length} Stores</span>
                 <span>•</span>
                 <span>{gears.length} Gears</span>
               </div>
             </div>
 
-            <div className="relative h-[250px] animate-fade-up-delay sm:h-[300px] md:h-[420px]">
+            <div className="relative h-[200px] animate-fade-up-delay sm:h-[300px] md:h-[420px]">
               <div className="absolute right-[12%] top-2 h-[78%] w-[72%] overflow-hidden rounded-sm border border-[var(--tone-border)] bg-white shadow-lg">
                 <img
                   src={siteTheme.home.heroImages[0]}
@@ -268,13 +273,13 @@ export function HomePage({ onNavigate }: HomePageProps) {
         </div>
 
         {viewMode === 'gears' ? (
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 animate-fade-up">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 lg:gap-6 animate-fade-up items-stretch">
             {pagedGears.map((gear) => (
               <GearCard key={gear.id} gear={gear} onOpenStore={onNavigate} onAddToCart={handleAddToCart} />
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 animate-fade-up">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 lg:gap-6 animate-fade-up items-stretch">
             {pagedStores.map((store) => (
               <StoreCard key={store.id} store={store} onOpenStore={onNavigate} />
             ))}
@@ -315,7 +320,7 @@ export function HomePage({ onNavigate }: HomePageProps) {
           </div>
         </div>
 
-        <AppFooter onNavigate={setPage} />
+        <AppFooter onNavigate={setPage} content={content} />
       </div>
     </div>
   );

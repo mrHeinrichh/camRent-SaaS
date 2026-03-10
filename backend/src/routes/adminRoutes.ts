@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import { Announcement } from '../models/Announcement';
+import { AnnouncementSettings } from '../models/AnnouncementSettings';
+import { SiteContent } from '../models/SiteContent';
 import { authenticate, checkRole } from '../middleware/auth';
 import { DonationSettings } from '../models/DonationSettings';
 import { FraudList } from '../models/FraudList';
@@ -49,6 +51,53 @@ const sanitizeDonationBankDetails = (value: unknown) => {
       url: normalize(entry?.url),
     }))
     .filter((entry) => entry.label || entry.url);
+};
+
+const sanitizeSiteLinks = (value: unknown) => {
+  if (!Array.isArray(value)) return [] as Array<{ label: string; page: string; url: string; requires_login: boolean }>;
+  return value
+    .map((entry: any) => ({
+      label: normalize(entry?.label),
+      page: normalize(entry?.page),
+      url: normalize(entry?.url),
+      requires_login: Boolean(entry?.requires_login),
+    }))
+    .filter((entry) => entry.label && (entry.page || entry.url));
+};
+
+const sanitizeSiteSocialLinks = (value: unknown) => {
+  if (!Array.isArray(value)) return [] as Array<{ label: string; url: string }>;
+  return value
+    .map((entry: any) => ({
+      label: normalize(entry?.label),
+      url: normalize(entry?.url),
+    }))
+    .filter((entry) => entry.label && entry.url);
+};
+
+const sanitizeSiteSections = (value: unknown) => {
+  if (!Array.isArray(value)) return [] as Array<{ title: string; body: string }>;
+  return value
+    .map((entry: any) => ({
+      title: normalize(entry?.title),
+      body: normalize(entry?.body),
+    }))
+    .filter((entry) => entry.title || entry.body);
+};
+
+const sanitizeSiteFaqItems = (value: unknown) => {
+  if (!Array.isArray(value)) return [] as Array<{ q: string; a: string }>;
+  return value
+    .map((entry: any) => ({
+      q: normalize(entry?.q),
+      a: normalize(entry?.a),
+    }))
+    .filter((entry) => entry.q || entry.a);
+};
+
+const sanitizeSiteGuideItems = (value: unknown) => {
+  if (!Array.isArray(value)) return [] as string[];
+  return value.map((entry: any) => normalize(entry)).filter(Boolean);
 };
 
 const verifyAdminPassword = async (adminUserId: string, adminPassword: string) => {
@@ -541,12 +590,15 @@ adminRoutes.get('/admin/support-tickets', authenticate, checkRole(['admin']), as
   const tickets = await SupportTicket.find().sort({ updated_at: -1 }).lean();
   const storeIds = tickets.map((ticket) => ticket.store_id).filter(Boolean);
   const ownerIds = tickets.map((ticket) => ticket.owner_id).filter(Boolean);
+  const reporterIds = tickets.map((ticket: any) => ticket.reporter_id).filter(Boolean);
   const [stores, owners] = await Promise.all([
     Store.find({ _id: { $in: storeIds } }).lean(),
     User.find({ _id: { $in: ownerIds } }).lean(),
   ]);
+  const reporters = reporterIds.length ? await User.find({ _id: { $in: reporterIds } }).lean() : [];
   const storesById = new Map(stores.map((store) => [store._id.toString(), store]));
   const ownersById = new Map(owners.map((owner) => [owner._id.toString(), owner]));
+  const reportersById = new Map(reporters.map((reporter) => [reporter._id.toString(), reporter]));
 
   res.json(
     tickets.map((ticket) => ({
@@ -554,6 +606,9 @@ adminRoutes.get('/admin/support-tickets', authenticate, checkRole(['admin']), as
       store_name: storesById.get(ticket.store_id.toString())?.name || '',
       owner_email: ownersById.get(ticket.owner_id.toString())?.email || '',
       owner_name: ownersById.get(ticket.owner_id.toString())?.full_name || '',
+      reporter_name: (ticket as any).reporter_name || reportersById.get(String((ticket as any).reporter_id || ''))?.full_name || '',
+      reporter_email: (ticket as any).reporter_email || reportersById.get(String((ticket as any).reporter_id || ''))?.email || '',
+      reporter_phone: (ticket as any).reporter_phone || reportersById.get(String((ticket as any).reporter_id || ''))?.phone || '',
     })),
   );
 });
@@ -586,8 +641,89 @@ adminRoutes.delete('/admin/support-tickets/:id', authenticate, checkRole(['admin
 });
 
 adminRoutes.get('/announcements', async (_req, res) => {
+  const settings = await AnnouncementSettings.findOne({}).lean();
+  if (settings && settings.is_enabled === false) {
+    return res.json([]);
+  }
   const announcements = await Announcement.find({ is_active: true }).sort({ sort_order: 1, updated_at: -1 }).lean();
   res.json(serializeMany(announcements as any[]));
+});
+
+adminRoutes.get('/site-content', async (_req, res) => {
+  const content = await SiteContent.findOne({}).lean();
+  res.json(
+    content
+      ? serialize(content as any)
+      : {
+          id: null,
+          home: { badge: '', title: '', subtitle: '' },
+          policies: { sections: [], faq_items: [], rental_guide_items: [] },
+          footer: { about_text: '', about_links: [], policy_links: [], useful_links: [], social_links: [] },
+        },
+  );
+});
+
+adminRoutes.get('/admin/site-content', authenticate, checkRole(['admin']), async (_req, res) => {
+  const content = await SiteContent.findOne({}).lean();
+  res.json(
+    content
+      ? serialize(content as any)
+      : {
+          id: null,
+          home: { badge: '', title: '', subtitle: '' },
+          policies: { sections: [], faq_items: [], rental_guide_items: [] },
+          footer: { about_text: '', about_links: [], policy_links: [], useful_links: [], social_links: [] },
+        },
+  );
+});
+
+adminRoutes.put('/admin/site-content', authenticate, checkRole(['admin']), async (req, res) => {
+  const home = {
+    badge: normalize(req.body?.home?.badge),
+    title: normalize(req.body?.home?.title),
+    subtitle: normalize(req.body?.home?.subtitle),
+  };
+  const policies = {
+    sections: sanitizeSiteSections(req.body?.policies?.sections),
+    faq_items: sanitizeSiteFaqItems(req.body?.policies?.faq_items),
+    rental_guide_items: sanitizeSiteGuideItems(req.body?.policies?.rental_guide_items),
+  };
+  const footer = {
+    about_text: normalize(req.body?.footer?.about_text),
+    about_links: sanitizeSiteLinks(req.body?.footer?.about_links),
+    policy_links: sanitizeSiteLinks(req.body?.footer?.policy_links),
+    useful_links: sanitizeSiteLinks(req.body?.footer?.useful_links),
+    social_links: sanitizeSiteSocialLinks(req.body?.footer?.social_links),
+  };
+
+  const content =
+    (await SiteContent.findOneAndUpdate(
+      {},
+      { home, policies, footer },
+      { new: true, upsert: true, setDefaultsOnInsert: true },
+    )) || (await SiteContent.findOne({}));
+
+  res.json({ success: true, content: serialize(content as any) });
+});
+
+adminRoutes.get('/admin/announcement-settings', authenticate, checkRole(['admin']), async (_req, res) => {
+  const settings = await AnnouncementSettings.findOne({}).lean();
+  res.json(
+    settings
+      ? serialize(settings as any)
+      : {
+          id: null,
+          is_enabled: true,
+        },
+  );
+});
+
+adminRoutes.put('/admin/announcement-settings', authenticate, checkRole(['admin']), async (req, res) => {
+  const isEnabled = req.body?.is_enabled !== false;
+  const settings =
+    (await AnnouncementSettings.findOneAndUpdate({}, { is_enabled: isEnabled }, { new: true, upsert: true, setDefaultsOnInsert: true })) ||
+    (await AnnouncementSettings.findOne({}));
+  res.json({ success: true, settings: serialize(settings as any) });
 });
 
 adminRoutes.get('/admin/announcements', authenticate, checkRole(['admin']), async (_req, res) => {

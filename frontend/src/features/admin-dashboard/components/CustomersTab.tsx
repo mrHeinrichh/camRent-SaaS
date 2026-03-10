@@ -45,11 +45,11 @@ export function CustomersTab({ customers, customerInsights = [], onExport, onTog
         <h1 className="text-3xl font-bold">Customers</h1>
         <Button variant="outline" onClick={onExport}>Export Customers Excel</Button>
       </div>
-      <Card className="overflow-hidden">
+      <Card>
         <div className="border-b bg-muted/30 p-4">
           <h3 className="text-lg font-bold">Customer Accounts</h3>
         </div>
-        <div className="overflow-x-auto">
+        <div className="-mx-4 overflow-x-auto px-4 pb-2 touch-pan-x">
         <table className="min-w-[860px] w-full border-collapse text-left">
           <thead className="bg-muted/50">
             <tr>

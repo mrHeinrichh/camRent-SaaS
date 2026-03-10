@@ -12,6 +12,7 @@ import type { RegisterFormState } from '@/src/features/auth/types';
 
 interface LoginPageProps {
   onNavigate: (page: AppPage) => void;
+  content?: import('@/src/types/domain').SiteContent;
 }
 
 interface AuthResponse {
@@ -23,7 +24,7 @@ interface UploadResponse {
   url: string;
 }
 
-export function LoginPage({ onNavigate }: LoginPageProps) {
+export function LoginPage({ onNavigate, content }: LoginPageProps) {
   const [isRegister, setIsRegister] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -180,7 +181,7 @@ export function LoginPage({ onNavigate }: LoginPageProps) {
         </div>
       </div>
 
-      <AppFooter onNavigate={onNavigate} />
+      <AppFooter onNavigate={onNavigate} content={content} />
     </div>
   );
 }
