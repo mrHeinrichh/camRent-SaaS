@@ -19,4 +19,5 @@ export const env = {
   cloudinaryApiKey: process.env.CLOUDINARY_API_KEY,
   cloudinaryApiSecret: process.env.CLOUDINARY_API_SECRET,
   corsOrigins: process.env.CORS_ORIGINS || process.env.FRONTEND_URL || '',
+  googleClientId: process.env.GOOGLE_CLIENT_ID || '',
 };

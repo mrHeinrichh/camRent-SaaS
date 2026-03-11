@@ -5,12 +5,14 @@ interface LoginFormProps {
   email: string;
   password: string;
   submitting: boolean;
+  googleEnabled?: boolean;
+  googleButtonRef?: React.RefObject<HTMLDivElement>;
   onEmailChange: (value: string) => void;
   onPasswordChange: (value: string) => void;
   onSubmit: (event: FormEvent) => void;
 }
 
-export function LoginForm({ email, password, submitting, onEmailChange, onPasswordChange, onSubmit }: LoginFormProps) {
+export function LoginForm({ email, password, submitting, googleEnabled, googleButtonRef, onEmailChange, onPasswordChange, onSubmit }: LoginFormProps) {
   return (
     <form onSubmit={onSubmit} className="space-y-5 rounded-2xl border border-[var(--tone-border)] bg-[var(--tone-surface-soft)] p-6">
       <div className="space-y-2">
@@ -50,9 +52,13 @@ export function LoginForm({ email, password, submitting, onEmailChange, onPasswo
       <div className="space-y-4 pt-1">
         <div className="h-px w-full bg-[var(--tone-border)]" />
         <p className="text-center text-sm text-[var(--tone-text-muted)]">Or</p>
-        <Button type="button" variant="outline" className="w-full border-[var(--tone-border)] bg-[var(--tone-surface)] text-[var(--tone-text)] hover:bg-[var(--tone-surface-soft)]">
-          Sign in with Google
-        </Button>
+        {googleEnabled ? (
+          <div ref={googleButtonRef} className="flex w-full justify-center" />
+        ) : (
+          <Button type="button" variant="outline" disabled className="w-full border-[var(--tone-border)] bg-[var(--tone-surface)] text-[var(--tone-text)] opacity-70">
+            Google sign-in unavailable
+          </Button>
+        )}
       </div>
     </form>
   );

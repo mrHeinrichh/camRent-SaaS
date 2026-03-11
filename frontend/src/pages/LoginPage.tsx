@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { api } from '@/src/lib/api';
 import { useAppStore } from '@/src/store';
 import type { AppPage } from '@/src/types/app';
@@ -31,6 +31,10 @@ export function LoginPage({ onNavigate, content }: LoginPageProps) {
   const [submitting, setSubmitting] = useState(false);
   const [activeWallpaper, setActiveWallpaper] = useState(0);
   const { setSession } = useAppStore();
+  const googleButtonRef = useRef<HTMLDivElement>(null);
+  const googleInitializedRef = useRef(false);
+  const envMeta = ((import.meta as any).env || {}) as Record<string, string | boolean | undefined>;
+  const googleClientId = String(envMeta.VITE_GOOGLE_CLIENT_ID || '').trim();
 
   useEffect(() => {
     const total = siteTheme.login.wallpapers.length;
@@ -40,6 +44,12 @@ export function LoginPage({ onNavigate, content }: LoginPageProps) {
     }, 6000);
     return () => clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    if (isRegister) {
+      googleInitializedRef.current = false;
+    }
+  }, [isRegister]);
 
   const uploadImage = async (file: File | null) => {
     if (!file) return undefined;
@@ -65,6 +75,20 @@ export function LoginPage({ onNavigate, content }: LoginPageProps) {
       onNavigate(data.user.role === 'owner' ? 'owner' : 'home');
     } catch (error: any) {
       alert(error.message || 'Authentication failed');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleGoogleCredential = async (credential: string) => {
+    if (submitting) return;
+    setSubmitting(true);
+    try {
+      const data = await api.post<AuthResponse>('/api/auth/google', { credential });
+      setSession(data.user, data.token);
+      onNavigate(data.user.role === 'owner' ? 'owner' : 'home');
+    } catch (error: any) {
+      alert(error.message || 'Google authentication failed');
     } finally {
       setSubmitting(false);
     }
@@ -134,6 +158,53 @@ export function LoginPage({ onNavigate, content }: LoginPageProps) {
     }
   };
 
+  useEffect(() => {
+    if (!googleClientId || isRegister) return;
+    if (googleInitializedRef.current) return;
+
+    const renderButton = () => {
+      const google = (window as any).google;
+      if (!google?.accounts?.id || !googleButtonRef.current) return;
+      google.accounts.id.initialize({
+        client_id: googleClientId,
+        callback: (response: any) => {
+          if (response?.credential) {
+            handleGoogleCredential(response.credential);
+          }
+        },
+      });
+      google.accounts.id.renderButton(googleButtonRef.current, {
+        theme: 'outline',
+        size: 'large',
+        width: googleButtonRef.current.offsetWidth || 320,
+        text: 'signin_with',
+      });
+      googleInitializedRef.current = true;
+    };
+
+    if ((window as any).google?.accounts?.id) {
+      renderButton();
+      return;
+    }
+
+    const existing = document.getElementById('google-identity-script');
+    if (existing) {
+      existing.addEventListener('load', renderButton);
+      return () => existing.removeEventListener('load', renderButton);
+    }
+
+    const script = document.createElement('script');
+    script.id = 'google-identity-script';
+    script.src = 'https://accounts.google.com/gsi/client';
+    script.async = true;
+    script.defer = true;
+    script.onload = renderButton;
+    document.body.appendChild(script);
+    return () => {
+      script.onload = null;
+    };
+  }, [googleClientId, isRegister, submitting]);
+
   return (
     <div className="min-h-[calc(100vh-64px)] bg-[var(--tone-bg)] px-3 py-6 sm:px-4 sm:py-8 md:px-8 md:py-10">
       <div className="mx-auto w-full max-w-6xl rounded-sm border border-[var(--tone-border)] bg-[var(--tone-surface)] p-3 shadow-sm">
@@ -152,6 +223,8 @@ export function LoginPage({ onNavigate, content }: LoginPageProps) {
                   email={email}
                   password={password}
                   submitting={submitting}
+                  googleEnabled={Boolean(googleClientId)}
+                  googleButtonRef={googleButtonRef}
                   onEmailChange={setEmail}
                   onPasswordChange={setPassword}
                   onSubmit={handleLogin}

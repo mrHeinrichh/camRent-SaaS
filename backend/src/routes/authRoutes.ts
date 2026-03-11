@@ -1,5 +1,7 @@
 import { Router } from 'express';
+import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
+import { OAuth2Client } from 'google-auth-library';
 import jwt from 'jsonwebtoken';
 import { DEFAULT_STORE_BANNER_URL, DEFAULT_STORE_LOGO_URL, DEFAULT_USER_AVATAR_URL } from '../config/defaults';
 import { env } from '../config/env';
@@ -11,6 +13,7 @@ import { validateE164Phone } from '../utils/phone';
 import { serialize } from '../utils/mongo';
 
 export const authRoutes = Router();
+const googleClient = env.googleClientId ? new OAuth2Client(env.googleClientId) : null;
 
 authRoutes.post('/register', async (req, res) => {
   const {
@@ -151,6 +154,62 @@ authRoutes.post('/login', async (req, res) => {
   });
   const token = jwt.sign({ id: user._id.toString(), role: user.role, email: user.email }, env.jwtSecret);
   res.json({ token, user: serialize(user) });
+});
+
+authRoutes.post('/google', async (req, res) => {
+  if (!googleClient || !env.googleClientId) {
+    return res.status(500).json({ error: 'Google sign-in is not configured' });
+  }
+
+  const credential = String(req.body?.credential || req.body?.id_token || '').trim();
+  if (!credential) {
+    return res.status(400).json({ error: 'Missing Google credential' });
+  }
+
+  try {
+    const ticket = await googleClient.verifyIdToken({
+      idToken: credential,
+      audience: env.googleClientId,
+    });
+    const payload = ticket.getPayload();
+    const email = String(payload?.email || '').trim().toLowerCase();
+    const fullName = String(payload?.name || '').trim();
+    const avatarUrl = String(payload?.picture || '').trim();
+
+    if (!email) {
+      return res.status(400).json({ error: 'Google account has no email' });
+    }
+
+    let user = await User.findOne({ email });
+    if (!user) {
+      const randomPassword = await bcrypt.hash(crypto.randomUUID(), 10);
+      user = await User.create({
+        email,
+        password: randomPassword,
+        role: 'renter',
+        full_name: fullName || email,
+        avatar_url: avatarUrl || DEFAULT_USER_AVATAR_URL,
+        phone: '',
+      });
+      console.log('[auth] google signup', { userId: user._id.toString(), email });
+    } else {
+      console.log('[auth] google login', { userId: user._id.toString(), email });
+    }
+
+    if (user.is_active === false) {
+      return res.status(403).json({ error: 'Your account is disabled. Please contact support.' });
+    }
+
+    if (!user.full_name && fullName) user.full_name = fullName;
+    if (!user.avatar_url && avatarUrl) user.avatar_url = avatarUrl;
+    if (user.isModified()) await user.save();
+
+    const token = jwt.sign({ id: user._id.toString(), role: user.role, email: user.email }, env.jwtSecret);
+    res.json({ token, user: serialize(user) });
+  } catch (error: any) {
+    console.error('[auth] google auth failed', { message: error?.message });
+    res.status(401).json({ error: 'Google authentication failed' });
+  }
 });
 
 authRoutes.put('/profile', authenticate, requireAuth, checkRole(['renter']), async (req: AuthedRequest, res) => {
