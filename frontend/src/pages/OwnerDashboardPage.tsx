@@ -626,11 +626,12 @@ export function OwnerDashboardPage() {
   };
 
   return (
-    <div className="relative flex min-h-[calc(100vh-64px)] flex-col overflow-hidden bg-gradient-to-br from-slate-50 via-cyan-50/40 to-emerald-50/40 md:flex-row">
+    <div className="relative flex min-h-[calc(100vh-64px)] flex-col overflow-hidden bg-[var(--tone-bg)] md:flex-row">
       <div className="pointer-events-none absolute -left-28 top-24 h-72 w-72 rounded-full bg-cyan-300/25 blur-3xl animate-float-soft" />
       <div className="pointer-events-none absolute right-0 top-1/3 h-80 w-80 rounded-full bg-emerald-300/20 blur-3xl animate-pulse-soft" />
       <OwnerSidebar activeTab={activeTab} onChangeTab={handleChangeTab} pendingApplicationsCount={pendingApplicationsCount} />
       <main className="relative z-10 flex-1 overflow-auto p-4 animate-fade-up sm:p-6 md:p-8">
+        <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
         {ownerNotice ? (
           <div className="mb-6 rounded-xl border border-amber-300 bg-amber-50 p-4 shadow-sm animate-fade-up-delay">
             <div className="flex items-start justify-between gap-4">
@@ -747,6 +748,7 @@ export function OwnerDashboardPage() {
             onCancelBooking={handleCancelBooking}
           />
         )}
+        </div>
       </main>
     </div>
   );

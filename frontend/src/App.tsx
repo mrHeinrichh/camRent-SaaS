@@ -19,6 +19,7 @@ import { DonatePage } from '@/src/pages/DonatePage';
 import { PoliciesPage } from '@/src/pages/PoliciesPage';
 import { StorePage } from '@/src/pages/StorePage';
 import { SuccessPage } from '@/src/pages/SuccessPage';
+import { LoadingOverlay } from '@/src/components/LoadingOverlay';
 
 export default function App() {
   const { page, user, selectedStoreId, selectedItemId, setPage, openStore, openItem } = useAppStore();
@@ -29,6 +30,18 @@ export default function App() {
       setPage('owner');
     }
   }, [page, setPage, user]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const storeId = params.get('store');
+    const itemId = params.get('item');
+    if (storeId) {
+      openStore(storeId);
+    } else if (itemId) {
+      openItem(itemId);
+    }
+  }, [openStore, openItem]);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -64,6 +77,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[var(--tone-bg)] font-sans antialiased">
       <Navbar onNavigate={setPage} />
+      <LoadingOverlay />
 
       <main>
         <AnimatePresence mode="wait">

@@ -6,6 +6,7 @@ import { useAppStore } from '@/src/store';
 import type { AppPage } from '@/src/types/app';
 import type { RentalFormField, RentalFormSchemaResponse, Store, SubmittedApplication } from '@/src/types/domain';
 import { Button, Card, Input } from '@/src/components/ui';
+import { FileUpload } from '@/src/components/FileUpload';
 import { PhoneInput } from '@/src/components/PhoneInput';
 import { validatePhone } from '@/src/lib/phone';
 
@@ -330,14 +331,15 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
   if (loadingStore) return <div className="container mx-auto max-w-2xl px-4 py-12">Loading store details...</div>;
 
   return (
-    <div className="container mx-auto max-w-3xl px-4 py-12">
-      <Card className="space-y-6 p-8">
-        <div className="mb-8 text-center">
-          <h1 className="mb-2 text-3xl font-bold">Rental Agreement Form</h1>
-          <p className="text-muted-foreground">Complete your application for review by the store owner.</p>
+    <div className="container mx-auto max-w-3xl px-4 py-10">
+      <Card className="space-y-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+        <div className="text-center">
+          <p className="text-xs uppercase tracking-[0.3em] text-slate-400">CamRent PH</p>
+          <h1 className="mt-2 text-3xl font-semibold text-slate-900 sm:text-4xl">Rental Agreement</h1>
+          <p className="mt-2 text-sm text-slate-500">A clean and secure way to submit your rental application.</p>
         </div>
-        <Card className="space-y-3 border-dashed bg-muted/30 p-4">
-          <div className="flex items-center justify-between">
+        <Card className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="inline-flex items-center gap-2 text-sm font-semibold">
               <ClipboardList className="h-4 w-4" /> Application Progress
             </p>
@@ -345,14 +347,14 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
               {completion.completed}/{completion.total} completed
             </p>
           </div>
-          <div className="h-2 overflow-hidden rounded-full bg-muted">
+          <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-200">
             <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${completion.percent}%` }} />
           </div>
-          <p className="text-xs text-muted-foreground">Fill each section below. Required uploads and agreement are included in progress.</p>
+          <p className="mt-2 text-xs text-slate-500">Fill each section below. Required uploads and agreement are included in progress.</p>
         </Card>
 
         {store && (
-          <Card className="mb-6 space-y-4 border bg-muted/20 p-4">
+          <Card className="mb-6 space-y-4 rounded-2xl border border-slate-200 bg-white p-5">
             <h2 className="text-lg font-bold">{store.name}</h2>
             <p className="text-sm text-muted-foreground">{store.address}</p>
             {(socialLinks.facebook || socialLinks.instagram || socialLinks.tiktok || socialLinks.custom.length) ? (
@@ -442,21 +444,25 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
                 </ul>
               </div>
             ) : null}
-            <div className="text-sm text-muted-foreground">
-              <p>
-                Final Security Deposit in this store: <span className="font-semibold text-foreground">{formatPHP(finalSecurityDeposit)}</span>
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+              <p className="flex items-center justify-between">
+                <span>Final Security Deposit</span>
+                <span className="font-semibold text-slate-900">{formatPHP(finalSecurityDeposit)}</span>
               </p>
-              <p>
-                Rental subtotal: <span className="font-semibold text-foreground">{formatPHP(rentalSubtotal)}</span>
+              <p className="flex items-center justify-between">
+                <span>Rental Subtotal</span>
+                <span className="font-semibold text-slate-900">{formatPHP(rentalSubtotal)}</span>
               </p>
               {voucherDiscount > 0 ? (
-                <p>
-                  Voucher discount: <span className="font-semibold text-emerald-700">-{formatPHP(voucherDiscount)}</span>
+                <p className="flex items-center justify-between text-emerald-700">
+                  <span>Voucher Discount</span>
+                  <span className="font-semibold">-{formatPHP(voucherDiscount)}</span>
                 </p>
               ) : null}
-              <p>
-                Total due for this application: <span className="font-semibold text-foreground">{formatPHP(totalAmount)}</span>
-              </p>
+              <div className="mt-2 flex items-center justify-between rounded-xl bg-white px-3 py-2">
+                <span className="font-semibold text-slate-900">Total Due</span>
+                <span className="font-semibold text-slate-900">{formatPHP(totalAmount)}</span>
+              </div>
             </div>
             {store.lease_agreement_file_url && (
               <div className="text-sm">
@@ -470,7 +476,7 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
             Save this page as PDF or screenshot to keep your own copy for reference.
             {!user && onNavigate && (
               <>
@@ -480,7 +486,7 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
             )}
           </div>
 
-          <Card className="space-y-4 border-dashed p-4">
+          <Card className="space-y-4 rounded-2xl border border-slate-200 bg-white p-5">
             <p className="inline-flex items-center gap-2 text-sm font-semibold">
               <User2 className="h-4 w-4" /> Applicant Information
             </p>
@@ -518,52 +524,52 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
             </div>
           </Card>
 
-          <Card className="space-y-4 border-dashed p-4">
+          <Card className="space-y-4 rounded-2xl border border-slate-200 bg-white p-5">
             <p className="inline-flex items-center gap-2 text-sm font-semibold">
               <MapPin className="h-4 w-4" /> Delivery & Branch
             </p>
             <div className="space-y-2">
-            <label className="text-sm font-medium">Store Branch</label>
-            <select className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm" value={formData.storeBranchId} onChange={(event) => setFormData({ ...formData, storeBranchId: event.target.value })} required>
-              {(store?.branches?.length ? store.branches : [{ _id: 'main', address: store?.address || 'Main Store' }]).map((branch) => (
-                <option key={String(branch._id || branch.address)} value={String(branch._id || 'main')}>
-                  {branch.name ? `${branch.name} - ` : ''}
-                  {branch.address}
-                </option>
-              ))}
-            </select>
+              <label className="text-sm font-medium">Store Branch</label>
+              <select className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm" value={formData.storeBranchId} onChange={(event) => setFormData({ ...formData, storeBranchId: event.target.value })} required>
+                {(store?.branches?.length ? store.branches : [{ _id: 'main', address: store?.address || 'Main Store' }]).map((branch) => (
+                  <option key={String(branch._id || branch.address)} value={String(branch._id || 'main')}>
+                    {branch.name ? `${branch.name} - ` : ''}
+                    {branch.address}
+                  </option>
+                ))}
+              </select>
             </div>
 
-          {rentalFormSettings.reference_text && (
-            <div className="rounded-xl border bg-muted/20 p-4 text-sm text-muted-foreground">
-              <p className="mb-1 font-semibold text-foreground">Additional Notes</p>
-              <p className="whitespace-pre-line">{rentalFormSettings.reference_text}</p>
-            </div>
-          )}
-
-          {rentalFormSettings.reference_image_url && rentalFormSettings.reference_image_position === 'top' && (
-            <div className="space-y-2">
-              <p className="text-sm font-semibold">Reference Photo</p>
-              <div className="overflow-hidden rounded-xl border bg-muted/20">
-                <img src={rentalFormSettings.reference_image_url} alt="Store reference" className="max-h-72 w-full object-cover" />
+            {rentalFormSettings.reference_text && (
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+                <p className="mb-1 font-semibold text-slate-900">Additional Notes</p>
+                <p className="whitespace-pre-line">{rentalFormSettings.reference_text}</p>
               </div>
-            </div>
-          )}
+            )}
 
-          {rentalFormSettings.show_branch_map && branchMapSrc && (
-            <div className="space-y-2">
-              <iframe title="Selected Branch Map" src={branchMapSrc} className="h-56 w-full rounded-md border" loading="lazy" referrerPolicy="no-referrer-when-downgrade" />
-            </div>
-          )}
-
-          {rentalFormSettings.reference_image_url && rentalFormSettings.reference_image_position === 'mid' && (
-            <div className="space-y-2">
-              <p className="text-sm font-semibold">Reference Photo</p>
-              <div className="overflow-hidden rounded-xl border bg-muted/20">
-                <img src={rentalFormSettings.reference_image_url} alt="Store reference" className="max-h-72 w-full object-cover" />
+            {rentalFormSettings.reference_image_url && rentalFormSettings.reference_image_position === 'top' && (
+              <div className="space-y-2">
+                <p className="text-sm font-semibold">Reference Photo</p>
+                <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
+                  <img src={rentalFormSettings.reference_image_url} alt="Store reference" className="max-h-72 w-full object-cover" />
+                </div>
               </div>
-            </div>
-          )}
+            )}
+
+            {rentalFormSettings.show_branch_map && branchMapSrc && (
+              <div className="space-y-2">
+                <iframe title="Selected Branch Map" src={branchMapSrc} className="h-56 w-full rounded-2xl border border-slate-200" loading="lazy" referrerPolicy="no-referrer-when-downgrade" />
+              </div>
+            )}
+
+            {rentalFormSettings.reference_image_url && rentalFormSettings.reference_image_position === 'mid' && (
+              <div className="space-y-2">
+                <p className="text-sm font-semibold">Reference Photo</p>
+                <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
+                  <img src={rentalFormSettings.reference_image_url} alt="Store reference" className="max-h-72 w-full object-cover" />
+                </div>
+              </div>
+            )}
 
             <div className="space-y-2">
             <label className="text-sm font-medium">Delivery Mode</label>
@@ -586,7 +592,7 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
             </div>
           </Card>
 
-          <Card className="space-y-4 border-dashed p-4">
+          <Card className="space-y-4 rounded-2xl border border-slate-200 bg-white p-5">
             <p className="inline-flex items-center gap-2 text-sm font-semibold">
               <CreditCard className="h-4 w-4" /> Payment & Required Files
             </p>
@@ -600,73 +606,91 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
             </select>
             </div>
 
-            <div className="space-y-2">
-            <label className="text-sm font-medium">Upload Completed Lease Agreement</label>
-            <Input
-              type="file"
+            <FileUpload
+              label="Upload Completed Lease Agreement"
               accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg"
               required={Boolean(store?.lease_agreement_file_url)}
-              onChange={(event) => setLeaseAgreementSubmissionFile(event.target.files?.[0] ?? null)}
+              file={leaseAgreementSubmissionFile}
+              onChange={(files) => setLeaseAgreementSubmissionFile(files?.[0] ?? null)}
+              helperText="Download the template above, fill it up, then upload your completed copy here."
             />
-            <p className="text-xs text-muted-foreground">Download the template above, fill it up, then upload your completed copy here.</p>
-            </div>
 
-            <div className="space-y-3 rounded-xl border bg-muted/20 p-4">
-            <h3 className="font-semibold">Rented Gear Details</h3>
-            {cart.map((item) => (
-              <div key={`${item.id}-${item.startDate}-${item.endDate}`} className="flex items-center gap-3 rounded-md border bg-background p-3 text-sm">
-                <div className="h-16 w-16 overflow-hidden rounded border bg-muted">
-                  <img src={item.image_url || `https://picsum.photos/seed/cart-item-${item.id}/120/120`} alt={item.name} className="h-full w-full object-cover" />
-                </div>
-                <div className="flex-1">
-                  <p className="font-medium">{item.name}</p>
-                  <p className="text-muted-foreground">
-                    {item.startDate} to {item.endDate}
-                  </p>
-                  <p className="text-muted-foreground">Daily rate: {formatPHP(item.daily_price)}</p>
-                  <p className="text-muted-foreground">Quantity: {Math.max(1, item.quantity || 1)}</p>
-                </div>
+            <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <h3 className="font-semibold">Rented Gear Details</h3>
+              <div className="grid gap-3">
+                {cart.map((item) => (
+                  <div key={`${item.id}-${item.startDate}-${item.endDate}`} className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-3 text-sm shadow-sm">
+                    <div className="h-16 w-16 overflow-hidden rounded-lg border bg-muted">
+                      <img src={item.image_url || `https://picsum.photos/seed/cart-item-${item.id}/120/120`} alt={item.name} className="h-full w-full object-cover" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-semibold text-slate-900">{item.name}</p>
+                      <p className="text-xs text-slate-500">{item.startDate} to {item.endDate}</p>
+                      <div className="mt-1 flex flex-wrap gap-3 text-xs text-slate-500">
+                        <span>Daily rate: {formatPHP(item.daily_price)}</span>
+                        <span>Qty: {Math.max(1, item.quantity || 1)}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
             </div>
 
-            <div className="space-y-3 rounded-xl border bg-muted/20 p-4">
+            <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h3 className="font-semibold">Identity Documents</h3>
               <span className="text-xs text-muted-foreground">Required</span>
             </div>
             <p className="text-xs text-muted-foreground">Please upload ID 1 (front/back), ID 2 (front/back), and your selfie with ID.</p>
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">ID 1 Front</label>
-                <Input type="file" accept="image/*,.pdf" required onChange={(event) => setDocumentFiles((prev) => ({ ...prev, id1_front: event.target.files?.[0] ?? null }))} />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">ID 1 Back</label>
-                <Input type="file" accept="image/*,.pdf" required onChange={(event) => setDocumentFiles((prev) => ({ ...prev, id1_back: event.target.files?.[0] ?? null }))} />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">ID 2 Front</label>
-                <Input type="file" accept="image/*,.pdf" required onChange={(event) => setDocumentFiles((prev) => ({ ...prev, id2_front: event.target.files?.[0] ?? null }))} />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">ID 2 Back</label>
-                <Input type="file" accept="image/*,.pdf" required onChange={(event) => setDocumentFiles((prev) => ({ ...prev, id2_back: event.target.files?.[0] ?? null }))} />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Selfie with ID</label>
-                <Input type="file" accept="image/*,.pdf" required onChange={(event) => setDocumentFiles((prev) => ({ ...prev, selfie_id: event.target.files?.[0] ?? null }))} />
-              </div>
+              <FileUpload
+                label="ID 1 Front"
+                accept="image/*,.pdf"
+                required
+                file={documentFiles.id1_front}
+                onChange={(files) => setDocumentFiles((prev) => ({ ...prev, id1_front: files?.[0] ?? null }))}
+              />
+              <FileUpload
+                label="ID 1 Back"
+                accept="image/*,.pdf"
+                required
+                file={documentFiles.id1_back}
+                onChange={(files) => setDocumentFiles((prev) => ({ ...prev, id1_back: files?.[0] ?? null }))}
+              />
+              <FileUpload
+                label="ID 2 Front"
+                accept="image/*,.pdf"
+                required
+                file={documentFiles.id2_front}
+                onChange={(files) => setDocumentFiles((prev) => ({ ...prev, id2_front: files?.[0] ?? null }))}
+              />
+              <FileUpload
+                label="ID 2 Back"
+                accept="image/*,.pdf"
+                required
+                file={documentFiles.id2_back}
+                onChange={(files) => setDocumentFiles((prev) => ({ ...prev, id2_back: files?.[0] ?? null }))}
+              />
+              <FileUpload
+                label="Selfie with ID"
+                accept="image/*,.pdf"
+                required
+                file={documentFiles.selfie_id}
+                onChange={(files) => setDocumentFiles((prev) => ({ ...prev, selfie_id: files?.[0] ?? null }))}
+              />
             </div>
             </div>
-            <div className="space-y-2">
-            <label className="text-sm font-medium">Billing Address File (Image/PDF)</label>
-            <Input required type="file" accept="image/*,.pdf" onChange={(event) => setBillingAddressFile(event.target.files?.[0] ?? null)} />
-            <p className="text-xs text-muted-foreground">Upload a billing address document that can be reviewed by the store owner.</p>
-            </div>
+            <FileUpload
+              label="Billing Address File (Image/PDF)"
+              accept="image/*,.pdf"
+              required
+              file={billingAddressFile}
+              onChange={(files) => setBillingAddressFile(files?.[0] ?? null)}
+              helperText="Upload a billing address document that can be reviewed by the store owner."
+            />
           </Card>
           {customFields.length > 0 && (
-            <div className="space-y-4 rounded-xl border bg-muted/20 p-4">
+            <div className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
               <h3 className="inline-flex items-center gap-2 font-semibold">
                 <FileBadge2 className="h-4 w-4" /> Additional Store Requirements
               </h3>
@@ -709,7 +733,7 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
             </div>
           )}
 
-          <div className="flex items-start gap-3 rounded-xl border border-primary/10 bg-primary/5 p-4">
+          <div className="flex items-start gap-3 rounded-2xl border border-primary/10 bg-primary/5 p-4">
             <button
               type="button"
               className={`relative mt-0.5 inline-flex h-5 w-9 items-center rounded-full transition-colors ${formData.agree ? 'bg-emerald-500' : 'bg-slate-300'}`}
@@ -727,7 +751,7 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
             </p>
           </div>
 
-          <Card className="space-y-3 border-dashed p-4">
+          <Card className="space-y-3 rounded-2xl border border-slate-200 bg-white p-5">
             <div className="flex items-center justify-between text-sm">
               <span className="font-semibold">Ready to submit</span>
               <span className="text-xs text-muted-foreground">Progress: {completion.percent}%</span>

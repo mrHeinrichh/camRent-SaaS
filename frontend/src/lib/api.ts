@@ -9,54 +9,60 @@ async function request<T>(input: string, init?: RequestInit): Promise<T> {
   const { apiBaseUrl } = resolveApiBase(envMeta);
   const resolvedPath = typeof input === 'string' && input.startsWith('/api') ? resolveApiPath(input, envMeta) : input;
   const resolvedInput = typeof resolvedPath === 'string' && resolvedPath.startsWith('/api') && apiBaseUrl ? `${apiBaseUrl}${resolvedPath}` : resolvedPath;
+  const { beginRequest, endRequest } = useAppStore.getState();
+  beginRequest();
 
-  if (!headers.has('Content-Type') && init?.body && !(init.body instanceof FormData)) {
-    headers.set('Content-Type', 'application/json');
-  }
+  try {
+    if (!headers.has('Content-Type') && init?.body && !(init.body instanceof FormData)) {
+      headers.set('Content-Type', 'application/json');
+    }
 
-  if (token) {
-    headers.set('Authorization', `Bearer ${token}`);
-  }
+    if (token) {
+      headers.set('Authorization', `Bearer ${token}`);
+    }
 
-  const response = await fetch(resolvedInput, {
-    ...init,
-    headers,
-  });
+    const response = await fetch(resolvedInput, {
+      ...init,
+      headers,
+    });
 
-  const contentType = response.headers.get('content-type') || '';
-  const rawText = await response.text();
-  let data: any = null;
+    const contentType = response.headers.get('content-type') || '';
+    const rawText = await response.text();
+    let data: any = null;
 
-  if (rawText) {
-    try {
-      data = JSON.parse(rawText);
-    } catch {
-      console.error('[api] non-JSON response', {
+    if (rawText) {
+      try {
+        data = JSON.parse(rawText);
+      } catch {
+        console.error('[api] non-JSON response', {
+          input,
+          resolvedInput,
+          method: init?.method || 'GET',
+          status: response.status,
+          contentType,
+          bodyPreview: rawText.slice(0, 300),
+        });
+        throw new Error(`Server returned non-JSON response (${response.status}) for ${input}. Check backend/proxy logs.`);
+      }
+    }
+
+    if (!response.ok) {
+      console.error('[api] request failed', {
         input,
         resolvedInput,
         method: init?.method || 'GET',
         status: response.status,
         contentType,
+        error: data?.error,
         bodyPreview: rawText.slice(0, 300),
       });
-      throw new Error(`Server returned non-JSON response (${response.status}) for ${input}. Check backend/proxy logs.`);
+      throw new Error(data?.error || `Request failed (${response.status})`);
     }
-  }
 
-  if (!response.ok) {
-    console.error('[api] request failed', {
-      input,
-      resolvedInput,
-      method: init?.method || 'GET',
-      status: response.status,
-      contentType,
-      error: data?.error,
-      bodyPreview: rawText.slice(0, 300),
-    });
-    throw new Error(data?.error || `Request failed (${response.status})`);
+    return data as T;
+  } finally {
+    endRequest();
   }
-
-  return data as T;
 }
 
 export const api = {

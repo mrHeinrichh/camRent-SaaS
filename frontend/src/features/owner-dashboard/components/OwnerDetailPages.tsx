@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { format, parseISO } from 'date-fns';
 import { Ban, CalendarDays, Download, ExternalLink, FileText, Package, ShieldAlert } from 'lucide-react';
 import { Button, Input } from '@/src/components/ui';
+import { FileUpload } from '@/src/components/FileUpload';
 import { api } from '@/src/lib/api';
 import { formatPHP } from '@/src/lib/currency';
 import type { Item, OwnerApplication } from '@/src/types/domain';
@@ -211,9 +212,13 @@ export function OwnerDetailPages({
             </button>
           </div>
           <div className="mt-4 space-y-2 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-            <p className="text-sm font-semibold text-slate-900">Gear Photo</p>
-            <Input className="border-slate-200 bg-white text-slate-900 file:text-slate-700" type="file" accept="image/*" onChange={(event) => onEditorImageFileChange(event.target.files?.[0] ?? null)} />
-            <p className="text-xs text-slate-500">Upload a new photo. If empty, existing image is kept.</p>
+            <FileUpload
+              label="Gear Photo"
+              accept="image/*"
+              file={editorImageFile}
+              onChange={(files) => onEditorImageFileChange(files?.[0] ?? null)}
+              helperText="Upload a new photo. If empty, existing image is kept."
+            />
             {(editorImageFile || editor.image_url) && (
               <div className="h-24 w-24 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
                 <img src={editorImageFile ? URL.createObjectURL(editorImageFile) : editor.image_url} alt="" className="h-full w-full object-cover" />
@@ -311,8 +316,13 @@ export function OwnerDetailPages({
               <option value="global">Global (admin approval)</option>
             </select>
             <Input placeholder="Reason" value={fraudReason} onChange={(event) => onFraudReasonChange(event.target.value)} />
-            <Input type="file" accept=".pdf,image/*" multiple onChange={(event) => onFraudRequirementFilesChange(Array.from(event.target.files || []))} />
-            <p className="text-xs text-muted-foreground">Optional requirements: upload up to 5 image/PDF files.</p>
+            <FileUpload
+              label="Fraud Evidence (optional)"
+              accept=".pdf,image/*"
+              multiple
+              onChange={(files) => onFraudRequirementFilesChange(Array.from(files || []))}
+              helperText="Optional requirements: upload up to 5 image/PDF files."
+            />
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => onBack('customers')}>
                 Cancel

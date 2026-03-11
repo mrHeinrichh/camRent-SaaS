@@ -1,5 +1,6 @@
 import { Download, Megaphone, Pencil, Trash2 } from 'lucide-react';
 import { Button, Card, Input } from '@/src/components/ui';
+import { FileUpload } from '@/src/components/FileUpload';
 import type { Announcement } from '@/src/types/domain';
 
 interface AnnouncementsTabProps {
@@ -67,7 +68,12 @@ export function AnnouncementsTab({
         <Input className="md:col-span-2" placeholder="Description" value={form.description} onChange={(event) => onFormChange({ description: event.target.value })} />
         <Input className="md:col-span-2" placeholder="Image URL (optional)" value={form.image_url} onChange={(event) => onFormChange({ image_url: event.target.value })} />
         <div className="md:col-span-2">
-          <Input type="file" accept="image/*" onChange={(event) => onFormChange({ imageFile: event.target.files?.[0] ?? null })} />
+          <FileUpload
+            label="Announcement Image"
+            accept="image/*"
+            file={form.imageFile}
+            onChange={(files) => onFormChange({ imageFile: files?.[0] ?? null })}
+          />
         </div>
         <Input placeholder="CTA Label (optional)" value={form.cta_label} onChange={(event) => onFormChange({ cta_label: event.target.value })} />
         <Input placeholder="CTA URL (optional)" value={form.cta_url} onChange={(event) => onFormChange({ cta_url: event.target.value })} />

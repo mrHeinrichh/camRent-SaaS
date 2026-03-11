@@ -598,7 +598,7 @@ export function AdminDashboardPage() {
   };
 
   return (
-    <div className="flex min-h-[calc(100vh-64px)] flex-col md:flex-row">
+    <div className="flex min-h-[calc(100vh-64px)] flex-col bg-[var(--tone-bg)] md:flex-row">
       <AdminSidebar
         activeTab={activeTab}
         onChangeTab={setActiveTab}
@@ -608,6 +608,7 @@ export function AdminDashboardPage() {
         feedbackCount={stores?.systemSummary?.totalFeedback || 0}
       />
       <main className="flex-1 overflow-auto p-4 md:p-8">
+        <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
         {activeTab === 'stores' && stores && (
           <StoresTab
             stores={stores}
@@ -687,6 +688,7 @@ export function AdminDashboardPage() {
             onSave={handleSaveSiteContent}
           />
         )}
+        </div>
       </main>
 
       <EditFraudModal

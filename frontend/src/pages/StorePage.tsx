@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Facebook, Globe, Instagram, MapPin, Music2, Search, Star } from 'lucide-react';
+import QRCode from 'qrcode';
+import { Download, Facebook, Globe, Instagram, MapPin, Music2, Receipt, Search, ShieldAlert, Star } from 'lucide-react';
 import { api } from '@/src/lib/api';
 import { formatPHP } from '@/src/lib/currency';
 import { useAppStore } from '@/src/store';
 import type { Item, Store, StoreReview } from '@/src/types/domain';
 import { Button, Card, Input } from '@/src/components/ui';
+import { AppFooter } from '@/src/components/layout/AppFooter';
 import { EmptyState } from '@/src/components/EmptyState';
 
 interface StorePageProps {
@@ -25,6 +27,8 @@ export function StorePage({ storeId, onNavigateItem }: StorePageProps) {
   const [reportOpen, setReportOpen] = useState(false);
   const [reportSending, setReportSending] = useState(false);
   const [reportForm, setReportForm] = useState({ subject: '', message: '' });
+  const [storeQrUrl, setStoreQrUrl] = useState('');
+  const [storeQrError, setStoreQrError] = useState('');
   const { user, setPage } = useAppStore();
 
   useEffect(() => {
@@ -50,6 +54,22 @@ export function StorePage({ storeId, onNavigateItem }: StorePageProps) {
       })
       .finally(() => setLoading(false));
   }, [storeId, user]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const baseUrl = window.location.origin;
+    const storeLink = `${baseUrl}/?store=${storeId}`;
+    QRCode.toDataURL(storeLink, { width: 320, margin: 1 })
+      .then((url) => {
+        setStoreQrUrl(url);
+        setStoreQrError('');
+      })
+      .catch((error) => {
+        console.error('[store] qr failed', error);
+        setStoreQrUrl('');
+        setStoreQrError('Unable to generate QR code.');
+      });
+  }, [storeId]);
 
   if (user?.role === 'owner') return null;
   if (loading) return <div className="flex h-96 items-center justify-center">Loading store...</div>;
@@ -77,8 +97,8 @@ export function StorePage({ storeId, onNavigateItem }: StorePageProps) {
   const visibleItems = selectedCategory === 'All Gear' ? store.items : store.items.filter((item) => item.category === selectedCategory);
 
   return (
-    <div className="pb-20">
-      <div className="relative h-64 overflow-hidden md:h-80">
+    <div className="min-h-screen bg-[var(--tone-bg)] pb-12">
+      <div className="relative h-60 overflow-hidden sm:h-64 md:h-80">
         <img
           src={store.banner_url || `https://picsum.photos/seed/banner-${store.id}/1920/600`}
           className="h-full w-full object-cover"
@@ -86,13 +106,13 @@ export function StorePage({ storeId, onNavigateItem }: StorePageProps) {
           referrerPolicy="no-referrer"
         />
         <div className="absolute inset-0 bg-black/40" />
-        <div className="absolute bottom-0 left-0 w-full p-8 text-white">
-          <div className="container mx-auto flex items-end gap-6">
-            <div className="h-24 w-24 overflow-hidden rounded-2xl border-4 border-background bg-background shadow-xl md:h-32 md:w-32">
-              <img src={store.logo_url || `https://picsum.photos/seed/logo-${store.id}/200/200`} alt="" referrerPolicy="no-referrer" />
+        <div className="absolute bottom-0 left-0 w-full p-4 text-white sm:p-6">
+          <div className="container mx-auto flex flex-col items-start gap-4 sm:flex-row sm:items-end sm:gap-6">
+            <div className="h-20 w-20 overflow-hidden rounded-2xl border-4 border-background bg-background shadow-xl sm:h-24 sm:w-24 md:h-32 md:w-32">
+              <img src={store.logo_url || `https://picsum.photos/seed/logo-${store.id}/200/200`} alt="" referrerPolicy="no-referrer" className="h-full w-full object-cover" />
             </div>
-            <div className="mb-2">
-              <h1 className="mb-2 text-3xl font-bold md:text-4xl">{store.name}</h1>
+            <div className="mb-1">
+              <h1 className="mb-2 text-2xl font-bold sm:text-3xl md:text-4xl">{store.name}</h1>
               <div className="mb-2 flex items-center gap-2 text-sm text-white/90">
                 <Star className="h-4 w-4 fill-yellow-300 text-yellow-300" /> {reviewAverage.toFixed(1)} ({reviewTotal} review{reviewTotal === 1 ? '' : 's'})
               </div>
@@ -102,9 +122,9 @@ export function StorePage({ storeId, onNavigateItem }: StorePageProps) {
         </div>
       </div>
 
-      <div className="container mx-auto mt-12 px-4">
+      <div className="container mx-auto mt-10 px-4">
         <div className="flex flex-col gap-8 md:flex-row">
-          <aside className="w-full space-y-6 md:w-64">
+          <aside className="w-full space-y-6 md:w-72">
             <div>
               <h4 className="mb-3 font-semibold">Categories</h4>
               <div className="space-y-1">
@@ -116,21 +136,26 @@ export function StorePage({ storeId, onNavigateItem }: StorePageProps) {
               </div>
             </div>
             {store.branches?.length ? (
-              <div>
+              <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
                 <h4 className="mb-3 font-semibold">Branches</h4>
                 <div className="space-y-2 text-sm text-muted-foreground">
                   {store.branches.map((branch) => (
                     <div key={branch._id || branch.address} className="rounded border bg-muted/20 p-2">
                       <p className="font-medium text-foreground">{branch.name || 'Branch'}</p>
-                      <p>{branch.address}</p>
+                      <p className="inline-flex items-start gap-1">
+                        <MapPin className="mt-0.5 h-3 w-3 text-slate-500" />
+                        <span>{branch.address}</span>
+                      </p>
                     </div>
                   ))}
                 </div>
               </div>
             ) : null}
             {(store.payment_details || (store.payment_detail_images || []).length) ? (
-              <div>
-                <h4 className="mb-2 font-semibold">Payment Details</h4>
+              <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                <h4 className="mb-2 inline-flex items-center gap-2 font-semibold">
+                  <Receipt className="h-4 w-4 text-slate-500" /> Payment Details
+                </h4>
                 {store.payment_details ? <p className="mb-2 whitespace-pre-line text-sm text-muted-foreground">{store.payment_details}</p> : null}
                 {(store.payment_detail_images || []).length ? (
                   <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -146,7 +171,7 @@ export function StorePage({ storeId, onNavigateItem }: StorePageProps) {
               </div>
             ) : null}
             {(socialLinks.facebook || socialLinks.instagram || socialLinks.tiktok || socialLinks.custom.length) ? (
-              <div>
+              <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
                 <h4 className="mb-2 font-semibold">Social Links</h4>
                 <div className="space-y-2 text-sm text-muted-foreground">
                   {socialLinks.facebook ? (
@@ -173,7 +198,23 @@ export function StorePage({ storeId, onNavigateItem }: StorePageProps) {
               </div>
             ) : null}
             <div>
-              <h4 className="mb-2 font-semibold">Store Ratings</h4>
+              <h4 className="mb-2 font-semibold">Store QR Code</h4>
+              {storeQrUrl ? (
+                <div className="rounded-lg border border-slate-200 bg-white p-3">
+                  <img src={storeQrUrl} alt="Store QR code" className="mx-auto h-40 w-40 rounded border bg-white p-2" />
+                  <p className="mt-2 text-xs text-muted-foreground">Scan to open this store page.</p>
+                  <a href={storeQrUrl} download={`store-${storeId}-qr.png`} className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-slate-900 underline">
+                    <Download className="h-4 w-4" /> Download QR
+                  </a>
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">{storeQrError || 'QR code unavailable.'}</p>
+              )}
+            </div>
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+              <h4 className="mb-2 inline-flex items-center gap-2 font-semibold">
+                <Star className="h-4 w-4 text-yellow-500" /> Store Ratings
+              </h4>
               <p className="mb-2 text-sm text-muted-foreground">Average: {reviewAverage.toFixed(1)} / 5 ({reviewTotal} total)</p>
               {user?.role === 'renter' ? (
                 canRate ? (
@@ -228,8 +269,10 @@ export function StorePage({ storeId, onNavigateItem }: StorePageProps) {
                 {!storeReviews.length && <p className="text-xs text-muted-foreground">No reviews yet.</p>}
               </div>
             </div>
-            <div>
-              <h4 className="mb-2 font-semibold">Report This Store</h4>
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+              <h4 className="mb-2 inline-flex items-center gap-2 font-semibold">
+                <ShieldAlert className="h-4 w-4 text-rose-500" /> Report This Store
+              </h4>
               <p className="text-xs text-muted-foreground">
                 Reports are reviewed by the super admin. Please include clear details.
               </p>
@@ -255,18 +298,19 @@ export function StorePage({ storeId, onNavigateItem }: StorePageProps) {
           </aside>
 
           <main className="flex-1">
-            <div className="mb-8 flex items-center justify-between">
-              <div>
-                <h2 className="text-2xl font-bold">Available Equipment</h2>
-                <div className="mt-1 flex items-center gap-1 text-sm text-muted-foreground">
-                  <MapPin className="h-3 w-3" />
-                  {store.address}
+            <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:p-5">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-2xl font-semibold text-slate-900">Available Equipment</h2>
+                  <div className="mt-1 flex items-center gap-1 text-sm text-slate-500">
+                    <MapPin className="h-3 w-3" />
+                    {store.address}
+                  </div>
                 </div>
-              </div>
-
-              <div className="relative w-64">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input className="pl-9" placeholder="Search gear..." />
+                <div className="relative w-full max-w-xs">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input className="h-11 rounded-full pl-9" placeholder="Search gear..." />
+                </div>
               </div>
             </div>
 
@@ -378,6 +422,7 @@ export function StorePage({ storeId, onNavigateItem }: StorePageProps) {
           </Card>
         </div>
       ) : null}
+      <AppFooter onNavigate={setPage} />
     </div>
   );
 }

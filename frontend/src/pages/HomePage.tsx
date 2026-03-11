@@ -174,45 +174,30 @@ export function HomePage({ onNavigate, content }: HomePageProps) {
   return (
     <div className="min-h-screen bg-[var(--tone-bg)]">
       <div className="container mx-auto px-4 py-8">
-        <section className="mb-8 rounded-sm border border-[var(--tone-border)] bg-[var(--tone-surface)] p-4 shadow-sm md:p-7">
-          <div className="grid items-center gap-6 md:gap-8 md:grid-cols-[0.8fr_1.2fr]">
-            <div className="space-y-4 sm:space-y-5 animate-fade-up">
-              <p className="inline-block border-2 border-[var(--tone-text-muted)] px-2.5 py-0.5 text-2xl font-bold tracking-tight text-[var(--tone-text-muted)] sm:px-3 sm:py-1 sm:text-4xl">
+        <section className="mb-8 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-8">
+          <div className="grid items-center gap-8 md:grid-cols-[0.9fr_1.1fr]">
+            <div className="space-y-4 animate-fade-up">
+              <p className="inline-block border-2 border-[var(--tone-text-muted)] px-2.5 py-0.5 text-2xl font-extrabold tracking-tight text-[var(--tone-text-muted)] sm:px-3 sm:py-1 sm:text-4xl">
                 {resolvedContent.home.badge}
               </p>
-              <h1 className="max-w-sm text-lg font-semibold leading-snug text-[var(--tone-text)] sm:text-3xl md:text-4xl">{resolvedContent.home.title}</h1>
-              <p className="max-w-sm text-xs leading-relaxed text-[var(--tone-text-muted)] sm:text-sm">{resolvedContent.home.subtitle}</p>
-              <div className="flex gap-3 text-[10px] text-[var(--tone-text-muted)] sm:text-xs">
+              <h1 className="max-w-sm text-2xl font-extrabold leading-snug text-slate-900 sm:text-3xl md:text-5xl">{resolvedContent.home.title}</h1>
+              <p className="max-w-sm text-sm leading-relaxed text-slate-500 sm:text-base">{resolvedContent.home.subtitle}</p>
+              <div className="flex items-center gap-3 text-xs text-slate-500 sm:text-sm">
                 <span>{stores.length} Stores</span>
-                <span>•</span>
+                <span className="h-1 w-1 rounded-full bg-slate-300" />
                 <span>{gears.length} Gears</span>
               </div>
             </div>
 
-            <div className="relative h-[200px] animate-fade-up-delay sm:h-[300px] md:h-[420px]">
-              <div className="absolute right-[12%] top-2 h-[78%] w-[72%] overflow-hidden rounded-sm border border-[var(--tone-border)] bg-white shadow-lg">
-                <img
-                  src={siteTheme.home.heroImages[0]}
-                  alt="Camera setup"
-                  className="h-full w-full object-cover"
-                  referrerPolicy="no-referrer"
-                />
+            <div className="relative h-[220px] animate-fade-up-delay sm:h-[320px] md:h-[420px]">
+              <div className="absolute right-[10%] top-2 h-[78%] w-[72%] overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-lg">
+                <img src={siteTheme.home.heroImages[0]} alt="Camera setup" className="h-full w-full object-cover" referrerPolicy="no-referrer" />
               </div>
-              <div className="absolute left-[2%] top-[28%] h-[62%] w-[68%] overflow-hidden rounded-sm border border-[var(--tone-border)] bg-white shadow-lg">
-                <img
-                  src={siteTheme.home.heroImages[1]}
-                  alt="Studio gear"
-                  className="h-full w-full object-cover"
-                  referrerPolicy="no-referrer"
-                />
+              <div className="absolute left-[2%] top-[28%] h-[62%] w-[68%] overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-lg">
+                <img src={siteTheme.home.heroImages[1]} alt="Studio gear" className="h-full w-full object-cover" referrerPolicy="no-referrer" />
               </div>
-              <div className="absolute bottom-0 right-0 h-[45%] w-[34%] overflow-hidden rounded-sm border border-[var(--tone-border)] bg-white shadow-lg">
-                <img
-                  src={siteTheme.home.heroImages[2]}
-                  alt="Lens close-up"
-                  className="h-full w-full object-cover"
-                  referrerPolicy="no-referrer"
-                />
+              <div className="absolute bottom-0 right-0 h-[45%] w-[34%] overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-lg">
+                <img src={siteTheme.home.heroImages[2]} alt="Lens close-up" className="h-full w-full object-cover" referrerPolicy="no-referrer" />
               </div>
             </div>
           </div>
@@ -293,25 +278,25 @@ export function HomePage({ onNavigate, content }: HomePageProps) {
           />
         ) : null}
 
-        <div className="mt-8 flex flex-col items-start justify-between gap-3 rounded-2xl border border-[var(--tone-border)] bg-[var(--tone-surface)] p-3 sm:flex-row sm:items-center">
-          <p className="text-sm text-[var(--tone-text-muted)]">
+        <div className="mt-8 flex flex-col items-start justify-between gap-3 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center">
+          <p className="text-sm text-slate-500">
             Showing {activeTotal ? (currentPage - 1) * 30 + 1 : 0}-{Math.min(currentPage * 30, activeTotal)} of {activeTotal}
           </p>
           <div className="flex w-full items-center gap-2 sm:w-auto">
             <Button
               variant="outline"
-              className="flex-1 border-[var(--tone-border)] bg-white text-[var(--tone-text)] hover:bg-[var(--tone-surface)] sm:flex-none"
+              className="flex-1 rounded-full border-slate-200 bg-white text-slate-900 hover:bg-slate-50 sm:flex-none"
               disabled={currentPage <= 1}
               onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
             >
               Previous
             </Button>
-            <span className="min-w-20 text-center text-sm text-[var(--tone-text-muted)]">
+            <span className="min-w-20 text-center text-sm font-semibold text-slate-900">
               Page {currentPage} / {totalPages}
             </span>
             <Button
               variant="outline"
-              className="flex-1 border-[var(--tone-border)] bg-white text-[var(--tone-text)] hover:bg-[var(--tone-surface)] sm:flex-none"
+              className="flex-1 rounded-full border-slate-200 bg-white text-slate-900 hover:bg-slate-50 sm:flex-none"
               disabled={currentPage >= totalPages}
               onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
             >

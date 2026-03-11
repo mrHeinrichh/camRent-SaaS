@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Button, Card, Input } from '@/src/components/ui';
+import { FileUpload } from '@/src/components/FileUpload';
 import { PhoneInput } from '@/src/components/PhoneInput';
 import { api } from '@/src/lib/api';
 import { validatePhone } from '@/src/lib/phone';
@@ -318,10 +319,12 @@ export function RegisterWizard({ submitting, onSubmit, onOpenPolicies }: Registe
             <label className="text-sm font-medium">Password</label>
             <Input type="password" required value={password} onChange={(event) => setPassword(event.target.value)} />
           </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Profile Image (optional)</label>
-            <Input type="file" accept="image/*" onChange={(event) => setProfileImage(event.target.files?.[0] ?? null)} />
-          </div>
+          <FileUpload
+            label="Profile Image (optional)"
+            accept="image/*"
+            file={profileImage}
+            onChange={(files) => setProfileImage(files?.[0] ?? null)}
+          />
           <div className="space-y-2">
             <label className="text-sm font-medium">I want to</label>
             <select className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm" value={role} onChange={(event) => setRole(event.target.value === 'owner' ? 'owner' : 'renter')}>
@@ -419,11 +422,13 @@ export function RegisterWizard({ submitting, onSubmit, onOpenPolicies }: Registe
               className="min-h-20 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             />
           </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Payment QR / Reference Images (optional)</label>
-            <Input type="file" accept="image/*" multiple onChange={(event) => setPaymentDetailImages(Array.from(event.target.files || []))} />
-            {paymentDetailImages.length ? <p className="text-xs text-muted-foreground">{paymentDetailImages.length} image(s) selected</p> : null}
-          </div>
+          <FileUpload
+            label="Payment QR / Reference Images (optional)"
+            accept="image/*"
+            multiple
+            files={paymentDetailImages}
+            onChange={(files) => setPaymentDetailImages(Array.from(files || []))}
+          />
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <label className="text-sm font-medium">Delivery Modes</label>
@@ -440,24 +445,30 @@ export function RegisterWizard({ submitting, onSubmit, onOpenPolicies }: Registe
             ))}
           </div>
           <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Lease Agreement File</label>
-              <Input type="file" accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg" onChange={(event) => setLeaseAgreementFile(event.target.files?.[0] ?? null)} />
-            </div>
+            <FileUpload
+              label="Lease Agreement File"
+              accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg"
+              file={leaseAgreementFile}
+              onChange={(files) => setLeaseAgreementFile(files?.[0] ?? null)}
+            />
             <div className="space-y-2">
               <label className="text-sm font-medium">Security Deposit Policy Amount</label>
               <Input type="number" min="0" step="0.01" value={securityDeposit} onChange={(event) => setSecurityDeposit(event.target.value)} />
             </div>
           </div>
           <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Store Logo (optional)</label>
-              <Input type="file" accept="image/*" onChange={(event) => setStoreLogo(event.target.files?.[0] ?? null)} />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Store Cover Photo (optional)</label>
-              <Input type="file" accept="image/*" onChange={(event) => setStoreBanner(event.target.files?.[0] ?? null)} />
-            </div>
+            <FileUpload
+              label="Store Logo (optional)"
+              accept="image/*"
+              file={storeLogo}
+              onChange={(files) => setStoreLogo(files?.[0] ?? null)}
+            />
+            <FileUpload
+              label="Store Cover Photo (optional)"
+              accept="image/*"
+              file={storeBanner}
+              onChange={(files) => setStoreBanner(files?.[0] ?? null)}
+            />
           </div>
         </Card>
       )}

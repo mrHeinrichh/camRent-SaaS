@@ -35,7 +35,13 @@ interface NavigationSlice {
   setShowHomeNavSearch: (value: boolean) => void;
 }
 
-export type AppStore = AuthSlice & CartSlice & NavigationSlice;
+interface UiSlice {
+  activeRequests: number;
+  beginRequest: () => void;
+  endRequest: () => void;
+}
+
+export type AppStore = AuthSlice & CartSlice & NavigationSlice & UiSlice;
 
 export const useAppStore = create<AppStore>()(
   persist(
@@ -50,6 +56,7 @@ export const useAppStore = create<AppStore>()(
       lastSubmittedApplication: null,
       homeSearchQuery: '',
       showHomeNavSearch: false,
+      activeRequests: 0,
       setSession: (user, token) => set({ user, token }),
       logout: () => set({ user: null, token: null, cart: [], appliedVoucher: null, page: 'home', selectedStoreId: null, selectedItemId: null, lastSubmittedApplication: null }),
       addToCart: (item) =>
@@ -92,6 +99,8 @@ export const useAppStore = create<AppStore>()(
       setLastSubmittedApplication: (application) => set({ lastSubmittedApplication: application }),
       setHomeSearchQuery: (value) => set({ homeSearchQuery: value }),
       setShowHomeNavSearch: (value) => set({ showHomeNavSearch: value }),
+      beginRequest: () => set((state) => ({ activeRequests: state.activeRequests + 1 })),
+      endRequest: () => set((state) => ({ activeRequests: Math.max(0, state.activeRequests - 1) })),
     }),
     {
       name: 'camrent-storage',

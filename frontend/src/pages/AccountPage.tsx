@@ -8,6 +8,7 @@ import { useAppStore } from '@/src/store';
 import type { AppPage } from '@/src/types/app';
 import type { OrderHistory } from '@/src/types/domain';
 import { Button, Card, Input, cn } from '@/src/components/ui';
+import { FileUpload } from '@/src/components/FileUpload';
 import { PhoneInput } from '@/src/components/PhoneInput';
 import { validatePhone } from '@/src/lib/phone';
 import type { CalendarPeriodTone } from '@/src/components/PeriodCalendar';
@@ -155,7 +156,13 @@ export function AccountPage({ onNavigate }: AccountPageProps) {
               className="h-24 w-24 rounded-full border object-cover"
               referrerPolicy="no-referrer"
             />
-            <Input type="file" accept="image/*" disabled={!profileEditing} onChange={(event) => setProfileImageFile(event.target.files?.[0] || null)} />
+            <FileUpload
+              label="Profile Image"
+              accept="image/*"
+              disabled={!profileEditing}
+              file={profileImageFile}
+              onChange={(files) => setProfileImageFile(files?.[0] || null)}
+            />
           </div>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <div className="space-y-1">

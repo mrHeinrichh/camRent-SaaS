@@ -1,5 +1,6 @@
 import { Download, Plus, Trash2 } from 'lucide-react';
 import { Button, Card, Input } from '@/src/components/ui';
+import { FileUpload } from '@/src/components/FileUpload';
 
 interface DonationQrInput {
   label: string;
@@ -83,7 +84,12 @@ export function DonationsTab({ form, saving, onChange, onSave, onExport }: Donat
                   <Trash2 className="mr-1 h-3.5 w-3.5" /> Remove
                 </Button>
               </div>
-              <Input type="file" accept="image/*" onChange={(event) => updateQr(index, { file: event.target.files?.[0] ?? null })} />
+              <FileUpload
+                label="Upload QR Image"
+                accept="image/*"
+                file={entry.file || null}
+                onChange={(files) => updateQr(index, { file: files?.[0] ?? null })}
+              />
               {(entry.file || entry.url) ? (
                 <div className="flex h-48 items-center justify-center overflow-hidden rounded-md border bg-muted/30 p-2">
                   <img src={entry.file ? URL.createObjectURL(entry.file) : entry.url} alt={entry.label || `QR ${index + 1}`} className="h-full w-full object-contain" />
@@ -112,7 +118,12 @@ export function DonationsTab({ form, saving, onChange, onSave, onExport }: Donat
                   <Trash2 className="mr-1 h-3.5 w-3.5" /> Remove
                 </Button>
               </div>
-              <Input type="file" accept="image/*" onChange={(event) => updateBank(index, { file: event.target.files?.[0] ?? null })} />
+              <FileUpload
+                label="Upload Bank Image"
+                accept="image/*"
+                file={entry.file || null}
+                onChange={(files) => updateBank(index, { file: files?.[0] ?? null })}
+              />
               {(entry.file || entry.url) ? (
                 <div className="flex h-48 items-center justify-center overflow-hidden rounded-md border bg-muted/30 p-2">
                   <img src={entry.file ? URL.createObjectURL(entry.file) : entry.url} alt={entry.label || `Bank ${index + 1}`} className="h-full w-full object-contain" />

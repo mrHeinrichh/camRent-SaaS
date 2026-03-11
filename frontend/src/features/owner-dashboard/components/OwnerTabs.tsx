@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { format, parseISO } from 'date-fns';
 import { Ban, CalendarDays, CalendarRange, Camera, ChevronRight, Clock3, CreditCard, Download, ExternalLink, Facebook, FileText, Globe, Instagram, Mail, MapPin, MessageSquare, Music2, Package, Pencil, Phone, Send, ShieldAlert, TicketPercent, Trash2, Truck, User } from 'lucide-react';
+import QRCode from 'qrcode';
 import { PaginationControls } from '@/src/components/PaginationControls';
 import { PeriodCalendar } from '@/src/components/PeriodCalendar';
 import { Button, Card, Input, cn } from '@/src/components/ui';
+import { FileUpload } from '@/src/components/FileUpload';
 import { EmptyState } from '@/src/components/EmptyState';
 import { formatPHP } from '@/src/lib/currency';
 import { api } from '@/src/lib/api';
@@ -207,6 +209,8 @@ export function OwnerTabs({
     location_lat: '',
     location_lng: '',
   });
+  const [storeQrUrl, setStoreQrUrl] = useState('');
+  const [storeQrError, setStoreQrError] = useState('');
 
   useEffect(() => {
     const rawStore = (data.store || {}) as Record<string, any>;
@@ -259,6 +263,26 @@ export function OwnerTabs({
     data.store?.location_lat,
     data.store?.location_lng,
   ]);
+
+  useEffect(() => {
+    const storeId = data.store?.id;
+    if (!storeId || typeof window === 'undefined') {
+      setStoreQrUrl('');
+      return;
+    }
+    const baseUrl = window.location.origin;
+    const storeLink = `${baseUrl}/?store=${storeId}`;
+    QRCode.toDataURL(storeLink, { width: 360, margin: 1 })
+      .then((url) => {
+        setStoreQrUrl(url);
+        setStoreQrError('');
+      })
+      .catch((error) => {
+        console.error('[owner] qr failed', error);
+        setStoreQrUrl('');
+        setStoreQrError('Unable to generate QR code.');
+      });
+  }, [data.store?.id]);
   const ownerPageSize = 8;
   const customers = data.customers || [];
   const transactions = data.recentTransactions || [];
@@ -644,10 +668,13 @@ export function OwnerTabs({
                     />
                   </label>
                   <div className="space-y-2 md:col-span-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-muted-foreground">Payment QR / Reference Images</span>
-                      <Input type="file" accept="image/*" multiple className="max-w-xs" onChange={(event) => setPaymentDetailImageFiles(Array.from(event.target.files || []))} />
-                    </div>
+                    <FileUpload
+                      label="Payment QR / Reference Images"
+                      accept="image/*"
+                      multiple
+                      files={paymentDetailImageFiles}
+                      onChange={(files) => setPaymentDetailImageFiles(Array.from(files || []))}
+                    />
                     {(paymentDetailImageUrls.length || paymentDetailImageFiles.length) ? (
                       <div className="grid grid-cols-2 gap-2 md:grid-cols-6">
                         {paymentDetailImageUrls.map((url, index) => (
@@ -858,21 +885,39 @@ export function OwnerTabs({
                 <p><span className="font-semibold">Location:</span> {storeProfileForm.location_lat || '-'}, {storeProfileForm.location_lng || '-'}</p>
                 <p><span className="font-semibold">Payment Details:</span> {storeProfileForm.payment_details || '-'}</p>
                 <p className="md:col-span-2"><span className="font-semibold">Description:</span> {storeProfileForm.description || '-'}</p>
-                <div className="md:col-span-2">
-                  <p className="font-semibold">Payment QR / Reference Images:</p>
-                  {paymentDetailImageUrls.length ? (
-                    <div className="mt-1 grid grid-cols-2 gap-2 md:grid-cols-6">
-                      {paymentDetailImageUrls.map((url, index) => (
-                        <a key={`${url}-${index}`} href={url} target="_blank" rel="noreferrer" className="block overflow-hidden rounded border bg-muted/20 p-2">
-                          <div className="flex h-48 items-center justify-center overflow-hidden rounded bg-background">
-                            <img src={url} alt={`Payment reference ${index + 1}`} className="h-full w-full object-contain" />
-                          </div>
-                        </a>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-muted-foreground">No payment images uploaded.</p>
-                  )}
+                <div className="md:col-span-2 grid gap-4 md:grid-cols-2">
+                  <div className="rounded-lg border border-slate-200 bg-white p-3">
+                    <p className="font-semibold">Payment QR / Reference Images</p>
+                    {paymentDetailImageUrls.length ? (
+                      <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                        {paymentDetailImageUrls.map((url, index) => (
+                          <a key={`${url}-${index}`} href={url} target="_blank" rel="noreferrer" className="block overflow-hidden rounded border bg-muted/20 p-2">
+                            <div className="flex h-28 items-center justify-center overflow-hidden rounded bg-background">
+                              <img src={url} alt={`Payment reference ${index + 1}`} className="h-full w-full object-contain" />
+                            </div>
+                          </a>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="mt-2 text-sm text-muted-foreground">No payment images uploaded.</p>
+                    )}
+                  </div>
+                  <div className="rounded-lg border border-slate-200 bg-white p-3">
+                    <p className="font-semibold">Store QR Code</p>
+                    {storeQrUrl ? (
+                      <div className="mt-3 flex flex-col items-start gap-3 sm:flex-row sm:items-center">
+                        <img src={storeQrUrl} alt="Store QR code" className="h-32 w-32 rounded border bg-white p-2" />
+                        <div className="text-sm text-muted-foreground">
+                          <p>Scan to open your store page.</p>
+                          <a href={storeQrUrl} download={`store-${data.store?.id || 'qr'}.png`} className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-slate-900 underline">
+                            <Download className="h-4 w-4" /> Download QR
+                          </a>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="mt-2 text-sm text-muted-foreground">{storeQrError || 'QR code will appear once your store is available.'}</p>
+                    )}
+                  </div>
                 </div>
                 <div className="md:col-span-2">
                   <p className="font-semibold">Branches:</p>
@@ -1667,8 +1712,12 @@ export function OwnerTabs({
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">Reference Image (optional)</label>
-                <Input type="file" accept="image/*" onChange={(event) => onReferenceImageFileChange(event.target.files?.[0] ?? null)} />
+                <FileUpload
+                  label="Reference Image (optional)"
+                  accept="image/*"
+                  file={referenceImageFile}
+                  onChange={(files) => onReferenceImageFileChange(files?.[0] ?? null)}
+                />
                 <select
                   className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm"
                   value={rentalFormSettings.reference_image_position}
@@ -1755,8 +1804,13 @@ export function OwnerTabs({
               </select>
               <Input placeholder="Reason" value={fraudReason} onChange={(event) => onFraudReasonChange(event.target.value)} />
               <div className="md:col-span-2">
-                <Input type="file" accept=".pdf,image/*" multiple onChange={(event) => onFraudRequirementFilesChange(Array.from(event.target.files || []))} />
-                <p className="mt-1 text-xs text-muted-foreground">Optional requirements: upload up to 5 image/PDF files.</p>
+                <FileUpload
+                  label="Fraud Evidence (optional)"
+                  accept=".pdf,image/*"
+                  multiple
+                  onChange={(files) => onFraudRequirementFilesChange(Array.from(files || []))}
+                  helperText="Optional requirements: upload up to 5 image/PDF files."
+                />
               </div>
               <div className="md:col-span-2">
                 <Button onClick={onSubmitManualFraud}>Add Fraud Person</Button>
