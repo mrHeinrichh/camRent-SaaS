@@ -112,7 +112,7 @@ export function SuccessPage({ onBackHome, onOpenAccount }: SuccessPageProps) {
         <p className="text-sm text-slate-500">Your rental request was sent for store owner review.</p>
       </div>
 
-      <Card className="space-y-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <Card className="i3d-card space-y-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <h2 className="text-lg font-semibold text-slate-900">Submitted Form Copy</h2>
 
         {displayedSubmission ? (
@@ -152,7 +152,7 @@ export function SuccessPage({ onBackHome, onOpenAccount }: SuccessPageProps) {
 
       {showDetailModal && displayedSubmission && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 p-4">
-          <div className="max-h-[90vh] w-full max-w-4xl overflow-auto rounded-3xl bg-white p-6 text-slate-900 shadow-2xl">
+          <div className="i3d-modal max-h-[90vh] w-full max-w-4xl overflow-auto rounded-3xl bg-white p-6 text-slate-900 shadow-2xl">
             <div className="mb-4 flex items-center justify-between">
               <h3 className="text-2xl font-semibold">Detailed Rental Application Form</h3>
               <Button variant="ghost" size="icon" onClick={() => setShowDetailModal(false)}>

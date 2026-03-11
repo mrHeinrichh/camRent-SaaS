@@ -176,7 +176,7 @@ export function OwnerModals({
       <AnimatePresence>
         {editingOpen && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4 backdrop-blur-md">
-            <motion.div initial={{ scale: 0.95, opacity: 0, y: 8 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 8 }} className="flex w-full max-w-2xl max-h-[92vh] flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white text-slate-900 shadow-2xl">
+            <motion.div initial={{ scale: 0.95, opacity: 0, y: 8 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 8 }} className="i3d-modal flex w-full max-w-2xl max-h-[92vh] flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white text-slate-900 shadow-2xl">
               <div className="sticky top-0 z-10 flex items-start justify-between gap-4 bg-gradient-to-r from-slate-900 to-slate-700 p-6 text-white">
                 <div>
                   <h2 className="text-2xl font-bold">{editor.id ? 'Edit Gear' : 'Add New Gear'}</h2>
@@ -264,7 +264,7 @@ export function OwnerModals({
       <AnimatePresence>
         {blockModalItem && (
           <div className="fixed inset-0 z-[65] flex items-center justify-center bg-black/50 p-4">
-            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="flex w-full max-w-md max-h-[90vh] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white text-slate-900 shadow-xl">
+            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="i3d-modal flex w-full max-w-md max-h-[90vh] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white text-slate-900 shadow-xl">
               <div className="flex items-start justify-between gap-2 border-b px-5 py-4">
                 <h3 className="text-lg font-bold text-slate-900">Block Dates - {blockModalItem.name}</h3>
                 <Button variant="outline" size="icon" className="border-slate-200 bg-white text-slate-700" onClick={onCloseBlockModal} aria-label="Close block dates">
@@ -299,7 +299,7 @@ export function OwnerModals({
       <AnimatePresence>
         {reportCustomer && (
           <div className="fixed inset-0 z-[65] flex items-center justify-center bg-black/50 p-4">
-            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="flex w-full max-w-lg max-h-[90vh] flex-col overflow-hidden rounded-xl bg-background shadow-xl">
+            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="i3d-modal flex w-full max-w-lg max-h-[90vh] flex-col overflow-hidden rounded-xl bg-background shadow-xl">
               <div className="flex items-start justify-between gap-2 border-b px-5 py-4">
                 <div>
                   <h3 className="text-lg font-bold">Flag Customer as Fraud</h3>
@@ -343,7 +343,7 @@ export function OwnerModals({
               initial={{ scale: 0.98, opacity: 0, y: 24 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.98, opacity: 0, y: 24 }}
-              className="relative flex h-[92dvh] w-full flex-col overflow-hidden border border-slate-200 bg-white text-slate-900 shadow-2xl md:h-auto md:max-h-[92vh] md:max-w-5xl md:rounded-2xl"
+              className="i3d-modal relative flex h-[92dvh] w-full flex-col overflow-hidden border border-slate-200 bg-white text-slate-900 shadow-2xl md:h-auto md:max-h-[92vh] md:max-w-5xl md:rounded-2xl"
               onClick={(event) => event.stopPropagation()}
             >
               <button
@@ -532,7 +532,7 @@ export function OwnerModals({
       <AnimatePresence>
         {previewFile && (
           <div className="fixed inset-0 z-[95] flex items-center justify-center bg-black/80 p-4" onClick={() => setPreviewFile(null)}>
-            <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.96 }} className="h-[90vh] w-full max-w-6xl overflow-hidden rounded-xl bg-white p-3" onClick={(event) => event.stopPropagation()}>
+            <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.96 }} className="i3d-modal h-[90vh] w-full max-w-6xl overflow-hidden rounded-xl bg-white p-3" onClick={(event) => event.stopPropagation()}>
               <div className="mb-2 flex items-center justify-between">
                 <p className="text-sm font-semibold">{previewFile.type}</p>
                 <div className="flex items-center gap-2">
@@ -554,7 +554,7 @@ export function OwnerModals({
       <AnimatePresence>
         {previewImageUrl && (
           <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/80 p-4" onClick={() => setPreviewImageUrl(null)}>
-            <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.96 }} className="max-h-[90vh] max-w-6xl overflow-auto rounded-xl bg-background p-3" onClick={(event) => event.stopPropagation()}>
+            <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.96 }} className="i3d-modal max-h-[90vh] max-w-6xl overflow-auto rounded-xl bg-background p-3" onClick={(event) => event.stopPropagation()}>
               <img src={previewImageUrl} alt="Zoom preview" className="h-auto max-h-[85vh] w-auto max-w-full object-contain" />
             </motion.div>
           </div>
@@ -563,7 +563,7 @@ export function OwnerModals({
 
       {fileLoading && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/50">
-          <div className="rounded-lg bg-white px-4 py-3 text-sm font-medium text-slate-900">Preparing file...</div>
+          <div className="i3d-modal rounded-lg bg-white px-4 py-3 text-sm font-medium text-slate-900">Preparing file...</div>
         </div>
       )}
     </>

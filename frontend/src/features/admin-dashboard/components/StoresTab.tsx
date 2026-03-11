@@ -43,18 +43,18 @@ export function StoresTab({ stores, onExport, onApproveStore, onToggleStoreActiv
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <Card className="p-4">
+        <Card className="i3d-card p-4">
           <p className="text-xs text-muted-foreground">Pending Merchant Applicants</p>
           <p className="text-2xl font-bold">{pendingMerchants}</p>
         </Card>
-        <Card className="p-4">
+        <Card className="i3d-card p-4">
           <p className="text-xs text-muted-foreground">Near Due (within 7 days)</p>
           <p className="inline-flex items-center gap-2 text-2xl font-bold">
             {nearDueStores}
             {nearDueStores > 0 ? <AlertTriangle className="h-5 w-5 text-amber-500" /> : null}
           </p>
         </Card>
-        <Card className="p-4">
+        <Card className="i3d-card p-4">
           <p className="text-xs text-muted-foreground">Overdue Stores</p>
           <p className="inline-flex items-center gap-2 text-2xl font-bold">
             {overdueStores}
@@ -64,7 +64,7 @@ export function StoresTab({ stores, onExport, onApproveStore, onToggleStoreActiv
       </div>
 
       {nearDueStores > 0 || overdueStores > 0 ? (
-        <Card className="border-amber-300 bg-amber-50/60 p-4">
+        <Card className="i3d-card border-amber-300 bg-amber-50/60 p-4">
           <p className="inline-flex items-center gap-2 text-sm font-semibold text-amber-900">
             <AlertTriangle className="h-4 w-4" />
             Warning: Some merchant accounts are near due or already overdue. Review payment due dates below.
@@ -72,7 +72,7 @@ export function StoresTab({ stores, onExport, onApproveStore, onToggleStoreActiv
         </Card>
       ) : null}
 
-      <Card>
+      <Card className="i3d-card">
         <div className="-mx-4 overflow-x-auto px-4 pb-2 touch-pan-x">
         <table className="min-w-[1120px] w-full border-collapse text-left">
           <thead className="bg-muted/50">

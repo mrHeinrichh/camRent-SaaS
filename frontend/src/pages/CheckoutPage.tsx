@@ -332,13 +332,13 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
 
   return (
     <div className="container mx-auto max-w-3xl px-4 py-10">
-      <Card className="space-y-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+      <Card className="i3d-card space-y-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
         <div className="text-center">
           <p className="text-xs uppercase tracking-[0.3em] text-slate-400">CamRent PH</p>
           <h1 className="mt-2 text-3xl font-semibold text-slate-900 sm:text-4xl">Rental Agreement</h1>
           <p className="mt-2 text-sm text-slate-500">A clean and secure way to submit your rental application.</p>
         </div>
-        <Card className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+        <Card className="i3d-card rounded-2xl border border-slate-200 bg-slate-50 p-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="inline-flex items-center gap-2 text-sm font-semibold">
               <ClipboardList className="h-4 w-4" /> Application Progress
@@ -354,7 +354,7 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
         </Card>
 
         {store && (
-          <Card className="mb-6 space-y-4 rounded-2xl border border-slate-200 bg-white p-5">
+          <Card className="i3d-card mb-6 space-y-4 rounded-2xl border border-slate-200 bg-white p-5">
             <h2 className="text-lg font-bold">{store.name}</h2>
             <p className="text-sm text-muted-foreground">{store.address}</p>
             {(socialLinks.facebook || socialLinks.instagram || socialLinks.tiktok || socialLinks.custom.length) ? (
@@ -486,7 +486,7 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
             )}
           </div>
 
-          <Card className="space-y-4 rounded-2xl border border-slate-200 bg-white p-5">
+          <Card className="i3d-card space-y-4 rounded-2xl border border-slate-200 bg-white p-5">
             <p className="inline-flex items-center gap-2 text-sm font-semibold">
               <User2 className="h-4 w-4" /> Applicant Information
             </p>
@@ -524,7 +524,7 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
             </div>
           </Card>
 
-          <Card className="space-y-4 rounded-2xl border border-slate-200 bg-white p-5">
+          <Card className="i3d-card space-y-4 rounded-2xl border border-slate-200 bg-white p-5">
             <p className="inline-flex items-center gap-2 text-sm font-semibold">
               <MapPin className="h-4 w-4" /> Delivery & Branch
             </p>
@@ -592,7 +592,7 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
             </div>
           </Card>
 
-          <Card className="space-y-4 rounded-2xl border border-slate-200 bg-white p-5">
+          <Card className="i3d-card space-y-4 rounded-2xl border border-slate-200 bg-white p-5">
             <p className="inline-flex items-center gap-2 text-sm font-semibold">
               <CreditCard className="h-4 w-4" /> Payment & Required Files
             </p>
@@ -751,7 +751,7 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
             </p>
           </div>
 
-          <Card className="space-y-3 rounded-2xl border border-slate-200 bg-white p-5">
+          <Card className="i3d-card space-y-3 rounded-2xl border border-slate-200 bg-white p-5">
             <div className="flex items-center justify-between text-sm">
               <span className="font-semibold">Ready to submit</span>
               <span className="text-xs text-muted-foreground">Progress: {completion.percent}%</span>
@@ -765,7 +765,7 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
 
       {submittingApplication && (
         <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/60 p-4">
-          <div className="w-full max-w-sm rounded-xl bg-white p-6 text-center text-slate-900 shadow-2xl">
+          <div className="i3d-modal w-full max-w-sm rounded-xl bg-white p-6 text-center text-slate-900 shadow-2xl">
             <p className="text-lg font-semibold">Uploading and submitting...</p>
             <p className="mt-2 text-sm text-slate-600">Please wait. If this takes too long, it will auto-cancel and show an error.</p>
           </div>

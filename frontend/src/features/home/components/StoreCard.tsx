@@ -10,8 +10,8 @@ interface StoreCardProps {
 
 export function StoreCard({ store, onOpenStore }: StoreCardProps) {
   return (
-    <motion.div whileHover={{ y: -5 }} transition={{ type: 'spring', stiffness: 300 }}>
-      <Card className="group flex h-full cursor-pointer flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm" onClick={() => onOpenStore(store.id)}>
+    <motion.div whileHover={{ y: -5 }} whileTap={{ scale: 0.98 }} transition={{ type: 'spring', stiffness: 300 }}>
+      <Card className="group flex h-full cursor-pointer flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-[0_18px_40px_rgba(15,23,42,0.12)] transition-transform duration-300 [transform-style:preserve-3d] hover:-translate-y-1 hover:[transform:rotateX(1deg)_rotateY(2deg)_translateZ(8px)]" onClick={() => onOpenStore(store.id)}>
         <div className="relative aspect-[4/3] overflow-hidden sm:aspect-video">
           <img
             src={store.banner_url || `https://picsum.photos/seed/store-${store.id}/800/450`}

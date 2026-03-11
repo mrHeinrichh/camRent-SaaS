@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '@/src/lib/api';
 import { useAppStore } from '@/src/store';
 import type { Announcement, Store } from '@/src/types/domain';
@@ -33,7 +33,9 @@ export function HomePage({ onNavigate, content }: HomePageProps) {
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [locating, setLocating] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [recentlyAddedId, setRecentlyAddedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const addedTimerRef = useRef<number | null>(null);
   const { user, homeSearchQuery, setHomeSearchQuery, addToCart, setPage } = useAppStore();
 
   useEffect(() => {
@@ -144,6 +146,9 @@ export function HomePage({ onNavigate, content }: HomePageProps) {
       endDate: toISODate(end),
       store_id: gear.store_id,
     });
+    setRecentlyAddedId(gear.id);
+    if (addedTimerRef.current) window.clearTimeout(addedTimerRef.current);
+    addedTimerRef.current = window.setTimeout(() => setRecentlyAddedId(null), 1200);
     setPage('cart');
   };
 
@@ -189,14 +194,14 @@ export function HomePage({ onNavigate, content }: HomePageProps) {
               </div>
             </div>
 
-            <div className="relative h-[220px] animate-fade-up-delay sm:h-[320px] md:h-[420px]">
-              <div className="absolute right-[10%] top-2 h-[78%] w-[72%] overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-lg">
+            <div className="relative h-[220px] animate-fade-up-delay [perspective:1200px] sm:h-[320px] md:h-[420px]">
+              <div className="absolute right-[10%] top-2 h-[78%] w-[72%] overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-[0_25px_60px_rgba(15,23,42,0.25)] transition-transform duration-300 [transform-style:preserve-3d] hover:-translate-y-1 hover:[transform:rotateX(2deg)_rotateY(-3deg)_translateZ(18px)]">
                 <img src={siteTheme.home.heroImages[0]} alt="Camera setup" className="h-full w-full object-cover" referrerPolicy="no-referrer" />
               </div>
-              <div className="absolute left-[2%] top-[28%] h-[62%] w-[68%] overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-lg">
+              <div className="absolute left-[2%] top-[28%] h-[62%] w-[68%] overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-[0_20px_50px_rgba(15,23,42,0.22)] transition-transform duration-300 [transform-style:preserve-3d] hover:-translate-y-1 hover:[transform:rotateX(2deg)_rotateY(3deg)_translateZ(12px)]">
                 <img src={siteTheme.home.heroImages[1]} alt="Studio gear" className="h-full w-full object-cover" referrerPolicy="no-referrer" />
               </div>
-              <div className="absolute bottom-0 right-0 h-[45%] w-[34%] overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-lg">
+              <div className="absolute bottom-0 right-0 h-[45%] w-[34%] overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-[0_18px_45px_rgba(15,23,42,0.2)] transition-transform duration-300 [transform-style:preserve-3d] hover:-translate-y-1 hover:[transform:rotateX(2deg)_rotateY(-2deg)_translateZ(10px)]">
                 <img src={siteTheme.home.heroImages[2]} alt="Lens close-up" className="h-full w-full object-cover" referrerPolicy="no-referrer" />
               </div>
             </div>
@@ -260,7 +265,7 @@ export function HomePage({ onNavigate, content }: HomePageProps) {
         {viewMode === 'gears' ? (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 lg:gap-6 animate-fade-up items-stretch">
             {pagedGears.map((gear) => (
-              <GearCard key={gear.id} gear={gear} onOpenStore={onNavigate} onAddToCart={handleAddToCart} />
+              <GearCard key={gear.id} gear={gear} onOpenStore={onNavigate} onAddToCart={handleAddToCart} justAdded={recentlyAddedId === gear.id} />
             ))}
           </div>
         ) : (

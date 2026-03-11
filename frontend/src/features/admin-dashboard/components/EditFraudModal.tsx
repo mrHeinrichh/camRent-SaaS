@@ -15,7 +15,7 @@ export function EditFraudModal({ open, form, saving, onChange, onCancel, onSave 
 
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-2xl rounded-2xl bg-background p-6 shadow-2xl">
+      <div className="i3d-modal w-full max-w-2xl rounded-2xl bg-background p-6 shadow-2xl">
         <h3 className="mb-4 text-xl font-bold">Edit Fraud Entry</h3>
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           <Input placeholder="Full name" value={form.full_name} onChange={(event) => onChange({ ...form, full_name: event.target.value })} />

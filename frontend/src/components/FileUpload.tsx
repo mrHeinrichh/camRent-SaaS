@@ -39,7 +39,7 @@ export function FileUpload({
       <label
         htmlFor={inputId}
         className={cn(
-          'flex w-full cursor-pointer items-center justify-between gap-3 rounded-2xl border border-[var(--tone-border)] bg-white px-4 py-3 text-sm shadow-sm transition hover:border-[var(--tone-accent)]',
+          'i3d-btn flex w-full cursor-pointer items-center justify-between gap-3 rounded-2xl border border-[var(--tone-border)] bg-white px-4 py-3 text-sm shadow-sm transition hover:border-[var(--tone-accent)]',
           disabled && 'cursor-not-allowed opacity-60',
         )}
       >

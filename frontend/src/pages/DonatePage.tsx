@@ -99,7 +99,7 @@ export function DonatePage({ onNavigate, content }: DonatePageProps) {
       </div>
       {previewImageUrl ? (
         <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 p-4" onClick={() => setPreviewImageUrl(null)}>
-          <div className="max-h-[90vh] max-w-6xl overflow-auto rounded-3xl bg-white p-3" onClick={(event) => event.stopPropagation()}>
+          <div className="i3d-modal max-h-[90vh] max-w-6xl overflow-auto rounded-3xl bg-white p-3" onClick={(event) => event.stopPropagation()}>
             <img src={previewImageUrl} alt="Preview" className="h-auto max-h-[85vh] w-auto max-w-full object-contain" />
           </div>
         </div>

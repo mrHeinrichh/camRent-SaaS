@@ -1,4 +1,6 @@
 import { Camera, LogOut, Search, ShoppingCart, User } from 'lucide-react';
+import { motion } from 'motion/react';
+import { useEffect, useRef, useState } from 'react';
 import { Button, Input } from '@/src/components/ui';
 import { siteTheme } from '@/src/config/siteTheme';
 import { useAppStore } from '@/src/store';
@@ -10,7 +12,19 @@ interface NavbarProps {
 
 export function Navbar({ onNavigate }: NavbarProps) {
   const { user, cart, logout, page, homeSearchQuery, setHomeSearchQuery } = useAppStore();
+  const [cartBump, setCartBump] = useState(false);
+  const lastCartCountRef = useRef(cart.length);
   const showHomeSearch = page === 'home' && user?.role !== 'owner' && user?.role !== 'admin';
+
+  useEffect(() => {
+    if (cart.length > lastCartCountRef.current) {
+      setCartBump(true);
+      const timer = setTimeout(() => setCartBump(false), 300);
+      lastCartCountRef.current = cart.length;
+      return () => clearTimeout(timer);
+    }
+    lastCartCountRef.current = cart.length;
+  }, [cart.length]);
 
   return (
     <nav className="sticky top-0 z-50 w-full border-b border-[var(--tone-nav-border)] bg-[var(--tone-nav)]">
@@ -33,7 +47,9 @@ export function Navbar({ onNavigate }: NavbarProps) {
           <div className="flex items-center gap-2 sm:gap-4">
             {user?.role !== 'owner' && user?.role !== 'admin' && (
               <Button variant="ghost" size="icon" onClick={() => onNavigate('cart')} className="relative">
-                <ShoppingCart className="h-5 w-5" />
+                <motion.span animate={{ scale: cartBump ? 1.15 : 1 }} transition={{ type: 'spring', stiffness: 500, damping: 18 }}>
+                  <ShoppingCart className="h-5 w-5" />
+                </motion.span>
                 {cart.length > 0 && (
                   <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">
                     {cart.length}

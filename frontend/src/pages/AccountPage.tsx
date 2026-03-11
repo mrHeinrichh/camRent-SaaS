@@ -386,7 +386,7 @@ export function AccountPage({ onNavigate }: AccountPageProps) {
 
       {selectedOrder && (
         <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/60 p-4">
-          <div className="max-h-[90vh] w-full max-w-5xl overflow-auto rounded-2xl bg-white p-6 text-slate-900 shadow-2xl">
+          <div className="i3d-modal max-h-[90vh] w-full max-w-5xl overflow-auto rounded-2xl bg-white p-6 text-slate-900 shadow-2xl">
             <div className="mb-4 flex items-center justify-between">
               <h3 className="text-2xl font-bold">Order Details</h3>
               <Button variant="ghost" size="icon" onClick={() => setSelectedOrder(null)}>

@@ -23,6 +23,7 @@ import { LoadingOverlay } from '@/src/components/LoadingOverlay';
 
 export default function App() {
   const { page, user, selectedStoreId, selectedItemId, setPage, openStore, openItem } = useAppStore();
+  const { cartConflict, closeCartConflict, clearCart } = useAppStore();
   const [siteContent, setSiteContent] = useState<SiteContent>(defaultSiteContent as any);
 
   useEffect(() => {
@@ -83,10 +84,11 @@ export default function App() {
         <AnimatePresence mode="wait">
           <motion.div
             key={page}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.2 }}
+            initial={{ opacity: 0, y: 18, scale: 0.985, rotateX: -4 }}
+            animate={{ opacity: 1, y: 0, scale: 1, rotateX: 0 }}
+            exit={{ opacity: 0, y: -12, scale: 0.99, rotateX: 3 }}
+            transition={{ type: 'spring', stiffness: 220, damping: 26, mass: 0.7 }}
+            style={{ perspective: 1200, transformStyle: 'preserve-3d' }}
           >
             {page === 'home' && <HomePage onNavigate={navigateToStore} content={siteContent} />}
             {page === 'about' && <AboutPage onNavigate={setPage} />}
@@ -142,6 +144,46 @@ export default function App() {
           </motion.div>
         </AnimatePresence>
       </main>
+
+      {cartConflict?.open ? (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/60 p-4">
+          <div className="i3d-modal w-full max-w-md rounded-2xl bg-white p-6 text-slate-900 shadow-2xl">
+            <h3 className="text-lg font-bold">One Store at a Time</h3>
+            <p className="mt-2 text-sm text-slate-600">{cartConflict.message}</p>
+            <div className="mt-5 flex flex-wrap justify-end gap-2">
+              <button
+                type="button"
+                className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700"
+                onClick={() => {
+                  closeCartConflict();
+                }}
+              >
+                Close
+              </button>
+              <button
+                type="button"
+                className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700"
+                onClick={() => {
+                  closeCartConflict();
+                  setPage('cart');
+                }}
+              >
+                View Cart
+              </button>
+              <button
+                type="button"
+                className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white"
+                onClick={() => {
+                  clearCart();
+                  closeCartConflict();
+                }}
+              >
+                Clear Cart
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

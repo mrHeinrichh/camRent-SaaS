@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Calendar as CalendarIcon, ReceiptText, ShoppingCart, TicketPercent } from 'lucide-react';
+import { Calendar as CalendarIcon, ReceiptText, ShoppingCart, TicketPercent, Trash2 } from 'lucide-react';
 import { api } from '@/src/lib/api';
 import { formatPHP } from '@/src/lib/currency';
 import { Button, Card } from '@/src/components/ui';
@@ -10,9 +10,10 @@ interface CartPageProps {
 }
 
 export function CartPage({ onCheckout }: CartPageProps) {
-  const { cart, removeFromCart, updateCartQuantity, user, appliedVoucher, setAppliedVoucher } = useAppStore();
+  const { cart, removeFromCartAtIndex, updateCartQuantity, user, appliedVoucher, setAppliedVoucher } = useAppStore();
   const [voucherCodeInput, setVoucherCodeInput] = useState('');
   const [voucherBusy, setVoucherBusy] = useState(false);
+  const [checkoutBusy, setCheckoutBusy] = useState(false);
   const rentalSubtotal = cart.reduce((sum, item) => sum + item.daily_price * Math.max(1, item.quantity || 1), 0);
   const voucherDiscount = appliedVoucher && appliedVoucher.store_id === cart[0]?.store_id ? Math.max(0, Number(appliedVoucher.discount_amount || 0)) : 0;
   const finalTotal = Math.max(0, rentalSubtotal - voucherDiscount);
@@ -38,18 +39,29 @@ export function CartPage({ onCheckout }: CartPageProps) {
         <p className="mt-2 text-sm text-slate-500">Review your items and confirm your rental dates.</p>
       </div>
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-        <div className="space-y-4 lg:col-span-2">
-          {cart.map((item) => (
-            <Card key={`${item.id}-${item.startDate}-${item.endDate}`} className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center">
+        <div className="no-3d space-y-4 lg:col-span-2">
+          {cart.map((item, index) => (
+            <Card
+              key={`${item.id}-${item.startDate}-${item.endDate}-${index}`}
+              className="i3d-card flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center"
+            >
               <div className="h-24 w-24 flex-shrink-0 overflow-hidden rounded-xl border bg-slate-50">
                 <img src={item.image_url || `https://picsum.photos/seed/item-${item.id}/200/200`} alt="" className="h-full w-full object-cover" referrerPolicy="no-referrer" />
               </div>
 
               <div className="flex-1">
-                <div className="mb-1 flex justify-between">
+                <div className="mb-1 flex items-start justify-between gap-3">
                   <h3 className="font-semibold text-slate-900">{item.name}</h3>
-                  <Button variant="ghost" size="sm" onClick={() => removeFromCart(item.id)} className="h-8 w-8 p-0 text-destructive">
-                    &times;
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      removeFromCartAtIndex(index);
+                    }}
+                    className="pointer-events-auto h-8 gap-1 rounded-full border-slate-200 text-xs text-destructive hover:text-destructive"
+                  >
+                    <Trash2 className="h-3 w-3" /> Remove
                   </Button>
                 </div>
 
@@ -66,7 +78,10 @@ export function CartPage({ onCheckout }: CartPageProps) {
                       type="button"
                       variant="ghost"
                       size="sm"
-                      onClick={() => updateCartQuantity(item.id, item.startDate, item.endDate, Math.max(1, (item.quantity || 1) - 1))}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        updateCartQuantity(item.id, item.startDate, item.endDate, Math.max(1, (item.quantity || 1) - 1));
+                      }}
                       className="h-8 w-8 rounded-full p-0"
                     >
                       -
@@ -76,14 +91,15 @@ export function CartPage({ onCheckout }: CartPageProps) {
                       type="button"
                       variant="ghost"
                       size="sm"
-                      onClick={() =>
+                      onClick={(event) => {
+                        event.stopPropagation();
                         updateCartQuantity(
                           item.id,
                           item.startDate,
                           item.endDate,
                           Math.min(Math.max(1, item.stock || 1), Math.max(1, (item.quantity || 1) + 1)),
-                        )
-                      }
+                        );
+                      }}
                       className="h-8 w-8 rounded-full p-0"
                     >
                       +
@@ -96,7 +112,7 @@ export function CartPage({ onCheckout }: CartPageProps) {
         </div>
 
         <div className="space-y-6">
-          <Card className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <Card className="i3d-card rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
             <h3 className="mb-4 inline-flex items-center gap-2 text-lg font-semibold text-slate-900">
               <ReceiptText className="h-4 w-4" /> Order Summary
             </h3>
@@ -165,8 +181,17 @@ export function CartPage({ onCheckout }: CartPageProps) {
                 <span>{formatPHP(finalTotal)}</span>
               </div>
             </div>
-            <Button className="h-12 w-full rounded-full" onClick={onCheckout}>
-              Proceed to Checkout
+            <Button
+              className="h-12 w-full rounded-full"
+              onClick={() => {
+                if (checkoutBusy) return;
+                setCheckoutBusy(true);
+                onCheckout();
+                setTimeout(() => setCheckoutBusy(false), 600);
+              }}
+              disabled={checkoutBusy}
+            >
+              {checkoutBusy ? 'Opening Checkout...' : 'Proceed to Checkout'}
             </Button>
           </Card>
         </div>

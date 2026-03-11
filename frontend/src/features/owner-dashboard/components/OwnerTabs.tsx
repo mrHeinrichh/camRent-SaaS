@@ -490,7 +490,7 @@ export function OwnerTabs({
               <Download className="mr-2 h-4 w-4" /> Export Excel
             </Button>
           </div>
-          <Card className="space-y-5 p-6">
+          <Card className="i3d-card space-y-5 p-6">
             <div className="flex items-start justify-between gap-6">
               <div>
                 <p className="text-sm text-muted-foreground">Registered Store</p>
@@ -954,35 +954,35 @@ export function OwnerTabs({
             ) : null}
           </Card>
           <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-            <Card className="p-6">
+            <Card className="i3d-card p-6">
               <p className="mb-1 text-sm text-muted-foreground">Total Rentals</p>
               <p className="text-3xl font-bold">{data.stats?.total_rentals || 0}</p>
             </Card>
-            <Card className="p-6">
+            <Card className="i3d-card p-6">
               <p className="mb-1 text-sm text-muted-foreground">Total Revenue</p>
               <p className="text-3xl font-bold">{formatPHP(data.stats?.total_revenue || 0)}</p>
             </Card>
-            <Card className="p-6">
+            <Card className="i3d-card p-6">
               <p className="mb-1 text-sm text-muted-foreground">Pending Approval</p>
               <p className="text-3xl font-bold text-yellow-600">{applications.filter((app) => app.status === 'PENDING_REVIEW').length}</p>
             </Card>
           </div>
           <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-            <Card className="p-6">
+            <Card className="i3d-card p-6">
               <p className="mb-1 text-sm text-muted-foreground">Total Customers</p>
               <p className="text-3xl font-bold">{data.ownerAnalytics?.totalCustomers || 0}</p>
             </Card>
-            <Card className="p-6">
+            <Card className="i3d-card p-6">
               <p className="mb-1 text-sm text-muted-foreground">Total Successful Rentals</p>
               <p className="text-3xl font-bold">{data.ownerAnalytics?.totalCustomersRented || 0}</p>
             </Card>
-            <Card className="p-6">
+            <Card className="i3d-card p-6">
               <p className="mb-1 text-sm text-muted-foreground">Profit (Successful Rentals)</p>
               <p className="text-3xl font-bold">{formatPHP(data.ownerAnalytics?.totalProfit || 0)}</p>
             </Card>
           </div>
           <div className="grid grid-cols-1 xl:grid-cols-2">
-            <Card className="p-6">
+            <Card className="i3d-card p-6">
               <h3 className="mb-4 text-lg font-bold">Status Distribution (Pie)</h3>
               <div className="flex flex-col items-center gap-4 md:flex-row">
                 <svg viewBox="0 0 200 200" className="h-90 w-full">
@@ -1001,7 +1001,7 @@ export function OwnerTabs({
                 </div>
               </div>
             </Card>
-            <Card className="p-6">
+            <Card className="i3d-card p-6">
               <h3 className="mb-4 text-lg font-bold">Peak Rental Dates (Bar)</h3>
               <div className="space-y-3">
                 {(data.ownerAnalytics?.peakRentalDates || []).slice(0, 7).map((entry) => (
@@ -1022,7 +1022,7 @@ export function OwnerTabs({
               </div>
             </Card>
           </div>
-          <Card className="p-6">
+          <Card className="i3d-card p-6">
             <h3 className="mb-4 text-lg font-bold">Most Rented Camera (Bar)</h3>
             <div className="space-y-3">
               {mostRentedCamera.map((entry) => (
@@ -1039,7 +1039,7 @@ export function OwnerTabs({
               {!mostRentedCamera.length && <p className="text-sm text-muted-foreground">No approved camera transactions yet.</p>}
             </div>
           </Card>
-          <Card className="p-6">
+          <Card className="i3d-card p-6">
             <h3 className="mb-4 text-lg font-bold">Top Renter of the Month</h3>
             <div className="space-y-3">
               {topRentersOfMonth.map((entry) => (
@@ -1057,7 +1057,7 @@ export function OwnerTabs({
               {!topRentersOfMonth.length && <p className="text-sm text-muted-foreground">No top renter data this month yet.</p>}
             </div>
           </Card>
-          <Card className="p-6">
+          <Card className="i3d-card p-6">
             <h3 className="mb-4 text-lg font-bold">Latest Store Ratings</h3>
             <div className="space-y-3">
               {(data.storeRatings || []).slice(0, 8).map((entry, index) => (
@@ -1085,7 +1085,7 @@ export function OwnerTabs({
           </div>
           <div className="space-y-4">
             {pagedCustomers.map((customer) => (
-              <Card key={customer.renter_email} className="space-y-4 p-5">
+              <Card key={customer.renter_email} className="i3d-card space-y-4 p-5">
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_auto] md:items-start">
                   <div className="space-y-1.5">
                     <h3 className="text-lg font-bold">{customer.renter_name}</h3>
@@ -1284,7 +1284,7 @@ export function OwnerTabs({
             {pagedTransactions.map((transaction) => {
               const docs = (transaction.documents || []).filter((doc) => doc.url);
               return (
-                <Card key={transaction.id} className="space-y-4 p-5">
+                <Card key={transaction.id} className="i3d-card space-y-4 p-5">
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_auto] md:items-start">
                     <div className="space-y-1.5">
                       <h3 className="text-lg font-bold">{transaction.renter_name}</h3>
@@ -1449,7 +1449,7 @@ export function OwnerTabs({
           <h1 className="text-3xl font-bold">Rental Applications</h1>
           <div className="grid grid-cols-1 gap-4">
             {pagedApplications.map((application) => (
-              <Card key={application.id} className="w-full cursor-pointer space-y-3 p-5 text-left transition-colors hover:bg-muted/10" onClick={() => onSelectApplication(application)}>
+              <Card key={application.id} className="i3d-card w-full cursor-pointer space-y-3 p-5 text-left transition-colors hover:bg-muted/10" onClick={() => onSelectApplication(application)}>
                 <div className="flex items-start gap-4 text-left">
                     <div
                       className={cn(
@@ -1533,7 +1533,7 @@ export function OwnerTabs({
             ))}
           </div>
 
-          <Card className="overflow-hidden">
+          <Card className="i3d-card overflow-hidden">
             <table className="w-full border-collapse text-left">
               <thead className="bg-muted/50">
                 <tr>
@@ -1641,7 +1641,7 @@ export function OwnerTabs({
 
               const gearColor = itemColorMap.get(item.id) || '#0ea5e9';
               return (
-                <Card key={item.id} className="p-5" style={{ borderColor: gearColor, borderWidth: 2 }}>
+                <Card key={item.id} className="i3d-card p-5" style={{ borderColor: gearColor, borderWidth: 2 }}>
                   <div className="mb-3 flex items-center justify-between">
                     <div>
                       <h3 className="font-bold" style={{ color: gearColor }}>{item.name}</h3>
@@ -1692,7 +1692,7 @@ export function OwnerTabs({
               <Button onClick={onSaveCustomForm}>Save Form</Button>
             </div>
           </div>
-          <Card className="space-y-4 p-5">
+          <Card className="i3d-card space-y-4 p-5">
             <div className="space-y-3 rounded-xl border p-3">
               <label className="flex items-center gap-2 text-sm font-medium">
                 <input
@@ -1790,11 +1790,11 @@ export function OwnerTabs({
           </div>
           <p className="rounded-lg bg-muted/50 p-3 text-sm text-muted-foreground">Add internal/global fraud entries. Global requests need admin approval.</p>
           {fraudAccessError ? (
-            <Card className="p-4">
+            <Card className="i3d-card p-4">
               <p className="text-sm text-amber-900">{fraudAccessError}</p>
             </Card>
           ) : (
-            <Card className="grid grid-cols-1 gap-3 p-4 md:grid-cols-2">
+            <Card className="i3d-card grid grid-cols-1 gap-3 p-4 md:grid-cols-2">
               <Input placeholder="Full name" value={fraudManual.full_name} onChange={(event) => onFraudManualChange({ ...fraudManual, full_name: event.target.value })} />
               <Input placeholder="Email" value={fraudManual.email} onChange={(event) => onFraudManualChange({ ...fraudManual, email: event.target.value })} />
               <Input placeholder="Contact number" value={fraudManual.contact_number} onChange={(event) => onFraudManualChange({ ...fraudManual, contact_number: event.target.value })} />
@@ -1817,7 +1817,7 @@ export function OwnerTabs({
               </div>
             </Card>
           )}
-          <Card className="overflow-hidden">
+          <Card className="i3d-card overflow-hidden">
             <table className="w-full border-collapse text-left">
               <thead className="bg-muted/50">
                 <tr>
@@ -1919,7 +1919,7 @@ export function OwnerTabs({
           <div className="flex items-center justify-between">
             <h1 className="text-3xl font-bold">Store Vouchers</h1>
           </div>
-          <Card className="space-y-3 p-4">
+          <Card className="i3d-card space-y-3 p-4">
             <p className="text-sm font-semibold">Create Voucher</p>
             <p className="text-xs text-muted-foreground">Voucher only works on the store who generates it and can only be used once. No delete, only disable or used/unused mark.</p>
             <div className="grid grid-cols-1 gap-2 md:grid-cols-[1fr,220px,auto]">
@@ -1951,7 +1951,7 @@ export function OwnerTabs({
           </Card>
           <div className="space-y-3">
             {vouchers.map((voucher) => (
-              <Card key={voucher.id} className="space-y-3 p-4">
+              <Card key={voucher.id} className="i3d-card space-y-3 p-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     {editingVoucherId === voucher.id ? (
@@ -2052,7 +2052,7 @@ export function OwnerTabs({
             <p className="text-sm text-muted-foreground">Send feedback to superadmin and track replies.</p>
           </div>
 
-          <Card className="grid grid-cols-1 gap-3 p-4 md:grid-cols-2">
+          <Card className="i3d-card grid grid-cols-1 gap-3 p-4 md:grid-cols-2">
             <select
               className="rounded-md border border-input bg-transparent px-3 py-2 text-sm"
               value={supportForm.type}
@@ -2114,7 +2114,7 @@ export function OwnerTabs({
 
           <div className="space-y-4">
             {supportTickets.map((ticket) => (
-              <Card key={ticket.id} className="space-y-3 p-5">
+              <Card key={ticket.id} className="i3d-card space-y-3 p-5">
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_auto] md:items-start">
                   <div>
                     <p className="inline-flex items-center gap-2 text-base font-semibold">

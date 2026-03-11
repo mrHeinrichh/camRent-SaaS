@@ -218,7 +218,7 @@ export function StorePage({ storeId, onNavigateItem }: StorePageProps) {
               <p className="mb-2 text-sm text-muted-foreground">Average: {reviewAverage.toFixed(1)} / 5 ({reviewTotal} total)</p>
               {user?.role === 'renter' ? (
                 canRate ? (
-                  <Card className="space-y-2 p-3">
+                  <Card className="i3d-card space-y-2 p-3">
                     <select
                       className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm"
                       value={reviewForm.rating}
@@ -316,7 +316,7 @@ export function StorePage({ storeId, onNavigateItem }: StorePageProps) {
 
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {visibleItems.map((item) => (
-                <Card key={item.id} className="group cursor-pointer overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm" onClick={() => onNavigateItem(item.id)}>
+                <Card key={item.id} className="group cursor-pointer overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm i3d-card" onClick={() => onNavigateItem(item.id)}>
                   <div className="relative aspect-[4/3] overflow-hidden">
                     <img
                       src={item.image_url || `https://picsum.photos/seed/item-${item.id}/400/400`}
@@ -355,7 +355,7 @@ export function StorePage({ storeId, onNavigateItem }: StorePageProps) {
 
       {reportOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <Card className="w-full max-w-lg space-y-4 p-5">
+          <Card className="i3d-modal w-full max-w-lg space-y-4 p-5">
             <div className="flex items-start justify-between gap-2">
               <div>
                 <h3 className="text-lg font-semibold">Report {store.name}</h3>
