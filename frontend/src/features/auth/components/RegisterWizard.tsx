@@ -1,6 +1,7 @@
-import { useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Button, Card, Input } from '@/src/components/ui';
 import { PhoneInput } from '@/src/components/PhoneInput';
+import { api } from '@/src/lib/api';
 import { validatePhone } from '@/src/lib/phone';
 import type { RegisterFormState, StoreBranchInput } from '@/src/features/auth/types';
 
@@ -41,6 +42,14 @@ export function RegisterWizard({ submitting, onSubmit, onOpenPolicies }: Registe
   const [branchLocationLoading, setBranchLocationLoading] = useState<Record<number, boolean>>({});
   const [agreePolicies, setAgreePolicies] = useState(false);
   const [policyError, setPolicyError] = useState('');
+  const [otpCode, setOtpCode] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpVerified, setOtpVerified] = useState(false);
+  const [otpMessage, setOtpMessage] = useState('');
+  const [otpError, setOtpError] = useState('');
+  const [otpSending, setOtpSending] = useState(false);
+  const [otpVerifying, setOtpVerifying] = useState(false);
+  const [otpCooldown, setOtpCooldown] = useState(0);
 
   const totalSteps = role === 'owner' ? 3 : 2;
 
@@ -55,7 +64,10 @@ export function RegisterWizard({ submitting, onSubmit, onOpenPolicies }: Registe
       alert(phoneCheck.error);
       return false;
     }
-    if (role === 'renter') return true;
+    if (!otpVerified) {
+      alert('Please verify your email first.');
+      return false;
+    }
     if (targetStep === 2) return true;
     if (!storeName.trim() || !storeAddress.trim() || !storeDescription.trim()) {
       alert('Store name, address, and description are required.');
@@ -86,6 +98,63 @@ export function RegisterWizard({ submitting, onSubmit, onOpenPolicies }: Registe
   const handleBack = () => {
     setPolicyError('');
     setStep((current) => Math.max(1, current - 1));
+  };
+
+  useEffect(() => {
+    if (!otpCooldown) return;
+    const timer = setInterval(() => {
+      setOtpCooldown((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [otpCooldown]);
+
+  useEffect(() => {
+    setOtpSent(false);
+    setOtpVerified(false);
+    setOtpCode('');
+    setOtpMessage('');
+    setOtpError('');
+  }, [email, role]);
+
+  const requestOtp = async () => {
+    if (otpSending || otpCooldown) return;
+    if (!email.trim()) {
+      setOtpError('Email is required to send a code.');
+      return;
+    }
+    setOtpSending(true);
+    setOtpError('');
+    setOtpMessage('');
+    try {
+      await api.post<{ success: boolean; expires_in: number }>('/api/auth/send-otp', { email });
+      setOtpSent(true);
+      setOtpMessage('Verification code sent. Check your email.');
+      setOtpCooldown(60);
+    } catch (error: any) {
+      setOtpError(error.message || 'Unable to send verification code.');
+    } finally {
+      setOtpSending(false);
+    }
+  };
+
+  const verifyOtp = async () => {
+    if (otpVerifying) return;
+    if (!otpCode.trim()) {
+      setOtpError('Enter the verification code.');
+      return;
+    }
+    setOtpVerifying(true);
+    setOtpError('');
+    setOtpMessage('');
+    try {
+      await api.post<{ success: boolean }>('/api/auth/verify-otp', { email, code: otpCode });
+      setOtpVerified(true);
+      setOtpMessage('Email verified successfully.');
+    } catch (error: any) {
+      setOtpError(error.message || 'Invalid verification code.');
+    } finally {
+      setOtpVerifying(false);
+    }
   };
 
   const updateDeliveryMode = (index: number, value: string) => {
@@ -180,6 +249,10 @@ export function RegisterWizard({ submitting, onSubmit, onOpenPolicies }: Registe
       return;
     }
     setPolicyError('');
+    if (role === 'owner' && !otpVerified) {
+      alert('Please verify your owner email before submitting.');
+      return;
+    }
     if (role === 'owner') {
       const invalidBranch = storeBranches.find((branch, index) => {
         const address = (index === 0 ? storeAddress : branch.address).trim();
@@ -255,6 +328,37 @@ export function RegisterWizard({ submitting, onSubmit, onOpenPolicies }: Registe
               <option value="renter">Rent Equipment</option>
               <option value="owner">Register a Store</option>
             </select>
+          </div>
+          <div className="space-y-2 rounded-md border border-dashed p-3">
+            <label className="text-sm font-medium">Email Verification</label>
+            {role === 'renter' ? (
+              <p className="text-xs text-muted-foreground">Use Google sign-in to skip email verification, or verify by code below.</p>
+            ) : (
+              <p className="text-xs text-muted-foreground">Owner accounts must verify email before continuing.</p>
+            )}
+            <div className="flex flex-wrap items-center gap-2">
+              <Button type="button" variant="outline" size="sm" onClick={requestOtp} disabled={otpSending || otpCooldown > 0}>
+                {otpCooldown > 0 ? `Resend in ${otpCooldown}s` : otpSending ? 'Sending...' : otpSent ? 'Resend Code' : 'Send Code'}
+              </Button>
+              {otpVerified ? (
+                <span className="text-xs font-medium text-emerald-600">Verified</span>
+              ) : (
+                <span className="text-xs text-muted-foreground">Code expires in 10 minutes</span>
+              )}
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Input
+                placeholder="Enter 6-digit code"
+                value={otpCode}
+                onChange={(event) => setOtpCode(event.target.value)}
+                className="max-w-[200px]"
+              />
+              <Button type="button" size="sm" onClick={verifyOtp} disabled={otpVerifying || otpVerified}>
+                {otpVerified ? 'Verified' : otpVerifying ? 'Verifying...' : 'Verify'}
+              </Button>
+            </div>
+            {otpMessage ? <p className="text-xs text-emerald-600">{otpMessage}</p> : null}
+            {otpError ? <p className="text-xs text-red-600">{otpError}</p> : null}
           </div>
         </Card>
       )}

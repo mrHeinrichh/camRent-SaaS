@@ -6,14 +6,19 @@ import jwt from 'jsonwebtoken';
 import { DEFAULT_STORE_BANNER_URL, DEFAULT_STORE_LOGO_URL, DEFAULT_USER_AVATAR_URL } from '../config/defaults';
 import { env } from '../config/env';
 import { authenticate, checkRole, requireAuth } from '../middleware/auth';
+import { EmailOtp } from '../models/EmailOtp';
 import { Store } from '../models/Store';
 import { User } from '../models/User';
+import { sendOtpEmail } from '../services/emailService';
 import type { AuthedRequest } from '../types/auth';
 import { validateE164Phone } from '../utils/phone';
 import { serialize } from '../utils/mongo';
 
 export const authRoutes = Router();
 const googleClient = env.googleClientId ? new OAuth2Client(env.googleClientId) : null;
+const OTP_EXPIRES_MINUTES = 10;
+const OTP_RESEND_COOLDOWN_SECONDS = 60;
+const OTP_MAX_ATTEMPTS = 5;
 
 authRoutes.post('/register', async (req, res) => {
   const {
@@ -44,13 +49,25 @@ authRoutes.post('/register', async (req, res) => {
     security_deposit,
   } = req.body;
   try {
+    const normalizedEmail = String(email || '').trim().toLowerCase();
+    const normalizedRole = role || 'renter';
+    if (!normalizedEmail || !/^\S+@\S+\.\S+$/.test(normalizedEmail)) {
+      return res.status(400).json({ error: 'Valid email is required' });
+    }
+    if (normalizedRole) {
+      const otpRecord = await EmailOtp.findOne({ email: normalizedEmail, verified_at: { $ne: null } }).sort({ created_at: -1 });
+      if (!otpRecord || otpRecord.expires_at.getTime() < Date.now()) {
+        return res.status(400).json({ error: 'Email verification is required' });
+      }
+    }
+
     const hashedPassword = await bcrypt.hash(password, 10);
     const phoneCheck = validateE164Phone(phone);
     if (!phoneCheck.valid) return res.status(400).json({ error: phoneCheck.error });
     const user = await User.create({
-      email,
+      email: normalizedEmail,
       password: hashedPassword,
-      role: role || 'renter',
+      role: normalizedRole,
       full_name,
       avatar_url: profile_image_url || DEFAULT_USER_AVATAR_URL,
       phone: String(phone || '').trim(),
@@ -126,6 +143,8 @@ authRoutes.post('/register', async (req, res) => {
 
     const token = jwt.sign({ id: user._id.toString(), role: user.role, email: user.email }, env.jwtSecret);
     res.json({ token, user: serialize(user) });
+
+    await EmailOtp.deleteMany({ email: normalizedEmail });
   } catch (error: any) {
     console.error('[auth] register failed', {
       email,
@@ -155,6 +174,82 @@ authRoutes.post('/login', async (req, res) => {
   const token = jwt.sign({ id: user._id.toString(), role: user.role, email: user.email }, env.jwtSecret);
   res.json({ token, user: serialize(user) });
 });
+
+const sendOtpHandler = async (req: any, res: any) => {
+  const email = String(req.body?.email || '').trim().toLowerCase();
+  if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
+    return res.status(400).json({ error: 'Valid email is required' });
+  }
+
+  const existingUser = await User.findOne({ email }).lean();
+  if (existingUser) {
+    return res.status(400).json({ error: 'Email already exists' });
+  }
+
+  const latest = await EmailOtp.findOne({ email }).sort({ created_at: -1 });
+  if (latest?.created_at) {
+    const elapsed = Date.now() - latest.created_at.getTime();
+    if (elapsed < OTP_RESEND_COOLDOWN_SECONDS * 1000) {
+      const remaining = Math.ceil((OTP_RESEND_COOLDOWN_SECONDS * 1000 - elapsed) / 1000);
+      return res.status(429).json({ error: `Please wait ${remaining}s before requesting another code.` });
+    }
+  }
+
+  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  const codeHash = await bcrypt.hash(code, 10);
+  const expiresAt = new Date(Date.now() + OTP_EXPIRES_MINUTES * 60 * 1000);
+  await EmailOtp.deleteMany({ email });
+  await EmailOtp.create({ email, code_hash: codeHash, expires_at: expiresAt, attempts: 0 });
+
+  try {
+    await sendOtpEmail({ to: email, code, expiresMinutes: OTP_EXPIRES_MINUTES });
+  } catch (error: any) {
+    console.error('[auth] send otp failed', { email, message: error?.message });
+    return res.status(500).json({ error: 'Unable to send verification email' });
+  }
+
+  res.json({ success: true, expires_in: OTP_EXPIRES_MINUTES * 60 });
+};
+
+const verifyOtpHandler = async (req: any, res: any) => {
+  const email = String(req.body?.email || '').trim().toLowerCase();
+  const code = String(req.body?.code || '').trim();
+  if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
+    return res.status(400).json({ error: 'Valid email is required' });
+  }
+  if (!code) {
+    return res.status(400).json({ error: 'Verification code is required' });
+  }
+
+  const record = await EmailOtp.findOne({ email }).sort({ created_at: -1 });
+  if (!record) {
+    return res.status(400).json({ error: 'No verification code found. Please request a new code.' });
+  }
+  if (record.expires_at.getTime() < Date.now()) {
+    await EmailOtp.deleteMany({ email });
+    return res.status(400).json({ error: 'Verification code expired. Please request a new code.' });
+  }
+  if (record.attempts >= OTP_MAX_ATTEMPTS) {
+    await EmailOtp.deleteMany({ email });
+    return res.status(400).json({ error: 'Too many attempts. Please request a new code.' });
+  }
+
+  const ok = await bcrypt.compare(code, record.code_hash);
+  if (!ok) {
+    record.attempts += 1;
+    await record.save();
+    return res.status(400).json({ error: 'Invalid verification code' });
+  }
+
+  record.verified_at = new Date();
+  await record.save();
+  res.json({ success: true });
+};
+
+authRoutes.post('/send-otp', sendOtpHandler);
+authRoutes.post('/verify-otp', verifyOtpHandler);
+authRoutes.post('/owner/send-otp', sendOtpHandler);
+authRoutes.post('/owner/verify-otp', verifyOtpHandler);
 
 authRoutes.post('/google', async (req, res) => {
   if (!googleClient || !env.googleClientId) {

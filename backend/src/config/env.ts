@@ -20,4 +20,9 @@ export const env = {
   cloudinaryApiSecret: process.env.CLOUDINARY_API_SECRET,
   corsOrigins: process.env.CORS_ORIGINS || process.env.FRONTEND_URL || '',
   googleClientId: process.env.GOOGLE_CLIENT_ID || '',
+  smtpHost: process.env.SMTP_HOST || 'smtp.gmail.com',
+  smtpPort: Number(process.env.SMTP_PORT || 465),
+  smtpUser: process.env.SMTP_USER || '',
+  smtpPass: process.env.SMTP_PASS || '',
+  smtpFrom: process.env.SMTP_FROM || '',
 };
