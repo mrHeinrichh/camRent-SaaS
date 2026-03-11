@@ -316,8 +316,8 @@ export function StorePage({ storeId, onNavigateItem }: StorePageProps) {
 
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {visibleItems.map((item) => (
-                <Card key={item.id} className="group cursor-pointer overflow-hidden" onClick={() => onNavigateItem(item.id)}>
-                  <div className="relative aspect-square overflow-hidden">
+                <Card key={item.id} className="group cursor-pointer overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm" onClick={() => onNavigateItem(item.id)}>
+                  <div className="relative aspect-[4/3] overflow-hidden">
                     <img
                       src={item.image_url || `https://picsum.photos/seed/item-${item.id}/400/400`}
                       className="h-full w-full object-cover transition-transform group-hover:scale-105"
@@ -327,16 +327,16 @@ export function StorePage({ storeId, onNavigateItem }: StorePageProps) {
                   </div>
 
                   <div className="p-4">
-                    <h3 className="mb-1 font-bold">{item.name}</h3>
-                    <p className="mb-4 line-clamp-1 text-sm text-muted-foreground">{item.description}</p>
-                    <p className="mb-2 text-xs text-muted-foreground">Brand: {item.brand || ''}</p>
+                    <h3 className="mb-1 text-sm font-extrabold text-slate-900 sm:text-base">{item.name}</h3>
+                    <p className="mb-3 line-clamp-2 text-xs text-slate-500 sm:text-sm">{item.description || 'No description provided.'}</p>
+                    <p className="mb-2 text-[11px] text-slate-500">Brand: {item.brand || 'Others'}</p>
                     <div className="flex items-center justify-between">
                       <div>
-                        <span className="text-lg font-bold">{formatPHP(item.daily_price)}</span>
-                        <span className="text-xs text-muted-foreground"> / day</span>
-                        <p className="text-xs text-muted-foreground">Stock: {Math.max(0, item.stock || 0)}</p>
+                        <span className="text-sm font-extrabold text-slate-900 sm:text-base">{formatPHP(item.daily_price)}</span>
+                        <span className="text-xs text-slate-500"> / day</span>
+                        <p className="text-[11px] text-slate-500">Stock: {Math.max(0, item.stock || 0)}</p>
                       </div>
-                      <Button size="sm" variant="outline">
+                      <Button size="sm" variant="outline" className="rounded-full">
                         View Details
                       </Button>
                     </div>

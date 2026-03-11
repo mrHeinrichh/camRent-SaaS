@@ -6,9 +6,9 @@ interface RateLimitEntry {
   cooldownUntil: number;
 }
 
-const MAX_REQUESTS = 5;
+const MAX_REQUESTS = 15;
 const WINDOW_MS = 15_000;
-const COOLDOWN_MS = 30_000;
+const COOLDOWN_MS = 15_000;
 const FALLBACK_IMAGE_URL = 'https://placehold.co/1200x630?text=Temporarily+Unavailable';
 
 const buckets = new Map<string, RateLimitEntry>();
