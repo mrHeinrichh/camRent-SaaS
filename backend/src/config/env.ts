@@ -12,7 +12,7 @@ if (rawCloudinaryCloudName && rawCloudinaryCloudName !== normalizedCloudinaryClo
 }
 
 export const env = {
-  port: Number(process.env.PORT || 3000),
+  port: Number(process.env.PORT || 3001),
   jwtSecret: process.env.JWT_SECRET || 'super-secret-key',
   mongoUri: process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/camrent',
   cloudinaryCloudName: normalizedCloudinaryCloudName,
