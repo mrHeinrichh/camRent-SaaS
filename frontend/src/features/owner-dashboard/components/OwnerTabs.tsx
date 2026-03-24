@@ -102,6 +102,8 @@ interface OwnerTabsProps {
     location_lat?: number | null;
     location_lng?: number | null;
   }) => Promise<void>;
+  validationErrors: Record<string, string>;
+  clearValidationError: (field: string) => void;
 }
 
 export function OwnerTabs({
@@ -160,6 +162,8 @@ export function OwnerTabs({
   onCreateVoucher,
   onUpdateVoucher,
   onSaveStoreProfile,
+  validationErrors,
+  clearValidationError,
 }: OwnerTabsProps) {
   const [fileLoading, setFileLoading] = useState(false);
   const [expandedCustomerEmail, setExpandedCustomerEmail] = useState<string | null>(null);
@@ -211,6 +215,7 @@ export function OwnerTabs({
   });
   const [storeQrUrl, setStoreQrUrl] = useState('');
   const [storeQrError, setStoreQrError] = useState('');
+  const [ownerNotice, setOwnerNotice] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   useEffect(() => {
     const rawStore = (data.store || {}) as Record<string, any>;
@@ -385,7 +390,8 @@ export function OwnerTabs({
       anchor.remove();
       URL.revokeObjectURL(objectUrl);
     } catch (error: any) {
-      alert(error?.message || 'Unable to download file.');
+      setOwnerNotice({ type: 'error', message: error?.message || 'Unable to download file.' });
+      setTimeout(() => setOwnerNotice(null), 5000);
     } finally {
       setFileLoading(false);
     }
@@ -412,7 +418,7 @@ export function OwnerTabs({
 
   const fillWithCurrentLocation = (branchIndex: number | null) => {
     if (!navigator.geolocation) {
-      alert('Geolocation is not available in this browser.');
+      setOwnerNotice({ type: 'error', message: 'Geolocation is not available in this browser.' });
       return;
     }
     if (branchIndex === null) setLocationLoading(true);
@@ -448,7 +454,7 @@ export function OwnerTabs({
           alert('Precise GPS location unavailable. Using approximate location based on your network.');
           return;
         } catch {
-          alert(error.message || 'Unable to get your current location.');
+          setOwnerNotice({ type: 'error', message: error.message || 'Unable to get your current location.' });
         }
       },
     );
@@ -473,7 +479,7 @@ export function OwnerTabs({
       if (branchIndex === null) setLocationSearchResults(mapped);
       else setBranchSearchResults((prev) => ({ ...prev, [branchIndex]: mapped }));
     } catch (error: any) {
-      alert(error?.message || 'Failed to search location by name.');
+      setOwnerNotice({ type: 'error', message: error?.message || 'Failed to search location by name.' });
     } finally {
       if (branchIndex === null) setLocationSearchLoading(false);
       else setBranchSearchLoading((prev) => ({ ...prev, [branchIndex]: false }));
@@ -550,11 +556,25 @@ export function OwnerTabs({
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                   <label className="space-y-1 text-sm">
                     <span className="text-xs text-muted-foreground">Name</span>
-                    <Input value={storeProfileForm.name} onChange={(event) => setStoreProfileForm((prev) => ({ ...prev, name: event.target.value }))} />
+                    <Input
+                      value={storeProfileForm.name}
+                      onChange={(event) => {
+                        setStoreProfileForm((prev) => ({ ...prev, name: event.target.value }));
+                        clearValidationError('storeName');
+                      }}
+                      error={validationErrors.storeName}
+                    />
                   </label>
                   <label className="space-y-1 text-sm">
                     <span className="text-xs text-muted-foreground">Address</span>
-                    <Input value={storeProfileForm.address} onChange={(event) => setStoreProfileForm((prev) => ({ ...prev, address: event.target.value }))} />
+                    <Input
+                      value={storeProfileForm.address}
+                      onChange={(event) => {
+                        setStoreProfileForm((prev) => ({ ...prev, address: event.target.value }));
+                        clearValidationError('storeAddress');
+                      }}
+                      error={validationErrors.storeAddress}
+                    />
                   </label>
                   <label className="space-y-1 text-sm">
                     <span className="text-xs text-muted-foreground">Facebook URL</span>
@@ -654,18 +674,26 @@ export function OwnerTabs({
                   <label className="space-y-1 text-sm md:col-span-2">
                     <span className="text-xs text-muted-foreground">Description</span>
                     <textarea
-                      className="min-h-24 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm"
+                      className={`min-h-24 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ${validationErrors.storeDescription ? 'border-red-500' : ''}`}
                       value={storeProfileForm.description}
-                      onChange={(event) => setStoreProfileForm((prev) => ({ ...prev, description: event.target.value }))}
+                      onChange={(event) => {
+                        setStoreProfileForm((prev) => ({ ...prev, description: event.target.value }));
+                        clearValidationError('storeDescription');
+                      }}
                     />
+                    {validationErrors.storeDescription && <p className="mt-1 text-xs text-red-500">{validationErrors.storeDescription}</p>}
                   </label>
                   <label className="space-y-1 text-sm md:col-span-2">
                     <span className="text-xs text-muted-foreground">Payment Details</span>
                     <textarea
-                      className="min-h-24 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm"
+                      className={`min-h-24 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ${validationErrors.paymentDetails ? 'border-red-500' : ''}`}
                       value={storeProfileForm.payment_details}
-                      onChange={(event) => setStoreProfileForm((prev) => ({ ...prev, payment_details: event.target.value }))}
+                      onChange={(event) => {
+                        setStoreProfileForm((prev) => ({ ...prev, payment_details: event.target.value }));
+                        clearValidationError('paymentDetails');
+                      }}
                     />
+                    {validationErrors.paymentDetails && <p className="mt-1 text-xs text-red-500">{validationErrors.paymentDetails}</p>}
                   </label>
                   <div className="space-y-2 md:col-span-2">
                     <FileUpload
@@ -785,7 +813,7 @@ export function OwnerTabs({
                           .filter((branch) => branch.address);
                         const hasInvalidBranch = parsedBranches.some((branch) => !Number.isFinite(Number(branch.location_lat)) || !Number.isFinite(Number(branch.location_lng)));
                         if (hasInvalidBranch) {
-                          alert('Each branch must have a valid pin location.');
+                          setOwnerNotice({ type: 'error', message: 'Each branch must have a valid pin location.' });
                           return;
                         }
                         let nextLogoUrl = storeProfileForm.logo_url;
@@ -1152,7 +1180,7 @@ export function OwnerTabs({
                                       const access = await resolveFileAccess(requirement.url);
                                       window.open(access.view_url, '_blank', 'noopener,noreferrer');
                                     } catch (error: any) {
-                                      alert(error?.message || 'Unable to view file.');
+                                      setOwnerNotice({ type: 'error', message: error?.message || 'Unable to view file.' });
                                     } finally {
                                       setFileLoading(false);
                                     }
@@ -1410,10 +1438,10 @@ export function OwnerTabs({
                                         const access = await resolveFileAccess(doc.url);
                                         window.open(access.view_url, '_blank', 'noopener,noreferrer');
                                       } catch (error: any) {
-                                        alert(error?.message || 'Unable to view file.');
-                                    } finally {
-                                      setFileLoading(false);
-                                    }
+                                        setOwnerNotice({ type: 'error', message: error?.message || 'Unable to view file.' });
+                                      } finally {
+                                        setFileLoading(false);
+                                      }
                                   }}
                                     className="flex items-center justify-center rounded border px-2 py-1.5 text-[10px] font-semibold"
                                   >
@@ -1874,9 +1902,9 @@ export function OwnerTabs({
                                       try {
                                         const access = await resolveFileAccess(file.url);
                                         window.open(access.view_url, '_blank', 'noopener,noreferrer');
-                                      } catch (error: any) {
-                                        alert(error?.message || 'Failed to preview file');
-                                      }
+                                        } catch (error: any) {
+                                          setOwnerNotice({ type: 'error', message: error?.message || 'Failed to preview file' });
+                                        }
                                     }}
                                   >
                                     <ExternalLink className="h-3 w-3" /> View
@@ -1926,21 +1954,35 @@ export function OwnerTabs({
               <Input
                 placeholder="Code (e.g. WELCOME100)"
                 value={voucherForm.code}
-                onChange={(event) => setVoucherForm((prev) => ({ ...prev, code: event.target.value.toUpperCase() }))}
+                onChange={(event) => {
+                  setVoucherForm((prev) => ({ ...prev, code: event.target.value.toUpperCase() }));
+                  clearValidationError('voucherCode');
+                }}
+                error={validationErrors.voucherCode}
               />
               <Input
                 placeholder="Discount Amount"
                 type="number"
                 min="1"
                 value={voucherForm.discount_amount}
-                onChange={(event) => setVoucherForm((prev) => ({ ...prev, discount_amount: event.target.value }))}
+                onChange={(event) => {
+                  setVoucherForm((prev) => ({ ...prev, discount_amount: event.target.value }));
+                  clearValidationError('voucherAmount');
+                }}
+                error={validationErrors.voucherAmount}
               />
               <Button
                 onClick={async () => {
                   const code = voucherForm.code.trim().toUpperCase();
                   const discount = Number(voucherForm.discount_amount);
-                  if (!code) return alert('Voucher code is required');
-                  if (!Number.isFinite(discount) || discount <= 0) return alert('Discount amount must be greater than 0');
+                  if (!code) {
+                    setOwnerNotice({ type: 'error', message: 'Voucher code is required' });
+                    return;
+                  }
+                  if (!Number.isFinite(discount) || discount <= 0) {
+                    setOwnerNotice({ type: 'error', message: 'Discount amount must be greater than 0' });
+                    return;
+                  }
                   await onCreateVoucher({ code, discount_amount: discount, is_active: true });
                   setVoucherForm({ code: '', discount_amount: '' });
                 }}
@@ -1958,15 +2000,23 @@ export function OwnerTabs({
                       <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
                         <Input
                           value={editingVoucherForm.code}
-                          onChange={(event) => setEditingVoucherForm((prev) => ({ ...prev, code: event.target.value.toUpperCase() }))}
+                          onChange={(event) => {
+                            setEditingVoucherForm((prev) => ({ ...prev, code: event.target.value.toUpperCase() }));
+                            clearValidationError('voucherCode');
+                          }}
                           placeholder="Voucher code"
+                          error={validationErrors.voucherCode}
                         />
                         <Input
                           type="number"
                           min="1"
                           value={editingVoucherForm.discount_amount}
-                          onChange={(event) => setEditingVoucherForm((prev) => ({ ...prev, discount_amount: event.target.value }))}
+                          onChange={(event) => {
+                            setEditingVoucherForm((prev) => ({ ...prev, discount_amount: event.target.value }));
+                            clearValidationError('voucherAmount');
+                          }}
                           placeholder="Discount amount"
+                          error={validationErrors.voucherAmount}
                         />
                       </div>
                     ) : (
@@ -1999,8 +2049,14 @@ export function OwnerTabs({
                           onClick={async () => {
                             const code = editingVoucherForm.code.trim().toUpperCase();
                             const discount = Number(editingVoucherForm.discount_amount);
-                            if (!code) return alert('Voucher code is required');
-                            if (!Number.isFinite(discount) || discount <= 0) return alert('Discount amount must be greater than 0');
+                            if (!code) {
+                              setOwnerNotice({ type: 'error', message: 'Voucher code is required' });
+                              return;
+                            }
+                            if (!Number.isFinite(discount) || discount <= 0) {
+                              setOwnerNotice({ type: 'error', message: 'Discount amount must be greater than 0' });
+                              return;
+                            }
                             await onUpdateVoucher(voucher.id, { code, discount_amount: discount });
                             setEditingVoucherId(null);
                             setEditingVoucherForm({ code: '', discount_amount: '' });
@@ -2071,18 +2127,34 @@ export function OwnerTabs({
               <option value="medium">Medium Priority</option>
               <option value="high">High Priority</option>
             </select>
-            <Input className="md:col-span-2" placeholder="Subject" value={supportForm.subject} onChange={(event) => setSupportForm((prev) => ({ ...prev, subject: event.target.value }))} />
+            <Input
+              className="md:col-span-2"
+              placeholder="Subject"
+              value={supportForm.subject}
+              onChange={(event) => {
+                setSupportForm((prev) => ({ ...prev, subject: event.target.value }));
+                clearValidationError('supportSubject');
+              }}
+              error={validationErrors.supportSubject}
+            />
             <textarea
-              className="min-h-28 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring md:col-span-2"
+              className={`min-h-28 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring md:col-span-2 ${validationErrors.supportMessage ? 'border-red-500' : ''}`}
               placeholder="Write your feedback/support message..."
               value={supportForm.message}
-              onChange={(event) => setSupportForm((prev) => ({ ...prev, message: event.target.value }))}
+              onChange={(event) => {
+                setSupportForm((prev) => ({ ...prev, message: event.target.value }));
+                clearValidationError('supportMessage');
+              }}
             />
+            {validationErrors.supportMessage && <p className="mt-1 text-xs text-red-500 md:col-span-2">{validationErrors.supportMessage}</p>}
             <div className="md:col-span-2">
               <Button
                 disabled={supportBusy}
                 onClick={async () => {
-                  if (!supportForm.subject.trim() || !supportForm.message.trim()) return alert('Subject and message are required');
+                  if (!supportForm.subject.trim() || !supportForm.message.trim()) {
+                    setOwnerNotice({ type: 'error', message: 'Subject and message are required' });
+                    return;
+                  }
                   try {
                     setSupportBusy(true);
                     if (editingSupportId) {
@@ -2161,6 +2233,16 @@ export function OwnerTabs({
       )}
 
       {fileLoading ? <p className="mt-4 text-xs text-muted-foreground">Preparing file...</p> : null}
+      {ownerNotice && (
+        <div className="fixed bottom-6 right-6 z-[100] max-w-md animate-in fade-in slide-in-from-bottom-5">
+          <div className={cn(
+            "rounded-2xl border p-4 shadow-2xl backdrop-blur-md",
+            ownerNotice.type === 'success' ? "bg-emerald-50/90 border-emerald-200 text-emerald-900" : "bg-red-50/90 border-red-200 text-red-900"
+          )}>
+            <p className="text-sm font-bold">{ownerNotice.message}</p>
+          </div>
+        </div>
+      )}
     </>
   );
 }

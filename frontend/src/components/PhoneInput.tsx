@@ -7,10 +7,11 @@ interface PhoneInputProps {
   value: string;
   required?: boolean;
   disabled?: boolean;
+  error?: string;
   onChange: (value: string) => void;
 }
 
-export function PhoneInput({ label, value, required, disabled, onChange }: PhoneInputProps) {
+export function PhoneInput({ label, value, required, disabled, error, onChange }: PhoneInputProps) {
   const parsed = useMemo(() => parseE164(value), [value]);
   const [dial, setDial] = useState(parsed.dial);
   const [national, setNational] = useState(parsed.national);
@@ -27,11 +28,11 @@ export function PhoneInput({ label, value, required, disabled, onChange }: Phone
     : 'Enter digits only';
 
   return (
-    <div className="space-y-2">
-      <label className="text-sm font-medium">{label}</label>
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-[180px,1fr]">
+    <div className="space-y-1.5 w-full">
+      <label className="text-[10px] font-black uppercase tracking-widest text-[var(--tone-text-muted)] mb-1.5 ml-1 block">{label}</label>
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-[140px,1fr]">
         <select
-          className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
+          className="h-12 w-full rounded-xl border border-[var(--tone-border)] bg-[var(--tone-surface-soft)] px-3 text-sm transition-all focus:border-[var(--tone-accent)] focus:ring-4 focus:ring-[var(--tone-accent)]/20 shadow-sm"
           value={dial}
           onChange={(event) => {
             const nextDial = event.target.value;
@@ -43,7 +44,7 @@ export function PhoneInput({ label, value, required, disabled, onChange }: Phone
         >
           {PHONE_COUNTRIES.map((country) => (
             <option key={country.dial + country.name} value={country.dial}>
-              {country.name}
+              +{country.dial} {country.name}
             </option>
           ))}
         </select>
@@ -53,6 +54,7 @@ export function PhoneInput({ label, value, required, disabled, onChange }: Phone
           inputMode="numeric"
           placeholder={`e.g. ${selectedCountry.dial === '63' ? '9XXXXXXXXX' : 'XXXXXXXXXX'}`}
           value={national}
+          error={error}
           onChange={(event) => {
             const digits = normalizeDigits(event.target.value).slice(0, maxLength);
             setNational(digits);
@@ -60,7 +62,7 @@ export function PhoneInput({ label, value, required, disabled, onChange }: Phone
           }}
         />
       </div>
-      <p className="text-xs text-muted-foreground">{helper}</p>
+      {!error && <p className="mt-1 ml-1 text-xs text-[var(--tone-text-muted)]">{helper}</p>}
     </div>
   );
 }

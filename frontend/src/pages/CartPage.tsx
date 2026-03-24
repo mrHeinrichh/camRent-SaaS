@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Calendar as CalendarIcon, ReceiptText, ShoppingCart, TicketPercent, Trash2 } from 'lucide-react';
 import { api } from '@/src/lib/api';
 import { formatPHP } from '@/src/lib/currency';
-import { Button, Card } from '@/src/components/ui';
+import { Button, Card, cn } from '@/src/components/ui';
 import { useAppStore } from '@/src/store';
 
 interface CartPageProps {
@@ -14,6 +14,9 @@ export function CartPage({ onCheckout }: CartPageProps) {
   const [voucherCodeInput, setVoucherCodeInput] = useState('');
   const [voucherBusy, setVoucherBusy] = useState(false);
   const [checkoutBusy, setCheckoutBusy] = useState(false);
+  const [voucherError, setVoucherError] = useState('');
+  const [voucherSuccess, setVoucherSuccess] = useState('');
+
   const rentalSubtotal = cart.reduce((sum, item) => sum + item.daily_price * Math.max(1, item.quantity || 1), 0);
   const voucherDiscount = appliedVoucher && appliedVoucher.store_id === cart[0]?.store_id ? Math.max(0, Number(appliedVoucher.discount_amount || 0)) : 0;
   const finalTotal = Math.max(0, rentalSubtotal - voucherDiscount);
@@ -123,21 +126,31 @@ export function CartPage({ onCheckout }: CartPageProps) {
               <p className="text-xs text-slate-500">Voucher only works on the store who generates it.</p>
               <div className="flex gap-2">
                 <input
-                  className="h-10 w-full rounded-full border border-slate-200 bg-white px-3 text-sm"
+                  className={cn(
+                    "h-10 w-full rounded-full border bg-white px-4 text-sm outline-none transition-all focus:ring-4",
+                    voucherError ? "border-red-500 focus:ring-red-500/10" : "border-slate-200 focus:border-[var(--tone-accent)] focus:ring-[var(--tone-accent)]/10"
+                  )}
                   placeholder="Enter voucher code"
                   value={voucherCodeInput}
-                  onChange={(event) => setVoucherCodeInput(event.target.value.toUpperCase())}
+                  onChange={(event) => {
+                    setVoucherCodeInput(event.target.value.toUpperCase());
+                    setVoucherError('');
+                    setVoucherSuccess('');
+                  }}
                 />
                 <Button
                   type="button"
                   variant="outline"
                   disabled={voucherBusy}
+                  className="rounded-full h-10 px-6 font-bold"
                   onClick={async () => {
-                    if (!user) return alert('Login as renter to apply voucher.');
+                    setVoucherError('');
+                    setVoucherSuccess('');
+                    if (!user) return setVoucherError('Login as renter to apply voucher.');
                     const storeId = cart[0]?.store_id;
-                    if (!storeId) return alert('Cart store is missing');
+                    if (!storeId) return setVoucherError('Cart store is missing');
                     const code = voucherCodeInput.trim().toUpperCase();
-                    if (!code) return alert('Enter voucher code');
+                    if (!code) return setVoucherError('Enter voucher code');
                     try {
                       setVoucherBusy(true);
                       const result = await api.post<{ success: boolean; voucher: { code: string; discount_amount: number; store_id: string; note: string } }>('/api/orders/voucher/validate', {
@@ -145,9 +158,9 @@ export function CartPage({ onCheckout }: CartPageProps) {
                         code,
                       });
                       setAppliedVoucher(result.voucher);
-                      alert(result.voucher.note || 'Voucher applied');
+                      setVoucherSuccess(result.voucher.note || 'Voucher applied successfully!');
                     } catch (error: any) {
-                      alert(error.message || 'Failed to apply voucher');
+                      setVoucherError(error.message || 'Failed to apply voucher');
                     } finally {
                       setVoucherBusy(false);
                     }
@@ -156,10 +169,12 @@ export function CartPage({ onCheckout }: CartPageProps) {
                   Apply
                 </Button>
               </div>
+              {voucherError && <p className="mt-2 ml-1 text-xs font-bold text-red-500 animate-fade-up">{voucherError}</p>}
+              {voucherSuccess && <p className="mt-2 ml-1 text-xs font-bold text-emerald-600 animate-fade-up">{voucherSuccess}</p>}
               {appliedVoucher && appliedVoucher.store_id === cart[0]?.store_id ? (
-                <p className="text-xs text-emerald-700">
-                  Applied: <span className="font-semibold">{appliedVoucher.code}</span> (-{formatPHP(appliedVoucher.discount_amount)})
-                  <button type="button" className="ml-2 underline" onClick={() => setAppliedVoucher(null)}>
+                <p className="mt-2 text-xs font-medium text-emerald-700 bg-emerald-50 p-2 rounded-lg flex items-center justify-between">
+                  <span>Applied: <span className="font-bold">{appliedVoucher.code}</span> (-{formatPHP(appliedVoucher.discount_amount)})</span>
+                  <button type="button" className="text-[10px] font-black uppercase tracking-widest underline hover:text-emerald-900" onClick={() => { setAppliedVoucher(null); setVoucherSuccess(''); }}>
                     Remove
                   </button>
                 </p>

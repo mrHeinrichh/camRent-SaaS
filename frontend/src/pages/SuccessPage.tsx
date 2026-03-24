@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
-import { CheckCircle2, Download, FileImage, FileText, MapPin, Phone, ReceiptText, Store, Truck, User } from 'lucide-react';
+import { CheckCircle2, Download, FileImage, FileText, MapPin, Phone, ReceiptText, Store, Truck, User, ChevronRight, X, User2, Package, Mail, CreditCard, ShieldCheck } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { formatPHP } from '@/src/lib/currency';
-import { Button, Card } from '@/src/components/ui';
+import { Button, Card, cn } from '@/src/components/ui';
 import { useAppStore } from '@/src/store';
 import type { SubmittedApplication } from '@/src/types/domain';
 
@@ -12,7 +13,7 @@ interface SuccessPageProps {
 
 export function SuccessPage({ onBackHome, onOpenAccount }: SuccessPageProps) {
   const { lastSubmittedApplication, user } = useAppStore();
-  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
   const [fallbackSubmission] = useState<SubmittedApplication | null>(() => {
     try {
       const raw = localStorage.getItem('camrent-last-submitted-application');
@@ -48,18 +49,6 @@ export function SuccessPage({ onBackHome, onOpenAccount }: SuccessPageProps) {
         (item) => `- ${item.name} (${item.startDate} to ${item.endDate}) - ${formatPHP(item.daily_price)}`,
       ),
       `Total Amount: ${formatPHP(displayedSubmission.totalAmount)}`,
-    ];
-  }, [displayedSubmission]);
-
-  const summaryCards = useMemo(() => {
-    if (!displayedSubmission) return [];
-    return [
-      { icon: ReceiptText, label: 'Order ID', value: displayedSubmission.orderId },
-      { icon: Store, label: 'Store', value: displayedSubmission.storeName },
-      { icon: User, label: 'Customer', value: displayedSubmission.customerName },
-      { icon: Phone, label: 'Contact', value: displayedSubmission.customerPhone },
-      { icon: MapPin, label: 'Present Address', value: displayedSubmission.customerAddress },
-      { icon: Truck, label: 'Delivery Address', value: displayedSubmission.deliveryAddress },
     ];
   }, [displayedSubmission]);
 
@@ -103,141 +92,161 @@ export function SuccessPage({ onBackHome, onOpenAccount }: SuccessPageProps) {
   };
 
   return (
-    <div className="container mx-auto max-w-3xl px-4 py-12">
-      <div className="mb-6 text-center">
-        <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-emerald-50">
-          <CheckCircle2 className="h-10 w-10 text-emerald-500" />
-        </div>
-        <h1 className="mb-2 text-3xl font-semibold text-slate-900">Application Submitted</h1>
-        <p className="text-sm text-slate-500">Your rental request was sent for store owner review.</p>
-      </div>
-
-      <Card className="i3d-card space-y-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-slate-900">Submitted Form Copy</h2>
-
-        {displayedSubmission ? (
-          <div className="space-y-3 text-sm">
-            <p>Order ID: <span className="font-semibold">{displayedSubmission.orderId}</span></p>
-            <p>Store: <span className="font-semibold">{displayedSubmission.storeName}</span></p>
-            <p>Total Amount: <span className="font-semibold">{formatPHP(displayedSubmission.totalAmount)}</span></p>
-            <p className="text-muted-foreground">Open detailed form to view all submitted fields and save your copy.</p>
-            {user?.role === 'renter' ? <p className="text-xs text-emerald-700">This submission is also saved in your account history.</p> : null}
+    <div className="min-h-[80vh] bg-[var(--tone-bg)] pb-24 pt-16">
+      <div className="container mx-auto max-w-2xl px-4">
+        <motion.div 
+          initial={{ scale: 0.9, opacity: 0 }} 
+          animate={{ scale: 1, opacity: 1 }} 
+          className="mb-10 text-center"
+        >
+          <div className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-emerald-50 shadow-inner">
+            <CheckCircle2 className="h-12 w-12 text-emerald-500" />
           </div>
-        ) : (
-          <p className="text-sm text-muted-foreground">No local copy was found. You can still review your transaction in your account.</p>
-        )}
+          <h1 className="text-4xl font-black tracking-tight text-[var(--tone-text)]">Application Submitted!</h1>
+          <p className="mt-3 text-lg font-medium text-[var(--tone-text-muted)]">Your rental request was successfully sent for store review.</p>
+        </motion.div>
 
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          Save this into PDF or image/screenshot to keep your own copy for reference.
-        </div>
-
-        <div className="flex flex-wrap gap-3">
-          <Button variant="outline" className="rounded-full" onClick={() => setShowDetailModal(true)} disabled={!displayedSubmission}>
-            <FileText className="mr-2 h-4 w-4" /> View Detailed Form
-          </Button>
-          <Button variant="outline" className="rounded-full" onClick={saveAsPdf}>
-            <Download className="mr-2 h-4 w-4" /> Save as PDF
-          </Button>
-          <Button variant="outline" className="rounded-full" onClick={saveAsImage} disabled={!displayedSubmission}>
-            <FileImage className="mr-2 h-4 w-4" /> Save as Image
-          </Button>
-          {user?.role === 'renter' ? (
-            <Button variant="outline" className="rounded-full" onClick={onOpenAccount}>
-              View in My Account
-            </Button>
-          ) : null}
-          <Button className="rounded-full" onClick={onBackHome}>Back to Home</Button>
-        </div>
-      </Card>
-
-      {showDetailModal && displayedSubmission && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 p-4">
-          <div className="i3d-modal max-h-[90vh] w-full max-w-4xl overflow-auto rounded-3xl bg-white p-6 text-slate-900 shadow-2xl">
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-2xl font-semibold">Detailed Rental Application Form</h3>
-              <Button variant="ghost" size="icon" onClick={() => setShowDetailModal(false)}>
-                &times;
-              </Button>
-            </div>
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-              {summaryCards.map((card) => (
-                <div key={card.label} className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
-                  <p className="mb-1 inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    <card.icon className="h-3 w-3" /> {card.label}
-                  </p>
-                  <p className="text-sm font-medium">{card.value || '-'}</p>
-                </div>
-              ))}
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
-                <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Emergency Contact</p>
-                <p className="text-sm font-medium">
-                  {displayedSubmission.customerEmergencyContactName || '-'} {displayedSubmission.customerEmergencyContact ? `(${displayedSubmission.customerEmergencyContact})` : ''}
-                </p>
-              </div>
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
-                <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Payment Mode</p>
-                <p className="text-sm font-medium">{displayedSubmission.paymentMode || '-'}</p>
-              </div>
-            </div>
-
-            <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Billing Address File</p>
-                {displayedSubmission.billingAddressFileUrl ? (
-                  <a href={displayedSubmission.billingAddressFileUrl} target="_blank" rel="noreferrer" className="text-sm font-medium underline">
-                    View Billing Address File
-                  </a>
-                ) : (
-                  <p className="text-sm text-muted-foreground">No billing file attached.</p>
-                )}
-              </div>
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Lease File</p>
-                {displayedSubmission.leaseAgreementSubmissionUrl ? (
-                  <a href={displayedSubmission.leaseAgreementSubmissionUrl} target="_blank" rel="noreferrer" className="text-sm font-medium underline">
-                    View Lease Agreement Submission
-                  </a>
-                ) : (
-                  <p className="text-sm text-muted-foreground">No lease file attached.</p>
-                )}
-              </div>
-            </div>
-
-            <div className="mt-4">
-              <p className="mb-2 text-sm font-semibold">Rented Gear Images</p>
-              <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
-                {displayedSubmission.items.map((item, index) => (
-                  <div key={`${item.name}-${index}`} className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
-                    <img src={item.image_url || `https://picsum.photos/seed/success-${item.name}-${index}/240/240`} alt={item.name} className="h-24 w-full object-cover" />
-                    <div className="space-y-0.5 px-2 py-1 text-xs">
-                      <p className="line-clamp-1 font-medium">{item.name}</p>
-                      <p className="text-muted-foreground">{item.startDate} to {item.endDate}</p>
-                      <p className="text-muted-foreground">{formatPHP(item.daily_price)}</p>
-                    </div>
+        <Card className="overflow-hidden rounded-[2.5rem] border border-white/60 bg-[var(--tone-surface)] p-0 shadow-2xl backdrop-blur-xl">
+          <div className="bg-[var(--tone-accent)] p-6 text-[var(--tone-bg)] text-center">
+            <p className="text-[10px] font-black uppercase tracking-widest opacity-80">Reference Number</p>
+            <p className="mt-1 font-mono text-2xl font-black tracking-tighter">
+              #{displayedSubmission?.orderId || 'N/A'}
+            </p>
+          </div>
+          
+          <div className="p-6 sm:p-10">
+            <div className="space-y-6">
+              <div className="flex items-center justify-between border-b border-[var(--tone-bg)] pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--tone-bg)] text-[var(--tone-accent)]">
+                    <Store className="h-5 w-5" />
                   </div>
-                ))}
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-[var(--tone-text-muted)]">Renting From</p>
+                    <p className="text-sm font-bold text-[var(--tone-text)]">{displayedSubmission?.storeName || '-'}</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-[var(--tone-text-muted)]">Grand Total</p>
+                  <p className="text-lg font-black text-[var(--tone-accent)]">{displayedSubmission ? formatPHP(displayedSubmission.totalAmount) : '-'}</p>
+                </div>
               </div>
-            </div>
 
-            <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-3">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Receipt Notes</p>
-              <div className="space-y-1 text-sm">
-                {detailLines.map((line, index) => (
-                  <p key={`${line}-${index}`}>{line}</p>
-                ))}
+              <div className="rounded-3xl border border-[var(--tone-accent)]/10 bg-emerald-50/20 p-4 text-center">
+                <p className="text-sm font-bold text-emerald-800 flex items-center justify-center gap-2">
+                   <ShieldCheck className="h-4 w-4" /> Submission is legally recorded.
+                </p>
+                {user?.role === 'renter' && (
+                  <p className="mt-1 text-xs text-emerald-700/80">You can also track this in your account dashboard anytime.</p>
+                )}
               </div>
-            </div>
-            <div className="mt-6 flex gap-2">
-              <Button variant="outline" className="rounded-full" onClick={saveAsPdf}>
-                <Download className="mr-2 h-4 w-4" /> Save as PDF
-              </Button>
-              <Button variant="outline" className="rounded-full" onClick={saveAsImage}>
-                <FileImage className="mr-2 h-4 w-4" /> Save as Image
-              </Button>
+
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <Button variant="outline" className={cn("h-14 rounded-2xl border-white/60 bg-white/40 font-black tracking-tight text-[var(--tone-text)] shadow-sm backdrop-blur-sm transition-all hover:bg-white/80", showDetails && "bg-[var(--tone-accent)] text-[var(--tone-bg)]")} onClick={() => setShowDetails(!showDetails)} disabled={!displayedSubmission}>
+                  <FileText className="mr-2 h-5 w-5" /> {showDetails ? "Hide Details" : "Review Details"}
+                </Button>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button variant="outline" className="h-14 rounded-2xl border-white/60 bg-white/40 font-bold text-[var(--tone-text)] shadow-sm hover:bg-white/80" onClick={saveAsPdf}>
+                    <Download className="h-5 w-5" />
+                  </Button>
+                  <Button variant="outline" className="h-14 rounded-2xl border-white/60 bg-white/40 font-bold text-[var(--tone-text)] shadow-sm hover:bg-white/80" onClick={saveAsImage} disabled={!displayedSubmission}>
+                    <FileImage className="h-5 w-5" />
+                  </Button>
+                </div>
+              </div>
+
+              <AnimatePresence>
+                {showDetails && displayedSubmission && (
+                  <motion.div 
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="pt-6 mt-6 border-t border-[var(--tone-bg)] space-y-10 pb-10">
+                      <section>
+                        <h4 className="mb-4 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-[var(--tone-text-muted)]">
+                          <User2 className="h-4 w-4" /> Personal & Logistics
+                        </h4>
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                          {[
+                            { icon: User, label: 'Full Name', value: displayedSubmission.customerName },
+                            { icon: Mail, label: 'Email', value: displayedSubmission.customerEmail },
+                            { icon: Phone, label: 'Contact', value: displayedSubmission.customerPhone },
+                            { icon: MapPin, label: 'Address', value: displayedSubmission.customerAddress },
+                            { icon: Truck, label: 'Delivery', value: displayedSubmission.deliveryAddress || 'Pick-up' },
+                            { icon: CreditCard, label: 'Payment', value: displayedSubmission.paymentMode },
+                          ].map((item) => (
+                            <div key={item.label} className="rounded-2xl border border-[var(--tone-bg)] bg-white/40 p-4 shadow-sm backdrop-blur-sm">
+                              <p className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-[var(--tone-text-muted)] mb-1">
+                                <item.icon className="h-3 w-3" /> {item.label}
+                              </p>
+                              <p className="text-sm font-bold text-[var(--tone-text)] break-all">{item.value || '-'}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </section>
+
+                      <section>
+                        <h4 className="mb-4 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-[var(--tone-text-muted)]">
+                          <Package className="h-4 w-4" /> Rented Gear
+                        </h4>
+                        <div className="grid grid-cols-2 gap-3">
+                          {displayedSubmission.items.map((item, index) => (
+                            <div key={`${item.name}-${index}`} className="group overflow-hidden rounded-[1.5rem] border border-[var(--tone-bg)] bg-white/40 shadow-sm transition-all hover:shadow-md">
+                              <img src={item.image_url || `https://picsum.photos/seed/success-${item.name}-${index}/240/240`} alt={item.name} className="h-24 sm:h-32 w-full object-cover grayscale-[20%] group-hover:grayscale-0 transition-all" />
+                              <div className="p-3">
+                                <p className="line-clamp-1 text-[10px] sm:text-xs font-black text-[var(--tone-text)]">{item.name}</p>
+                                <p className="mt-0.5 text-[8px] sm:text-[10px] font-medium text-[var(--tone-text-muted)]">{item.startDate} &mdash; {item.endDate}</p>
+                                <p className="mt-2 text-xs font-black text-[var(--tone-accent)]">{formatPHP(item.daily_price)}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </section>
+
+                      {(displayedSubmission.billingAddressFileUrl || displayedSubmission.leaseAgreementSubmissionUrl) && (
+                        <section>
+                          <h4 className="mb-4 text-[10px] font-black uppercase tracking-widest text-[var(--tone-text-muted)]">Documents</h4>
+                          <div className="grid grid-cols-1 gap-3">
+                            {displayedSubmission.billingAddressFileUrl && (
+                              <a href={displayedSubmission.billingAddressFileUrl} target="_blank" rel="noreferrer" className="flex items-center justify-between rounded-2xl bg-[var(--tone-bg)]/40 p-4 text-sm font-bold hover:bg-[var(--tone-bg)] transition-colors">
+                                <span className="flex items-center gap-2">
+                                  <FileText className="h-4 w-4 text-blue-600" /> Billing Address
+                                </span>
+                                <ChevronRight className="h-4 w-4 opacity-40" />
+                              </a>
+                            )}
+                            {displayedSubmission.leaseAgreementSubmissionUrl && (
+                              <a href={displayedSubmission.leaseAgreementSubmissionUrl} target="_blank" rel="noreferrer" className="flex items-center justify-between rounded-2xl bg-[var(--tone-bg)]/40 p-4 text-sm font-bold hover:bg-[var(--tone-bg)] transition-colors">
+                                <span className="flex items-center gap-2">
+                                  <ShieldCheck className="h-4 w-4 text-emerald-600" /> Signed Lease
+                                </span>
+                                <ChevronRight className="h-4 w-4 opacity-40" />
+                              </a>
+                            )}
+                          </div>
+                        </section>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              <div className="flex flex-col gap-3 pt-4 border-t border-[var(--tone-bg)]">
+                {user?.role === 'renter' && (
+                  <Button className="h-14 w-full rounded-2xl bg-[var(--tone-surface-soft)] font-black text-[var(--tone-text)] hover:bg-[var(--tone-bg)] transition-all" onClick={onOpenAccount}>
+                    Go to Account Dashboard
+                  </Button>
+                )}
+                <Button className="h-14 w-full rounded-2xl bg-[var(--tone-accent)] font-black text-[var(--tone-bg)] shadow-lg hover:shadow-[var(--tone-accent)]/20 transition-all" onClick={onBackHome}>
+                  Finish & Return Home
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        </Card>
+      </div>
     </div>
   );
 }

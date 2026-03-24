@@ -51,41 +51,53 @@ export function RegisterWizard({ submitting, onSubmit, onOpenPolicies }: Registe
   const [otpSending, setOtpSending] = useState(false);
   const [otpVerifying, setOtpVerifying] = useState(false);
   const [otpCooldown, setOtpCooldown] = useState(0);
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [generalError, setGeneralError] = useState('');
 
   const totalSteps = role === 'owner' ? 3 : 2;
 
   const validateStep = (targetStep: number) => {
-    if (targetStep === 1) return true;
-    if (!fullName.trim() || !email.trim() || !password.trim() || !phone.trim()) {
-      alert('Full name, email, phone, and password are required.');
+    setValidationErrors({});
+    setGeneralError('');
+    const errors: Record<string, string> = {};
+
+    if (targetStep === 2 || targetStep === 3) {
+      if (!fullName.trim()) errors.fullName = 'Full name is required';
+      if (!email.trim()) errors.email = 'Email is required';
+      if (!password.trim()) errors.password = 'Password is required';
+      if (!phone.trim()) errors.phone = 'Phone number is required';
+      
+      const phoneCheck = validatePhone(phone);
+      if (phone.trim() && !phoneCheck.valid) {
+        errors.phone = phoneCheck.error || 'Invalid phone format';
+      }
+      
+      if (!otpVerified) {
+        setGeneralError('Please verify your email address first.');
+        return false;
+      }
+    }
+
+    if (targetStep === 3 && role === 'owner') {
+      if (!storeName.trim()) errors.storeName = 'Store name is required';
+      if (!storeAddress.trim()) errors.storeAddress = 'Store address is required';
+      if (!storeDescription.trim()) errors.storeDescription = 'Store description is required';
+      if (!paymentDetails.trim()) errors.paymentDetails = 'Payment details are required';
+      if (!deliveryModes.some((mode) => mode.trim())) {
+        setGeneralError('Please add at least one delivery mode.');
+        return false;
+      }
+      if (!leaseAgreementFile) {
+        setGeneralError('Lease agreement file is required.');
+        return false;
+      }
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(errors);
       return false;
     }
-    const phoneCheck = validatePhone(phone);
-    if (!phoneCheck.valid) {
-      alert(phoneCheck.error);
-      return false;
-    }
-    if (!otpVerified) {
-      alert('Please verify your email first.');
-      return false;
-    }
-    if (targetStep === 2) return true;
-    if (!storeName.trim() || !storeAddress.trim() || !storeDescription.trim()) {
-      alert('Store name, address, and description are required.');
-      return false;
-    }
-    if (!paymentDetails.trim()) {
-      alert('Payment details are required.');
-      return false;
-    }
-    if (!deliveryModes.some((mode) => mode.trim())) {
-      alert('Add at least one delivery mode.');
-      return false;
-    }
-    if (!leaseAgreementFile) {
-      alert('Lease agreement file is required.');
-      return false;
-    }
+
     return true;
   };
 
@@ -177,7 +189,7 @@ export function RegisterWizard({ submitting, onSubmit, onOpenPolicies }: Registe
 
   const fillWithCurrentLocation = (branchIndex: number) => {
     if (!navigator.geolocation) {
-      alert('Geolocation is not available in this browser.');
+      setGeneralError('Geolocation is not available in this browser.');
       return;
     }
     setBranchLocationLoading((prev) => ({ ...prev, [branchIndex]: true }));
@@ -196,10 +208,10 @@ export function RegisterWizard({ submitting, onSubmit, onOpenPolicies }: Registe
           if (!Number.isFinite(data.latitude) || !Number.isFinite(data.longitude)) throw new Error('IP lookup returned invalid coordinates');
           updateStoreBranch(branchIndex, 'location_lat', Number(data.latitude).toFixed(6));
           updateStoreBranch(branchIndex, 'location_lng', Number(data.longitude).toFixed(6));
-          alert('Precise GPS location unavailable. Using approximate location based on your network.');
+          setOtpMessage('Precise GPS location unavailable. Using approximate location based on your network.');
           return;
         } catch {
-          alert(error.message || 'Unable to get your current location.');
+          setGeneralError(error.message || 'Unable to get your current location.');
         }
       },
     );
@@ -217,7 +229,7 @@ export function RegisterWizard({ submitting, onSubmit, onOpenPolicies }: Registe
       const data = (await response.json()) as Array<{ display_name: string; lat: string; lon: string }>;
       setBranchSearchResults((prev) => ({ ...prev, [branchIndex]: data.map((item) => ({ name: item.display_name, lat: item.lat, lon: item.lon })) }));
     } catch (error: any) {
-      alert(error?.message || 'Failed to search location by name.');
+      setGeneralError(error?.message || 'Failed to search location by name.');
     } finally {
       setBranchSearchLoading((prev) => ({ ...prev, [branchIndex]: false }));
     }
@@ -251,7 +263,7 @@ export function RegisterWizard({ submitting, onSubmit, onOpenPolicies }: Registe
     }
     setPolicyError('');
     if (role === 'owner' && !otpVerified) {
-      alert('Please verify your owner email before submitting.');
+      setGeneralError('Please verify your owner email before submitting.');
       return;
     }
     if (role === 'owner') {
@@ -262,7 +274,7 @@ export function RegisterWizard({ submitting, onSubmit, onOpenPolicies }: Registe
         return !address || !Number.isFinite(lat) || !Number.isFinite(lng);
       });
       if (invalidBranch) {
-        alert('Every store branch must have address and valid pin location.');
+        setGeneralError('Every store branch must have address and valid pin location.');
         return;
       }
     }
@@ -308,16 +320,51 @@ export function RegisterWizard({ submitting, onSubmit, onOpenPolicies }: Registe
         <Card className="space-y-4 border-dashed p-4">
           <div className="space-y-2">
             <label className="text-sm font-medium">Full Name</label>
-            <Input required value={fullName} onChange={(event) => setFullName(event.target.value)} />
+            <Input 
+              required 
+              value={fullName} 
+              error={validationErrors.fullName}
+              onChange={(event) => {
+                setFullName(event.target.value);
+                setValidationErrors(prev => ({ ...prev, fullName: '' }));
+              }} 
+            />
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium">Email</label>
-            <Input type="email" required value={email} onChange={(event) => setEmail(event.target.value)} />
+            <Input 
+              type="email" 
+              required 
+              value={email} 
+              error={validationErrors.email}
+              onChange={(event) => {
+                setEmail(event.target.value);
+                setValidationErrors(prev => ({ ...prev, email: '' }));
+              }} 
+            />
           </div>
-          <PhoneInput label="Contact Number" value={phone} required onChange={setPhone} />
+          <PhoneInput 
+            label="Contact Number" 
+            value={phone} 
+            required 
+            error={validationErrors.phone}
+            onChange={(val) => {
+              setPhone(val);
+              setValidationErrors(prev => ({ ...prev, phone: '' }));
+            }} 
+          />
           <div className="space-y-2">
             <label className="text-sm font-medium">Password</label>
-            <Input type="password" required value={password} onChange={(event) => setPassword(event.target.value)} />
+            <Input 
+              type="password" 
+              required 
+              value={password} 
+              error={validationErrors.password}
+              onChange={(event) => {
+                setPassword(event.target.value);
+                setValidationErrors(prev => ({ ...prev, password: '' }));
+              }} 
+            />
           </div>
           <FileUpload
             label="Profile Image (optional)"
@@ -370,20 +417,42 @@ export function RegisterWizard({ submitting, onSubmit, onOpenPolicies }: Registe
         <Card className="space-y-4 border-dashed p-4">
           <div className="space-y-2">
             <label className="text-sm font-medium">Store Name</label>
-            <Input required value={storeName} onChange={(event) => setStoreName(event.target.value)} />
+            <Input 
+              required 
+              value={storeName} 
+              error={validationErrors.storeName}
+              onChange={(event) => {
+                setStoreName(event.target.value);
+                setValidationErrors(prev => ({ ...prev, storeName: '' }));
+              }} 
+            />
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium">Store Address</label>
-            <Input required value={storeAddress} onChange={(event) => setStoreAddress(event.target.value)} />
+            <Input 
+              required 
+              value={storeAddress} 
+              error={validationErrors.storeAddress}
+              onChange={(event) => {
+                setStoreAddress(event.target.value);
+                setValidationErrors(prev => ({ ...prev, storeAddress: '' }));
+              }} 
+            />
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium">Store Description</label>
             <textarea
               required
               value={storeDescription}
-              onChange={(event) => setStoreDescription(event.target.value)}
-              className="min-h-24 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              onChange={(event) => {
+                setStoreDescription(event.target.value);
+                setValidationErrors(prev => ({ ...prev, storeDescription: '' }));
+              }}
+              className={`min-h-24 w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring ${validationErrors.storeDescription ? 'border-red-500' : 'border-input'}`}
             />
+            {validationErrors.storeDescription && (
+              <p className="text-[10px] font-medium text-red-500">{validationErrors.storeDescription}</p>
+            )}
           </div>
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
@@ -418,9 +487,15 @@ export function RegisterWizard({ submitting, onSubmit, onOpenPolicies }: Registe
             <textarea
               required
               value={paymentDetails}
-              onChange={(event) => setPaymentDetails(event.target.value)}
-              className="min-h-20 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              onChange={(event) => {
+                setPaymentDetails(event.target.value);
+                setValidationErrors(prev => ({ ...prev, paymentDetails: '' }));
+              }}
+              className={`min-h-20 w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring ${validationErrors.paymentDetails ? 'border-red-500' : 'border-input'}`}
             />
+            {validationErrors.paymentDetails && (
+              <p className="text-[10px] font-medium text-red-500">{validationErrors.paymentDetails}</p>
+            )}
           </div>
           <FileUpload
             label="Payment QR / Reference Images (optional)"
@@ -582,6 +657,11 @@ export function RegisterWizard({ submitting, onSubmit, onOpenPolicies }: Registe
         </div>
       )}
       {step === totalSteps && policyError ? <p className="text-xs font-medium text-red-600">{policyError}</p> : null}
+      {generalError ? (
+        <div className="rounded-lg bg-red-50 p-3 text-xs font-medium text-red-600 border border-red-200">
+          {generalError}
+        </div>
+      ) : null}
 
       <div className="flex items-center justify-between">
         <Button type="button" variant="outline" onClick={handleBack} disabled={step === 1 || submitting}>Back</Button>

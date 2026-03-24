@@ -5,7 +5,7 @@ import { api } from '@/src/lib/api';
 import { formatPHP } from '@/src/lib/currency';
 import { useAppStore } from '@/src/store';
 import type { Item, Store, StoreReview } from '@/src/types/domain';
-import { Button, Card, Input } from '@/src/components/ui';
+import { Button, Card, Input, cn } from '@/src/components/ui';
 import { AppFooter } from '@/src/components/layout/AppFooter';
 import { EmptyState } from '@/src/components/EmptyState';
 
@@ -29,6 +29,9 @@ export function StorePage({ storeId, onNavigateItem }: StorePageProps) {
   const [reportForm, setReportForm] = useState({ subject: '', message: '' });
   const [storeQrUrl, setStoreQrUrl] = useState('');
   const [storeQrError, setStoreQrError] = useState('');
+  const [reviewNotice, setReviewNotice] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [reportNotice, setReportNotice] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [reportFormError, setReportFormError] = useState<{ subject?: string; message?: string }>({});
   const { user, setPage } = useAppStore();
 
   useEffect(() => {
@@ -173,25 +176,25 @@ export function StorePage({ storeId, onNavigateItem }: StorePageProps) {
             {(socialLinks.facebook || socialLinks.instagram || socialLinks.tiktok || socialLinks.custom.length) ? (
               <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
                 <h4 className="mb-2 font-semibold">Social Links</h4>
-                <div className="space-y-2 text-sm text-muted-foreground">
+                <div className="flex flex-col space-y-3 text-sm text-[var(--tone-text-muted)] p-1">
                   {socialLinks.facebook ? (
-                    <a className="inline-flex items-center gap-2 underline" href={socialLinks.facebook} target="_blank" rel="noreferrer">
-                      <Facebook className="h-4 w-4 text-blue-600" /> {socialLinks.facebook}
+                    <a className="flex w-full items-center gap-2 font-medium hover:text-[var(--tone-accent)] transition-colors overflow-hidden" href={socialLinks.facebook} target="_blank" rel="noreferrer">
+                      <Facebook className="h-4 w-4 shrink-0 text-blue-600" /> <span className="truncate">{socialLinks.facebook}</span>
                     </a>
                   ) : null}
                   {socialLinks.instagram ? (
-                    <a className="inline-flex items-center gap-2 underline" href={socialLinks.instagram} target="_blank" rel="noreferrer">
-                      <Instagram className="h-4 w-4 text-pink-600" /> {socialLinks.instagram}
+                    <a className="flex w-full items-center gap-2 font-medium hover:text-[var(--tone-accent)] transition-colors overflow-hidden" href={socialLinks.instagram} target="_blank" rel="noreferrer">
+                      <Instagram className="h-4 w-4 shrink-0 text-pink-600" /> <span className="truncate">{socialLinks.instagram}</span>
                     </a>
                   ) : null}
                   {socialLinks.tiktok ? (
-                    <a className="inline-flex items-center gap-2 underline" href={socialLinks.tiktok} target="_blank" rel="noreferrer">
-                      <Music2 className="h-4 w-4 text-slate-900" /> {socialLinks.tiktok}
+                    <a className="flex w-full items-center gap-2 font-medium hover:text-[var(--tone-accent)] transition-colors overflow-hidden" href={socialLinks.tiktok} target="_blank" rel="noreferrer">
+                      <Music2 className="h-4 w-4 shrink-0 text-slate-900" /> <span className="truncate">{socialLinks.tiktok}</span>
                     </a>
                   ) : null}
                   {socialLinks.custom.map((link, index) => (
-                    <a key={`${link}-${index}`} className="inline-flex items-center gap-2 underline" href={link} target="_blank" rel="noreferrer">
-                      <Globe className="h-4 w-4 text-slate-600" /> {link}
+                    <a key={`${link}-${index}`} className="flex w-full items-center gap-2 font-medium hover:text-[var(--tone-accent)] transition-colors overflow-hidden" href={link} target="_blank" rel="noreferrer">
+                      <Globe className="h-4 w-4 shrink-0 text-slate-600" /> <span className="truncate">{link}</span>
                     </a>
                   ))}
                 </div>
@@ -238,19 +241,37 @@ export function StorePage({ storeId, onNavigateItem }: StorePageProps) {
                     />
                     <Button
                       onClick={async () => {
-                        if (!reviewForm.description.trim()) return alert('Please add review description.');
-                        await api.post(`/api/stores/${storeId}/reviews`, { rating: reviewForm.rating, description: reviewForm.description.trim() });
-                        const refreshed = await api.get<{ average_rating: number; total_reviews: number; reviews: StoreReview[] }>(`/api/stores/${storeId}/reviews`);
-                        setStoreReviews(refreshed.reviews || []);
-                        setReviewAverage(Number(refreshed.average_rating || 0));
-                        setReviewTotal(Number(refreshed.total_reviews || 0));
-                        setCanRate(false);
-                        setRateReason('You already rated this store.');
-                        setReviewForm({ rating: 5, description: '' });
+                        setReviewNotice(null);
+                        if (!reviewForm.description.trim()) {
+                          setReviewNotice({ type: 'error', message: 'Please add review description.' });
+                          return;
+                        }
+                        try {
+                          await api.post(`/api/stores/${storeId}/reviews`, { rating: reviewForm.rating, description: reviewForm.description.trim() });
+                          const refreshed = await api.get<{ average_rating: number; total_reviews: number; reviews: StoreReview[] }>(`/api/stores/${storeId}/reviews`);
+                          setStoreReviews(refreshed.reviews || []);
+                          setReviewAverage(Number(refreshed.average_rating || 0));
+                          setReviewTotal(Number(refreshed.total_reviews || 0));
+                          setCanRate(false);
+                          setRateReason('You already rated this store.');
+                          setReviewForm({ rating: 5, description: '' });
+                          setReviewNotice({ type: 'success', message: 'Rating submitted!' });
+                          setTimeout(() => setReviewNotice(null), 5000);
+                        } catch (err: any) {
+                          setReviewNotice({ type: 'error', message: err.message || 'Failed to submit rating.' });
+                        }
                       }}
                     >
                       Submit Rating
                     </Button>
+                    {reviewNotice && (
+                      <p className={cn(
+                        "text-[10px] font-medium mt-1",
+                        reviewNotice.type === 'success' ? "text-emerald-600" : "text-red-500"
+                      )}>
+                        {reviewNotice.message}
+                      </p>
+                    )}
                   </Card>
                 ) : (
                   <p className="text-xs text-muted-foreground">{rateReason || 'You can rate this store after your first successful transaction.'}</p>
@@ -280,13 +301,14 @@ export function StorePage({ storeId, onNavigateItem }: StorePageProps) {
                 className="mt-3 w-full"
                 variant="destructive"
                 onClick={() => {
+                  setReportNotice(null);
                   if (!user) {
-                    alert('Please login to report this store.');
-                    setPage('login');
+                    setReportNotice({ type: 'error', message: 'Please login to report this store.' });
+                    setTimeout(() => setPage('login'), 2000);
                     return;
                   }
                   if (user.role !== 'renter') {
-                    alert('Only customers can report a store.');
+                    setReportNotice({ type: 'error', message: 'Only customers can report a store.' });
                     return;
                   }
                   setReportOpen(true);
@@ -294,6 +316,9 @@ export function StorePage({ storeId, onNavigateItem }: StorePageProps) {
               >
                 Report Store
               </Button>
+              {reportNotice && (
+                <p className="mt-2 text-[10px] font-medium text-red-500">{reportNotice.message}</p>
+              )}
             </div>
           </aside>
 
@@ -377,18 +402,31 @@ export function StorePage({ storeId, onNavigateItem }: StorePageProps) {
               <label className="text-sm font-medium">Subject</label>
               <Input
                 value={reportForm.subject}
-                onChange={(event) => setReportForm((prev) => ({ ...prev, subject: event.target.value }))}
+                error={reportFormError.subject}
+                onChange={(event) => {
+                  setReportForm((prev) => ({ ...prev, subject: event.target.value }));
+                  setReportFormError(prev => ({ ...prev, subject: '' }));
+                }}
                 placeholder="Short summary of the issue"
               />
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Message</label>
               <textarea
-                className="min-h-28 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                className={cn(
+                  "min-h-28 w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+                  reportFormError.message ? "border-red-500" : "border-input"
+                )}
                 value={reportForm.message}
-                onChange={(event) => setReportForm((prev) => ({ ...prev, message: event.target.value }))}
+                onChange={(event) => {
+                  setReportForm((prev) => ({ ...prev, message: event.target.value }));
+                  setReportFormError(prev => ({ ...prev, message: '' }));
+                }}
                 placeholder="Describe the problem in detail."
               />
+              {reportFormError.message && (
+                <p className="text-[10px] font-medium text-red-500">{reportFormError.message}</p>
+              )}
             </div>
             <div className="flex flex-wrap items-center justify-end gap-2">
               <Button variant="ghost" onClick={() => setReportOpen(false)}>
@@ -398,8 +436,13 @@ export function StorePage({ storeId, onNavigateItem }: StorePageProps) {
                 variant="destructive"
                 disabled={reportSending}
                 onClick={async () => {
-                  if (!reportForm.subject.trim() || !reportForm.message.trim()) {
-                    alert('Subject and message are required.');
+                  setReportFormError({});
+                  const errs: { subject?: string; message?: string } = {};
+                  if (!reportForm.subject.trim()) errs.subject = 'Subject is required.';
+                  if (!reportForm.message.trim()) errs.message = 'Message is required.';
+                  
+                  if (Object.keys(errs).length > 0) {
+                    setReportFormError(errs);
                     return;
                   }
                   try {
@@ -408,11 +451,14 @@ export function StorePage({ storeId, onNavigateItem }: StorePageProps) {
                       subject: reportForm.subject.trim(),
                       message: reportForm.message.trim(),
                     });
+                    setReportNotice({ type: 'success', message: 'Report submitted. The admin will review it.' });
                     setReportOpen(false);
                     setReportForm({ subject: '', message: '' });
-                    alert('Report submitted. The admin will review it.');
+                  } catch (err: any) {
+                    setReportNotice({ type: 'error', message: err.message || 'Failed to submit report.' });
                   } finally {
                     setReportSending(false);
+                    setTimeout(() => setReportNotice(null), 5000);
                   }
                 }}
               >

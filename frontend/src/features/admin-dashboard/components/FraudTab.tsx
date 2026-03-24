@@ -24,6 +24,8 @@ interface FraudTabProps {
   onApproveGlobal: (id: string) => void;
   onDelete: (id: string) => void;
   onExport: () => void;
+  validationErrors?: Record<string, string>;
+  clearValidationError?: (field: string) => void;
 }
 
 export function FraudTab({
@@ -37,6 +39,8 @@ export function FraudTab({
   onApproveGlobal,
   onDelete,
   onExport,
+  validationErrors = {},
+  clearValidationError,
 }: FraudTabProps) {
   const PAGE_SIZE = 10;
   const [page, setPage] = useState(1);
@@ -69,36 +73,58 @@ export function FraudTab({
 
       <Card className="grid grid-cols-1 gap-3 p-4 md:grid-cols-2">
         <Input
-          placeholder="Full name"
+          label="Full Name"
+          placeholder="Enter full name"
           value={globalFraudForm.full_name}
-          onChange={(event) => onGlobalFraudFormChange({ ...globalFraudForm, full_name: event.target.value })}
+          onChange={(event) => {
+            onGlobalFraudFormChange({ ...globalFraudForm, full_name: event.target.value });
+            clearValidationError?.('fraudName');
+          }}
+          error={validationErrors.fraudName}
         />
         <Input
-          placeholder="Email"
+          label="Email Address"
+          placeholder="Enter email"
           value={globalFraudForm.email}
-          onChange={(event) => onGlobalFraudFormChange({ ...globalFraudForm, email: event.target.value })}
+          onChange={(event) => {
+            onGlobalFraudFormChange({ ...globalFraudForm, email: event.target.value });
+            clearValidationError?.('fraudEmail');
+          }}
+          error={validationErrors.fraudEmail}
         />
         <Input
-          placeholder="Contact number"
+          label="Contact Number"
+          placeholder="Enter contact number"
           value={globalFraudForm.contact_number}
           onChange={(event) => onGlobalFraudFormChange({ ...globalFraudForm, contact_number: event.target.value })}
         />
         <Input
-          placeholder="Reason"
+          label="Reason"
+          placeholder="Enter reason for fraud report"
           value={globalFraudForm.reason}
-          onChange={(event) => onGlobalFraudFormChange({ ...globalFraudForm, reason: event.target.value })}
+          onChange={(event) => {
+            onGlobalFraudFormChange({ ...globalFraudForm, reason: event.target.value });
+            clearValidationError?.('fraudReason');
+          }}
+          error={validationErrors.fraudReason}
         />
         <Input
-          placeholder="Evidence image URL (optional)"
+          label="Evidence Image URL"
+          placeholder="Enter image URL"
           value={globalFraudForm.evidence_image_url}
           onChange={(event) => onGlobalFraudFormChange({ ...globalFraudForm, evidence_image_url: event.target.value })}
         />
-        <textarea
-          className="min-h-24 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring md:col-span-2"
-          placeholder="Requirement files (optional). One per line. Format: TYPE|https://file-url"
-          value={globalFraudForm.requirement_files_text}
-          onChange={(event) => onGlobalFraudFormChange({ ...globalFraudForm, requirement_files_text: event.target.value })}
-        />
+        <div className="md:col-span-2">
+          <textarea
+            className={`min-h-24 w-full rounded-md border px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring ${
+              validationErrors.fraudFiles ? 'border-red-500' : 'border-input bg-transparent'
+            }`}
+            placeholder="Requirement files (optional). One per line. Format: TYPE|https://file-url"
+            value={globalFraudForm.requirement_files_text}
+            onChange={(event) => onGlobalFraudFormChange({ ...globalFraudForm, requirement_files_text: event.target.value })}
+          />
+          {validationErrors.fraudFiles && <p className="mt-1 text-xs font-bold text-red-500">{validationErrors.fraudFiles}</p>}
+        </div>
         <div className="md:col-span-2">
           <Button onClick={onCreateGlobalFraud}>Add Global Fraud</Button>
         </div>

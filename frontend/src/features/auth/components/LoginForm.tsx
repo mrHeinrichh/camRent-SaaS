@@ -5,6 +5,8 @@ interface LoginFormProps {
   email: string;
   password: string;
   submitting: boolean;
+  error?: string;
+  fieldErrors?: { email?: string; password?: string };
   googleEnabled?: boolean;
   googleButtonRef?: React.RefObject<HTMLDivElement>;
   onEmailChange: (value: string) => void;
@@ -12,28 +14,35 @@ interface LoginFormProps {
   onSubmit: (event: FormEvent) => void;
 }
 
-export function LoginForm({ email, password, submitting, googleEnabled, googleButtonRef, onEmailChange, onPasswordChange, onSubmit }: LoginFormProps) {
+export function LoginForm({ email, password, submitting, error, fieldErrors, googleEnabled, googleButtonRef, onEmailChange, onPasswordChange, onSubmit }: LoginFormProps) {
   return (
     <form onSubmit={onSubmit} className="space-y-5 rounded-2xl border border-[var(--tone-border)] bg-[var(--tone-surface-soft)] p-6">
+      {error && (
+        <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-600 animate-fade-up">
+          {error}
+        </div>
+      )}
       <div className="space-y-2">
-        <label className="text-sm font-medium text-[var(--tone-text)]">Email</label>
         <Input
+          label="Email"
           type="email"
           required
           placeholder="Type your email"
           value={email}
           onChange={(event) => onEmailChange(event.target.value)}
+          error={fieldErrors?.email}
           className="h-11 border-[var(--tone-border)] bg-white"
         />
       </div>
       <div className="space-y-2">
-        <label className="text-sm font-medium text-[var(--tone-text)]">Password</label>
         <Input
+          label="Password"
           type="password"
           required
           placeholder="Type your password"
           value={password}
           onChange={(event) => onPasswordChange(event.target.value)}
+          error={fieldErrors?.password}
           className="h-11 border-[var(--tone-border)] bg-white"
         />
       </div>

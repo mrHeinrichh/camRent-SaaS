@@ -45,6 +45,18 @@ export function OwnerDashboardPage() {
   const [inventory, setInventory] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [dashboardNotice, setDashboardNotice] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  const clearValidationError = (field: string) => {
+    if (validationErrors[field]) {
+      setValidationErrors((prev) => {
+        const next = { ...prev };
+        delete next[field];
+        return next;
+      });
+    }
+  };
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [editor, setEditor] = useState<ItemEditor>(emptyEditor);
   const [editorImageFile, setEditorImageFile] = useState<File | null>(null);
@@ -212,15 +224,17 @@ export function OwnerDashboardPage() {
   }, [activeTab, inventory]);
 
   const withReload = async (task: () => Promise<void>, successMessage: string) => {
+    setDashboardNotice(null);
+    setValidationErrors({});
     try {
       await task();
-      alert(successMessage);
+      setDashboardNotice({ type: 'success', message: successMessage });
       await loadData();
       setSelectedApp(null);
       setDetailView('none');
       if (activeTab === 'calendar') await loadCalendarData();
     } catch (taskError: any) {
-      alert(taskError.message);
+      setDashboardNotice({ type: 'error', message: taskError.message || 'Action failed' });
     }
   };
 
@@ -270,9 +284,23 @@ export function OwnerDashboardPage() {
   };
 
   const saveItem = async () => {
-    if (!data?.store?.id) return alert('Store not found');
-    if (!editor.name.trim() || !editor.category.trim() || !editor.brand.trim() || !editor.daily_price.trim()) {
-      return alert('Name, category, brand, and daily price are required');
+    setDashboardNotice(null);
+    setValidationErrors({});
+
+    if (!data?.store?.id) {
+       setDashboardNotice({ type: 'error', message: 'Store not found' });
+       return;
+    }
+
+    const errors: Record<string, string> = {};
+    if (!editor.name.trim()) errors.name = 'Name is required';
+    if (!editor.category.trim()) errors.category = 'Category is required';
+    if (!editor.brand.trim()) errors.brand = 'Brand is required';
+    if (!editor.daily_price.trim()) errors.daily_price = 'Daily price is required';
+    
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(errors);
+      return;
     }
 
     const payload: Record<string, unknown> = {
@@ -287,8 +315,13 @@ export function OwnerDashboardPage() {
       image_url: editor.image_url.trim(),
     };
 
-    if (!Number.isFinite(payload.daily_price as number) || !Number.isFinite(payload.stock as number)) {
-      return alert('Daily price and stock must be valid numbers');
+    if (!Number.isFinite(payload.daily_price as number)) {
+      setValidationErrors({ daily_price: 'Must be a valid number' });
+      return;
+    }
+    if (!Number.isFinite(payload.stock as number)) {
+      setValidationErrors({ stock: 'Must be a valid number' });
+      return;
     }
 
     setEditorSaving(true);
@@ -307,6 +340,8 @@ export function OwnerDashboardPage() {
       }
       setDetailView('none');
       setEditorImageFile(null);
+    } catch (saveError: any) {
+      setDashboardNotice({ type: 'error', message: saveError.message || 'Failed to save item' });
     } finally {
       setEditorSaving(false);
     }
@@ -375,6 +410,16 @@ export function OwnerDashboardPage() {
     location_lat?: number | null;
     location_lng?: number | null;
   }) => {
+    const errors: Record<string, string> = {};
+    if (!payload.name?.trim()) errors.storeName = 'Store name is required';
+    if (!payload.description?.trim()) errors.storeDescription = 'Description is required';
+    if (!payload.address?.trim()) errors.storeAddress = 'Main address is required';
+    if (!payload.payment_details?.trim()) errors.paymentDetails = 'Payment details are required';
+
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(errors);
+      return;
+    }
     await withReload(() => api.put('/api/owner/store-profile', payload), 'Store profile updated');
   };
 
@@ -396,10 +441,28 @@ export function OwnerDashboardPage() {
   };
 
   const createVoucher = async (payload: { code: string; discount_amount: number; is_active?: boolean }) => {
+    const errors: Record<string, string> = {};
+    if (!payload.code?.trim()) errors.voucherCode = 'Voucher code is required';
+    if (!payload.discount_amount || payload.discount_amount <= 0) errors.voucherAmount = 'Discount amount must be greater than 0';
+
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(errors);
+      return;
+    }
     await withReload(() => api.post('/api/owner/vouchers', payload), 'Voucher created');
   };
 
   const updateVoucher = async (id: string, payload: { code?: string; discount_amount?: number; is_active?: boolean; is_used?: boolean }) => {
+    if (payload.code !== undefined || payload.discount_amount !== undefined) {
+      const errors: Record<string, string> = {};
+      if (payload.code !== undefined && !payload.code?.trim()) errors.voucherCode = 'Voucher code is required';
+      if (payload.discount_amount !== undefined && (!payload.discount_amount || payload.discount_amount <= 0)) errors.voucherAmount = 'Discount amount must be greater than 0';
+
+      if (Object.keys(errors).length > 0) {
+        setValidationErrors(errors);
+        return;
+      }
+    }
     await withReload(() => api.put(`/api/owner/vouchers/${id}`, payload), 'Voucher updated');
   };
 
@@ -443,7 +506,19 @@ export function OwnerDashboardPage() {
   };
 
   const submitBlockDates = async () => {
-    if (!blockModalItem || !blockStartDate || !blockEndDate) return;
+    setValidationErrors({});
+    setDashboardNotice(null);
+    if (!blockModalItem) return;
+    
+    const errors: Record<string, string> = {};
+    if (!blockStartDate) errors.blockStartDate = 'Start date is required';
+    if (!blockEndDate) errors.blockEndDate = 'End date is required';
+    
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(errors);
+      return;
+    }
+
     await withReload(
       () =>
         api.post('/api/manual-blocks', {
@@ -462,62 +537,86 @@ export function OwnerDashboardPage() {
   };
 
   const submitCustomerFraud = async () => {
+    setValidationErrors({});
+    setDashboardNotice(null);
     if (!reportCustomer) return;
-    if (fraudScope === 'internal' && !fraudReason.trim()) return alert('Reason is required for internal fraud flagging');
-    if (fraudScope === 'global' && !fraudReason.trim()) return alert('Reason is required for global fraud request');
-    const uploadedRequirementFiles: Array<{ type: string; url: string }> = [];
-    for (let i = 0; i < fraudRequirementFiles.length; i += 1) {
-      const file = fraudRequirementFiles[i];
-      const formData = new FormData();
-      formData.append('file', file);
-      const uploadResult = await api.post<UploadResponse>('/api/upload/public', formData);
-      uploadedRequirementFiles.push({ type: `ATTACHED_REQUIREMENT_${i + 1}`, url: uploadResult.url });
+
+    if (!fraudReason.trim()) {
+      setValidationErrors({ fraudReason: 'Reason is required' });
+      return;
     }
-    await withReload(
-      () =>
-        api.post('/api/owner/customers/report-fraud', {
-          full_name: reportCustomer.renter_name,
-          email: reportCustomer.renter_email,
-          contact_number: reportCustomer.renter_phone,
-          requirement_files: [...(reportCustomer.requirements || []), ...uploadedRequirementFiles],
-          reason: fraudReason,
-          scope: fraudScope,
-        }),
-      fraudScope === 'global' ? 'Global fraud request submitted for admin approval' : 'Customer flagged in internal fraud list',
-    );
-    setReportCustomer(null);
-    setFraudScope('internal');
-    setFraudReason('');
-    setFraudRequirementFiles([]);
-    setDetailView('none');
+
+    const uploadedRequirementFiles: Array<{ type: string; url: string }> = [];
+    try {
+      for (let i = 0; i < fraudRequirementFiles.length; i += 1) {
+        const file = fraudRequirementFiles[i];
+        const formData = new FormData();
+        formData.append('file', file);
+        const uploadResult = await api.post<UploadResponse>('/api/upload/public', formData);
+        uploadedRequirementFiles.push({ type: `ATTACHED_REQUIREMENT_${i + 1}`, url: uploadResult.url });
+      }
+      await withReload(
+        () =>
+          api.post('/api/owner/customers/report-fraud', {
+            full_name: reportCustomer.renter_name,
+            email: reportCustomer.renter_email,
+            contact_number: reportCustomer.renter_phone,
+            requirement_files: [...(reportCustomer.requirements || []), ...uploadedRequirementFiles],
+            reason: fraudReason,
+            scope: fraudScope,
+          }),
+        fraudScope === 'global' ? 'Global fraud request submitted for admin approval' : 'Customer flagged in internal fraud list',
+      );
+      setReportCustomer(null);
+      setFraudScope('internal');
+      setFraudReason('');
+      setFraudRequirementFiles([]);
+      setDetailView('none');
+    } catch (err: any) {
+      setDashboardNotice({ type: 'error', message: err.message || 'Failed to submit fraud report' });
+    }
   };
 
   const submitManualFraud = async () => {
-    if (!fraudManual.full_name.trim() || !fraudManual.email.trim()) return alert('Name and email are required');
-    if (fraudScope === 'internal' && !fraudReason.trim()) return alert('Reason is required for internal fraud flagging');
-    if (fraudScope === 'global' && !fraudReason.trim()) return alert('Reason is required for global fraud request');
-    const uploadedRequirementFiles: Array<{ type: string; url: string }> = [];
-    for (let i = 0; i < fraudRequirementFiles.length; i += 1) {
-      const file = fraudRequirementFiles[i];
-      const formData = new FormData();
-      formData.append('file', file);
-      const uploadResult = await api.post<UploadResponse>('/api/upload/public', formData);
-      uploadedRequirementFiles.push({ type: `ATTACHED_REQUIREMENT_${i + 1}`, url: uploadResult.url });
+    setValidationErrors({});
+    setDashboardNotice(null);
+
+    const errors: Record<string, string> = {};
+    if (!fraudManual.full_name.trim()) errors['fraudManual.full_name'] = 'Name is required';
+    if (!fraudManual.email.trim()) errors['fraudManual.email'] = 'Email is required';
+    if (!fraudReason.trim()) errors.fraudReason = 'Reason is required';
+    
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(errors);
+      return;
     }
-    await withReload(
-      () =>
-        api.post('/api/owner/customers/report-fraud', {
-          ...fraudManual,
-          requirement_files: uploadedRequirementFiles,
-          reason: fraudReason,
-          scope: fraudScope,
-        }),
-      fraudScope === 'global' ? 'Global fraud request submitted for admin approval' : 'Fraud entry added',
-    );
-    setFraudManual({ full_name: '', email: '', contact_number: '' });
-    setFraudReason('');
-    setFraudScope('internal');
-    setFraudRequirementFiles([]);
+
+    const uploadedRequirementFiles: Array<{ type: string; url: string }> = [];
+    try {
+      for (let i = 0; i < fraudRequirementFiles.length; i += 1) {
+        const file = fraudRequirementFiles[i];
+        const formData = new FormData();
+        formData.append('file', file);
+        const uploadResult = await api.post<UploadResponse>('/api/upload/public', formData);
+        uploadedRequirementFiles.push({ type: `ATTACHED_REQUIREMENT_${i + 1}`, url: uploadResult.url });
+      }
+      await withReload(
+        () =>
+          api.post('/api/owner/customers/report-fraud', {
+            ...fraudManual,
+            requirement_files: uploadedRequirementFiles,
+            reason: fraudReason,
+            scope: fraudScope,
+          }),
+        fraudScope === 'global' ? 'Global fraud request submitted for admin approval' : 'Fraud entry added',
+      );
+      setFraudManual({ full_name: '', email: '', contact_number: '' });
+      setFraudReason('');
+      setFraudScope('internal');
+      setFraudRequirementFiles([]);
+    } catch (err: any) {
+      setDashboardNotice({ type: 'error', message: err.message || 'Failed to submit fraud report' });
+    }
   };
 
   const handleFraudRequirementFilesChange = (files: File[]) => {
@@ -528,16 +627,32 @@ export function OwnerDashboardPage() {
   };
 
   const createSupportTicket = async (payload: { type: SupportTicket['type']; priority: SupportTicket['priority']; subject: string; message: string }) => {
-    await api.post('/api/owner/support-tickets', payload);
-    await loadData();
+    const errors: Record<string, string> = {};
+    if (!payload.subject?.trim()) errors.supportSubject = 'Subject is required';
+    if (!payload.message?.trim()) errors.supportMessage = 'Message is required';
+
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(errors);
+      return;
+    }
+    await withReload(() => api.post('/api/owner/support-tickets', payload), 'Feedback submitted');
   };
 
   const updateSupportTicket = async (
     id: string,
     payload: { type?: SupportTicket['type']; priority?: SupportTicket['priority']; subject?: string; message?: string; status?: SupportTicket['status'] },
   ) => {
-    await api.put(`/api/owner/support-tickets/${id}`, payload);
-    await loadData();
+    if (payload.subject !== undefined || payload.message !== undefined) {
+      const errors: Record<string, string> = {};
+      if (payload.subject !== undefined && !payload.subject?.trim()) errors.supportSubject = 'Subject is required';
+      if (payload.message !== undefined && !payload.message?.trim()) errors.supportMessage = 'Message is required';
+
+      if (Object.keys(errors).length > 0) {
+        setValidationErrors(errors);
+        return;
+      }
+    }
+    await withReload(() => api.put(`/api/owner/support-tickets/${id}`, payload), 'Feedback updated');
   };
 
   const deleteSupportTicket = async (id: string) => {
@@ -715,6 +830,8 @@ export function OwnerDashboardPage() {
             vouchers={vouchers}
             onCreateVoucher={createVoucher}
             onUpdateVoucher={updateVoucher}
+            validationErrors={validationErrors}
+            clearValidationError={clearValidationError}
           />
         ) : (
           <OwnerDetailPages
@@ -746,6 +863,8 @@ export function OwnerDashboardPage() {
             onReject={handleReject}
             onReportFraud={handleReportFraud}
             onCancelBooking={handleCancelBooking}
+            validationErrors={validationErrors}
+            clearValidationError={clearValidationError}
           />
         )}
         </div>

@@ -17,6 +17,7 @@ export function ItemPage({ itemId }: ItemPageProps) {
   const [startDate, setStartDate] = useState(format(addDays(new Date(), 1), 'yyyy-MM-dd'));
   const [endDate, setEndDate] = useState(format(addDays(new Date(), 2), 'yyyy-MM-dd'));
   const [quantity, setQuantity] = useState(1);
+  const [cartNotice, setCartNotice] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const { addToCart, user } = useAppStore();
 
   useEffect(() => {
@@ -28,8 +29,16 @@ export function ItemPage({ itemId }: ItemPageProps) {
 
   const handleAddToCart = () => {
     if (!item) return;
-    if (user?.role === 'owner') return alert('Store owners cannot rent items.');
-    if (item.is_available === false || (item.stock || 0) <= 0) return alert('This gear is currently unavailable.');
+    setCartNotice(null);
+    
+    if (user?.role === 'owner') {
+      setCartNotice({ type: 'error', message: 'Store owners cannot rent items.' });
+      return;
+    }
+    if (item.is_available === false || (item.stock || 0) <= 0) {
+      setCartNotice({ type: 'error', message: 'This gear is currently unavailable.' });
+      return;
+    }
 
     addToCart({
       ...item,
@@ -37,7 +46,9 @@ export function ItemPage({ itemId }: ItemPageProps) {
       endDate,
       quantity: Math.max(1, Math.min(quantity, item.stock || 1)),
     });
-    alert('Added to cart!');
+    
+    setCartNotice({ type: 'success', message: 'Added to cart!' });
+    setTimeout(() => setCartNotice(null), 3000);
   };
 
   if (loading) return <div className="flex h-96 items-center justify-center">Loading item...</div>;
@@ -100,9 +111,20 @@ export function ItemPage({ itemId }: ItemPageProps) {
               </div>
             </div>
 
-            <Button className="h-12 w-full text-lg" onClick={handleAddToCart} disabled={user?.role === 'owner' || item.is_available === false || (item.stock || 0) <= 0}>
-              {user?.role === 'owner' ? 'Owners Cannot Rent' : item.is_available === false || (item.stock || 0) <= 0 ? 'Currently Unavailable' : 'Add to Cart'}
-            </Button>
+            <div className="space-y-3">
+              <Button className="h-12 w-full text-lg" onClick={handleAddToCart} disabled={user?.role === 'owner' || item.is_available === false || (item.stock || 0) <= 0}>
+                {user?.role === 'owner' ? 'Owners Cannot Rent' : item.is_available === false || (item.stock || 0) <= 0 ? 'Currently Unavailable' : 'Add to Cart'}
+              </Button>
+              
+              {cartNotice && (
+                <div className={cn(
+                  "rounded-lg p-3 text-sm font-medium border animate-in fade-in slide-in-from-top-2",
+                  cartNotice.type === 'success' ? "bg-emerald-50 text-emerald-900 border-emerald-200" : "bg-red-50 text-red-900 border-red-200"
+                )}>
+                  {cartNotice.message}
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="space-y-4">

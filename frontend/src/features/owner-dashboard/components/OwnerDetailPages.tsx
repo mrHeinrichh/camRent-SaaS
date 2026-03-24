@@ -44,6 +44,8 @@ interface OwnerDetailPagesProps {
   onReject: (id: string) => void;
   onReportFraud: (id: string) => void;
   onCancelBooking: (id: string) => void;
+  validationErrors: Record<string, string>;
+  clearValidationError: (field: string) => void;
 }
 
 export function OwnerDetailPages({
@@ -75,6 +77,8 @@ export function OwnerDetailPages({
   onReject,
   onReportFraud,
   onCancelBooking,
+  validationErrors,
+  clearValidationError,
 }: OwnerDetailPagesProps) {
   const [fileLoading, setFileLoading] = useState(false);
   const PRESET_BRANDS = [
@@ -183,22 +187,65 @@ export function OwnerDetailPages({
 
         <div className="rounded-2xl border bg-white p-6 shadow-sm">
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <Input className="h-11 border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-500" placeholder="Gear name" value={editor.name} onChange={(event) => onEditorChange({ ...editor, name: event.target.value })} />
-            <Input className="h-11 border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-500" placeholder="Category (Camera, Lens, Audio, etc.)" value={editor.category} onChange={(event) => onEditorChange({ ...editor, category: event.target.value })} />
+            <Input
+              className="h-11 border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-500"
+              placeholder="Gear name"
+              value={editor.name}
+              onChange={(event) => {
+                onEditorChange({ ...editor, name: event.target.value });
+                clearValidationError('name');
+              }}
+              error={validationErrors.name}
+            />
+            <Input
+              className="h-11 border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-500"
+              placeholder="Category (Camera, Lens, Audio, etc.)"
+              value={editor.category}
+              onChange={(event) => {
+                onEditorChange({ ...editor, category: event.target.value });
+                clearValidationError('category');
+              }}
+              error={validationErrors.category}
+            />
             <Input
               className="h-11 border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-500"
               list="gear-brand-options"
               placeholder="Brand (choose or type custom)"
               value={editor.brand}
-              onChange={(event) => onEditorChange({ ...editor, brand: event.target.value })}
+              onChange={(event) => {
+                onEditorChange({ ...editor, brand: event.target.value });
+                clearValidationError('brand');
+              }}
+              error={validationErrors.brand}
             />
             <datalist id="gear-brand-options">
               {PRESET_BRANDS.map((brand) => (
                 <option key={brand} value={brand} />
               ))}
             </datalist>
-            <Input className="h-11 border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-500" placeholder="Daily price" type="number" value={editor.daily_price} onChange={(event) => onEditorChange({ ...editor, daily_price: event.target.value })} />
-            <Input className="h-11 border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-500" placeholder="Stock" type="number" min="0" value={editor.stock} onChange={(event) => onEditorChange({ ...editor, stock: event.target.value })} />
+            <Input
+              className="h-11 border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-500"
+              placeholder="Daily price"
+              type="number"
+              value={editor.daily_price}
+              onChange={(event) => {
+                onEditorChange({ ...editor, daily_price: event.target.value });
+                clearValidationError('daily_price');
+              }}
+              error={validationErrors.daily_price}
+            />
+            <Input
+              className="h-11 border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-500"
+              placeholder="Stock"
+              type="number"
+              min="0"
+              value={editor.stock}
+              onChange={(event) => {
+                onEditorChange({ ...editor, stock: event.target.value });
+                clearValidationError('stock');
+              }}
+              error={validationErrors.stock}
+            />
           </div>
           <div className="mt-4 flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900">
             <span className="font-medium">Availability</span>
@@ -261,11 +308,30 @@ export function OwnerDetailPages({
           <div className="space-y-3">
             <div>
               <label className="mb-1 block text-sm font-medium text-slate-700">Start Date</label>
-              <Input className="border-slate-200 bg-slate-50 text-slate-900" type="date" value={blockStartDate} onChange={(event) => onBlockStartDateChange(event.target.value)} />
+              <Input
+                className="border-slate-200 bg-slate-50 text-slate-900"
+                type="date"
+                value={blockStartDate}
+                onChange={(event) => {
+                  onBlockStartDateChange(event.target.value);
+                  clearValidationError('blockStartDate');
+                }}
+                error={validationErrors.blockStartDate}
+              />
             </div>
             <div>
               <label className="mb-1 block text-sm font-medium text-slate-700">End Date</label>
-              <Input className="border-slate-200 bg-slate-50 text-slate-900" type="date" value={blockEndDate} onChange={(event) => onBlockEndDateChange(event.target.value)} min={blockStartDate || undefined} />
+              <Input
+                className="border-slate-200 bg-slate-50 text-slate-900"
+                type="date"
+                value={blockEndDate}
+                onChange={(event) => {
+                  onBlockEndDateChange(event.target.value);
+                  clearValidationError('blockEndDate');
+                }}
+                min={blockStartDate || undefined}
+                error={validationErrors.blockEndDate}
+              />
             </div>
             <div>
               <label className="mb-1 block text-sm font-medium text-slate-700">Reason (optional)</label>
@@ -315,7 +381,15 @@ export function OwnerDetailPages({
               <option value="internal">Internal</option>
               <option value="global">Global (admin approval)</option>
             </select>
-            <Input placeholder="Reason" value={fraudReason} onChange={(event) => onFraudReasonChange(event.target.value)} />
+            <Input
+              placeholder="Reason"
+              value={fraudReason}
+              onChange={(event) => {
+                onFraudReasonChange(event.target.value);
+                clearValidationError('fraudReason');
+              }}
+              error={validationErrors.fraudReason}
+            />
             <FileUpload
               label="Fraud Evidence (optional)"
               accept=".pdf,image/*"

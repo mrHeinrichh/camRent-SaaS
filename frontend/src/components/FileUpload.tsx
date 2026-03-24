@@ -9,6 +9,7 @@ interface FileUploadProps {
   required?: boolean;
   disabled?: boolean;
   helperText?: string;
+  error?: string;
   file?: File | null;
   files?: File[];
   onChange: (files: FileList | null) => void;
@@ -21,6 +22,7 @@ export function FileUpload({
   required,
   disabled,
   helperText,
+  error,
   file,
   files,
   onChange,
@@ -34,27 +36,29 @@ export function FileUpload({
     : 'No file selected';
 
   return (
-    <div className="space-y-2">
-      <label className="text-sm font-medium text-[var(--tone-text)]">{label}{required ? ' *' : ''}</label>
+    <div className="space-y-1.5 w-full">
+      <label className="text-[10px] font-black uppercase tracking-widest text-[var(--tone-text-muted)] mb-1.5 ml-1 block">{label}{required ? <span className="text-[var(--tone-accent)] ml-1">*</span> : ''}</label>
       <label
         htmlFor={inputId}
         className={cn(
-          'i3d-btn flex w-full cursor-pointer items-center justify-between gap-3 rounded-2xl border border-[var(--tone-border)] bg-white px-4 py-3 text-sm shadow-sm transition hover:border-[var(--tone-accent)]',
-          disabled && 'cursor-not-allowed opacity-60',
+          'i3d-btn group flex w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-[var(--tone-border)] bg-[var(--tone-surface-soft)] px-6 py-8 text-center transition-all hover:border-[var(--tone-accent)] hover:bg-[var(--tone-accent)]/5',
+          disabled && 'cursor-not-allowed opacity-60 hover:border-[var(--tone-border)] hover:bg-[var(--tone-surface-soft)]',
+          selectedFiles.length > 0 && 'border-emerald-200 bg-emerald-50/30 hover:border-emerald-300 hover:bg-emerald-50',
+          error && "border-red-500 bg-red-50/50 hover:border-red-600 hover:bg-red-50"
         )}
       >
-        <div className="flex items-center gap-3">
-          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--tone-surface-soft)] text-[var(--tone-text)]">
-            <ImagePlus className="h-5 w-5" />
-          </span>
-          <div>
-            <p className="text-sm font-semibold text-[var(--tone-text)]">Choose file</p>
-            <p className="text-xs text-[var(--tone-text-muted)]">{summary}</p>
-          </div>
+        <div className={cn(
+          "flex h-12 w-12 items-center justify-center rounded-full transition-colors",
+          selectedFiles.length > 0 ? "bg-emerald-100 text-emerald-600" : "bg-slate-100 text-slate-500 group-hover:bg-amber-100 group-hover:text-amber-600"
+        )}>
+          <ImagePlus className="h-6 w-6" />
         </div>
-        <span className="rounded-full bg-[var(--tone-surface-soft)] px-3 py-1 text-xs font-semibold text-[var(--tone-text)]">
-          Browse
-        </span>
+        <div>
+          <p className="text-sm font-semibold text-slate-800">
+            {selectedFiles.length > 0 ? 'File attached' : 'Upload an image'}
+          </p>
+          <p className="mt-1 text-xs text-slate-500">{summary}</p>
+        </div>
       </label>
       <input
         id={inputId}
@@ -66,7 +70,12 @@ export function FileUpload({
         disabled={disabled}
         onChange={(event) => onChange(event.target.files)}
       />
-      {helperText ? <p className="text-xs text-[var(--tone-text-muted)]">{helperText}</p> : null}
+      {helperText && !error ? <p className="mt-1 ml-1 text-xs text-[var(--tone-text-muted)]">{helperText}</p> : null}
+      {error && (
+        <p className="mt-1.5 ml-1 text-xs font-bold text-red-500 animate-fade-up">
+          {error}
+        </p>
+      )}
     </div>
   );
 }

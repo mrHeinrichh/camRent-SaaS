@@ -42,17 +42,56 @@ export function Button({ className, variant = 'default', size = 'default', ...pr
   );
 }
 
-export function Input({ className, ...props }: React.InputHTMLAttributes<HTMLInputElement>) {
+export function Label({ className, ...props }: React.LabelHTMLAttributes<HTMLLabelElement>) {
   return (
-    <input
+    <label
       className={cn(
-        "i3d-input flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
+        "text-[10px] font-black uppercase tracking-widest text-[var(--tone-text-muted)] mb-1.5 ml-1 block",
         className
       )}
       {...props}
     />
   );
 }
+
+export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+  icon?: React.ReactNode;
+  label?: string;
+  error?: string;
+}
+
+export const Input = React.forwardRef<HTMLInputElement, InputProps>(
+  ({ className, icon, label, error, ...props }, ref) => {
+    return (
+      <div className="w-full">
+        {label && <Label>{label}</Label>}
+        <div className="relative flex w-full items-center">
+          {icon && (
+            <div className="pointer-events-none absolute left-3.5 text-[var(--tone-text-muted)]">
+              {icon}
+            </div>
+          )}
+          <input
+            className={cn(
+              "i3d-input flex h-12 w-full rounded-xl border border-[var(--tone-border)] bg-[var(--tone-surface-soft)] px-4 py-2 text-[var(--tone-text)] text-sm shadow-sm transition-all focus-within:bg-[var(--tone-surface)] focus-within:ring-4 focus-within:ring-[var(--tone-accent)]/20 file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-[var(--tone-text-muted)] focus-visible:outline-none focus-visible:border-[var(--tone-accent)] disabled:cursor-not-allowed disabled:opacity-50",
+              icon && "pl-11",
+              error && "border-red-500 ring-red-500/10 focus-within:ring-red-500/20 focus-visible:border-red-500",
+              className
+            )}
+            ref={ref}
+            {...props}
+          />
+        </div>
+        {error && (
+          <p className="mt-1.5 ml-1 text-xs font-bold text-red-500 animate-fade-up">
+            {error}
+          </p>
+        )}
+      </div>
+    );
+  }
+);
+Input.displayName = "Input";
 
 export function Card({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return (

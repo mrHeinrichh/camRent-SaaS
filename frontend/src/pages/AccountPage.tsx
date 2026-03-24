@@ -40,6 +40,8 @@ export function AccountPage({ onNavigate }: AccountPageProps) {
   const [profileEditing, setProfileEditing] = useState(false);
   const [profileImageFile, setProfileImageFile] = useState<File | null>(null);
   const [profileImagePreviewUrl, setProfileImagePreviewUrl] = useState('');
+  const [cancelReason, setCancelReason] = useState<Record<string, string>>({});
+  const [cancelNotice, setCancelNotice] = useState<{ id: string; type: 'success' | 'error'; message: string } | null>(null);
   const { addToCart, clearCart, user, token, setSession } = useAppStore();
   const [profileForm, setProfileForm] = useState({
     full_name: user?.full_name || '',
@@ -47,6 +49,19 @@ export function AccountPage({ onNavigate }: AccountPageProps) {
     avatar_url: user?.avatar_url || '',
     phone: user?.phone || '',
   });
+
+  const [profileErrors, setProfileErrors] = useState<Record<string, string>>({});
+  const [profileSuccess, setProfileSuccess] = useState('');
+
+  const clearProfileError = (field: string) => {
+    if (profileErrors[field]) {
+      setProfileErrors((prev) => {
+        const next = { ...prev };
+        delete next[field];
+        return next;
+      });
+    }
+  };
 
   useEffect(() => {
     setProfileForm({
@@ -161,26 +176,28 @@ export function AccountPage({ onNavigate }: AccountPageProps) {
               accept="image/*"
               disabled={!profileEditing}
               file={profileImageFile}
-              onChange={(files) => setProfileImageFile(files?.[0] || null)}
+              onChange={(files) => { setProfileImageFile(files?.[0] || null); clearProfileError('avatar_url'); }}
+              error={profileErrors.avatar_url}
             />
           </div>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <div className="space-y-1">
-              <label className="text-xs font-semibold uppercase text-muted-foreground">Full Name</label>
-              <Input disabled={!profileEditing} value={profileForm.full_name} onChange={(event) => setProfileForm((prev) => ({ ...prev, full_name: event.target.value }))} />
+              <Input label="Full Name" disabled={!profileEditing} value={profileForm.full_name} onChange={(event) => { setProfileForm((prev) => ({ ...prev, full_name: event.target.value })); clearProfileError('full_name'); }} error={profileErrors.full_name} />
             </div>
             <div className="space-y-1">
-              <label className="text-xs font-semibold uppercase text-muted-foreground">Email</label>
-              <Input disabled={!profileEditing} type="email" value={profileForm.email} onChange={(event) => setProfileForm((prev) => ({ ...prev, email: event.target.value }))} />
+              <Input label="Email" disabled={!profileEditing} type="email" value={profileForm.email} onChange={(event) => { setProfileForm((prev) => ({ ...prev, email: event.target.value })); clearProfileError('email'); }} error={profileErrors.email} />
             </div>
             <div className="md:col-span-2">
-              <PhoneInput label="Contact Number" value={profileForm.phone} required disabled={!profileEditing} onChange={(value) => setProfileForm((prev) => ({ ...prev, phone: value }))} />
+              <PhoneInput label="Contact Number" value={profileForm.phone} required disabled={!profileEditing} onChange={(value) => { setProfileForm((prev) => ({ ...prev, phone: value })); clearProfileError('phone'); }} error={profileErrors.phone} />
             </div>
             <div className="md:col-span-2">
               <Button
                 type="button"
+                className="w-full md:w-auto h-11 px-8 rounded-full font-bold shadow-sm"
                 disabled={profileSaving || !profileEditing}
                 onClick={async () => {
+                  setProfileErrors({});
+                  setProfileSuccess('');
                   try {
                     setProfileSaving(true);
                     let nextAvatarUrl = profileForm.avatar_url;
@@ -192,7 +209,7 @@ export function AccountPage({ onNavigate }: AccountPageProps) {
                     }
                     const phoneCheck = validatePhone(profileForm.phone);
                     if (!phoneCheck.valid) {
-                      alert(phoneCheck.error);
+                      setProfileErrors({ phone: phoneCheck.error || 'Invalid phone number' });
                       return;
                     }
                     const result = await api.put<ProfileUpdateResponse>('/api/auth/profile', {
@@ -210,9 +227,9 @@ export function AccountPage({ onNavigate }: AccountPageProps) {
                     });
                     setSession(result.user, result.token || token);
                     setProfileEditing(false);
-                    alert('Profile updated');
+                    setProfileSuccess('Profile updated successfully!');
                   } catch (error: any) {
-                    alert(error?.message || 'Failed to update profile');
+                    setProfileErrors({ submit: error?.message || 'Failed to update profile' });
                   } finally {
                     setProfileSaving(false);
                   }
@@ -220,6 +237,8 @@ export function AccountPage({ onNavigate }: AccountPageProps) {
               >
                 {profileSaving ? 'Saving...' : 'Save Profile'}
               </Button>
+              {profileSuccess && <p className="mt-3 text-center text-sm font-bold text-emerald-600 animate-fade-up">{profileSuccess}</p>}
+              {profileErrors.submit && <p className="mt-3 text-center text-sm font-bold text-red-500 animate-fade-up">{profileErrors.submit}</p>}
             </div>
           </div>
         </div>
@@ -340,31 +359,77 @@ export function AccountPage({ onNavigate }: AccountPageProps) {
                     </Button>
                   )}
                   {order.status === 'PENDING_REVIEW' && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 text-xs text-red-600 hover:text-red-700"
-                      disabled={cancellingOrderId === order.id}
-                      onClick={async () => {
-                        const reason = prompt('Reason for cancellation:');
-                        if (!reason || !reason.trim()) {
-                          alert('Cancellation reason is required.');
-                          return;
-                        }
-                        try {
-                          setCancellingOrderId(order.id);
-                          await api.post(`/api/account/orders/${order.id}/cancel`, { reason: reason.trim() });
-                          await loadOrders();
-                          alert('Order cancelled.');
-                        } catch (error: any) {
-                          alert(error?.message || 'Failed to cancel order.');
-                        } finally {
-                          setCancellingOrderId(null);
-                        }
-                      }}
-                    >
-                      <Ban className="mr-1 h-3 w-3" /> Cancel Order
-                    </Button>
+                    <div className="flex flex-col gap-2">
+                      {!cancelReason.hasOwnProperty(order.id) ? (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 text-xs text-red-600 hover:text-red-700"
+                          onClick={() => setCancelReason(prev => ({ ...prev, [order.id]: '' }))}
+                        >
+                          <Ban className="mr-1 h-3 w-3" /> Cancel Order
+                        </Button>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <Input
+                            placeholder="Reason..."
+                            className="h-8 text-xs min-w-[120px]"
+                            value={cancelReason[order.id]}
+                            onChange={(e) => setCancelReason(prev => ({ ...prev, [order.id]: e.target.value }))}
+                          />
+                          <Button 
+                            size="sm" 
+                            className="h-8 px-2 text-[10px]" 
+                            disabled={cancellingOrderId === order.id}
+                            onClick={async () => {
+                              const reason = cancelReason[order.id];
+                              if (!reason || !reason.trim()) {
+                                setCancelNotice({ id: order.id, type: 'error', message: 'Reason required' });
+                                return;
+                              }
+                              try {
+                                setCancellingOrderId(order.id);
+                                await api.post(`/api/account/orders/${order.id}/cancel`, { reason: reason.trim() });
+                                await loadOrders();
+                                setCancelNotice({ id: order.id, type: 'success', message: 'Order cancelled' });
+                                setCancelReason(prev => {
+                                  const next = { ...prev };
+                                  delete next[order.id];
+                                  return next;
+                                });
+                              } catch (error: any) {
+                                setCancelNotice({ id: order.id, type: 'error', message: error?.message || 'Failed' });
+                              } finally {
+                                setCancellingOrderId(null);
+                                setTimeout(() => setCancelNotice(null), 3000);
+                              }
+                            }}
+                          >
+                            Confirm
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-8 px-2 text-[10px]"
+                            onClick={() => setCancelReason(prev => {
+                              const next = { ...prev };
+                              delete next[order.id];
+                              return next;
+                            })}
+                          >
+                            &times;
+                          </Button>
+                        </div>
+                      )}
+                      {cancelNotice?.id === order.id && (
+                        <p className={cn(
+                          "text-[10px] font-bold mt-1",
+                          cancelNotice.type === 'success' ? "text-emerald-600" : "text-red-500"
+                        )}>
+                          {cancelNotice.message}
+                        </p>
+                      )}
+                    </div>
                   )}
                 </div>
 
@@ -385,90 +450,151 @@ export function AccountPage({ onNavigate }: AccountPageProps) {
       </div>
 
       {selectedOrder && (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/60 p-4">
-          <div className="i3d-modal max-h-[90vh] w-full max-w-5xl overflow-auto rounded-2xl bg-white p-6 text-slate-900 shadow-2xl">
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-2xl font-bold">Order Details</h3>
-              <Button variant="ghost" size="icon" onClick={() => setSelectedOrder(null)}>
-                &times;
-              </Button>
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 sm:p-6" onClick={() => setSelectedOrder(null)}>
+          <div 
+            className="i3d-modal max-h-[90vh] w-full max-w-4xl overflow-auto rounded-[2rem] bg-[var(--tone-surface)] p-6 sm:p-8 text-[var(--tone-text)] shadow-2xl border border-white/40 custom-scrollbar"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-[var(--tone-accent)]/20 pb-4">
+              <div>
+                <h3 className="text-2xl font-black tracking-tight text-[var(--tone-text)]">Transaction Details</h3>
+                <p className="mt-1 font-mono text-sm text-[var(--tone-text-muted)]">Order #{selectedOrder.id}</p>
+              </div>
+              <div className="flex items-center gap-4">
+                <span
+                  className={cn(
+                    'rounded-full px-4 py-1.5 text-xs font-black uppercase tracking-wider',
+                    selectedOrder.status === 'APPROVED'
+                      ? 'bg-green-100 text-green-700'
+                      : selectedOrder.status === 'PENDING_REVIEW'
+                        ? 'bg-yellow-100/80 text-yellow-700'
+                        : selectedOrder.status === 'CANCELLED_BY_OWNER'
+                          ? 'bg-red-100 text-red-700'
+                          : 'bg-muted text-muted-foreground',
+                  )}
+                >
+                  {selectedOrder.status.replace(/_/g, ' ')}
+                </span>
+                <Button variant="ghost" size="icon" onClick={() => setSelectedOrder(null)} className="rounded-full hover:bg-[var(--tone-accent)]/10 text-[var(--tone-text)]">
+                  &times;
+                </Button>
+              </div>
             </div>
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-              <Card className="p-3">
-                <p className="text-xs font-semibold uppercase text-muted-foreground">Order ID</p>
-                <p className="font-mono text-sm">#{selectedOrder.id}</p>
-              </Card>
-              <Card className="p-3">
-                <p className="text-xs font-semibold uppercase text-muted-foreground">Status</p>
-                <p className="text-sm font-medium">{selectedOrder.status.replace(/_/g, ' ')}</p>
-              </Card>
-              <Card className="p-3">
-                <p className="text-xs font-semibold uppercase text-muted-foreground">Store / Branch</p>
-                <p className="text-sm font-medium">{selectedOrder.store_name}</p>
-                <p className="text-xs text-muted-foreground">{selectedOrder.store_branch_name || 'Main Branch'} • {selectedOrder.store_branch_address || '-'}</p>
-              </Card>
-              <Card className="p-3">
-                <p className="text-xs font-semibold uppercase text-muted-foreground">Delivery / Payment</p>
-                <p className="text-sm">{selectedOrder.delivery_mode || '-'} • {selectedOrder.payment_mode || '-'}</p>
-                <p className="text-xs text-muted-foreground">{selectedOrder.delivery_address || '-'}</p>
-              </Card>
-              <Card className="p-3">
-                <p className="text-xs font-semibold uppercase text-muted-foreground">Contact</p>
-                <p className="text-sm">{selectedOrder.renter_name || '-'}</p>
-                <p className="text-xs text-muted-foreground">{selectedOrder.renter_email || '-'}</p>
-                <p className="text-xs text-muted-foreground">{selectedOrder.renter_phone || '-'}</p>
-              </Card>
-              <Card className="p-3">
-                <p className="text-xs font-semibold uppercase text-muted-foreground">Emergency Contact</p>
-                <p className="text-sm">{selectedOrder.renter_emergency_contact_name || '-'} {selectedOrder.renter_emergency_contact ? `(${selectedOrder.renter_emergency_contact})` : ''}</p>
-                <p className="text-xs text-muted-foreground">Present Address: {selectedOrder.renter_address || '-'}</p>
-              </Card>
+            
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 mb-8">
+              <div className="rounded-3xl border border-white/60 bg-white/40 p-5 shadow-sm backdrop-blur-sm">
+                <p className="text-[10px] font-black uppercase tracking-widest text-[var(--tone-text-muted)] mb-2">Facility & Fulfillment</p>
+                <p className="text-base font-bold text-[var(--tone-text)]">{selectedOrder.store_name}</p>
+                <p className="text-xs font-medium text-[var(--tone-text-muted)] mt-1">{selectedOrder.store_branch_name || 'Main Branch'}</p>
+                <div className="mt-4 space-y-2 text-sm text-[var(--tone-text)]">
+                  <div className="flex items-center justify-between border-b border-black/5 pb-2">
+                    <span className="text-[var(--tone-text-muted)]">Delivery</span>
+                    <span className="font-semibold">{selectedOrder.delivery_mode || '-'}</span>
+                  </div>
+                  <div className="flex items-center justify-between pb-1">
+                    <span className="text-[var(--tone-text-muted)]">Payment</span>
+                    <span className="font-semibold">{selectedOrder.payment_mode || '-'}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-3xl border border-white/60 bg-white/40 p-5 shadow-sm backdrop-blur-sm">
+                <p className="text-[10px] font-black uppercase tracking-widest text-[var(--tone-text-muted)] mb-2">Customer Info</p>
+                <p className="text-base font-bold text-[var(--tone-text)]">{selectedOrder.renter_name || '-'}</p>
+                <p className="text-xs text-[var(--tone-text-muted)] mt-1">{selectedOrder.renter_email}</p>
+                <p className="text-xs text-[var(--tone-text-muted)]">{selectedOrder.renter_phone}</p>
+                <div className="mt-4 pt-3 border-t border-black/5">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-[var(--tone-text-muted)] mb-1">Present Address</p>
+                  <p className="text-sm font-medium line-clamp-2">{selectedOrder.renter_address || '-'}</p>
+                </div>
+              </div>
+
+              <div className="rounded-3xl border border-white/60 bg-white/40 p-5 shadow-sm backdrop-blur-sm lg:col-span-1 md:col-span-2">
+                <p className="text-[10px] font-black uppercase tracking-widest text-[var(--tone-text-muted)] mb-2">Emergency Contact</p>
+                <p className="text-base font-bold text-[var(--tone-text)]">{selectedOrder.renter_emergency_contact_name || '-'}</p>
+                <p className="text-sm font-medium text-[var(--tone-text-muted)] mt-1">{selectedOrder.renter_emergency_contact || '-'}</p>
+              </div>
             </div>
 
-            <div className="mt-4 space-y-2">
-              <p className="text-sm font-semibold">Rented Items</p>
+            <div className="mb-8">
+              <h4 className="mb-4 flex items-center gap-2 text-sm font-black uppercase tracking-widest text-[var(--tone-text-muted)]">
+                <Package className="h-4 w-4" /> Rented Equipment ({selectedOrder.items.length})
+              </h4>
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 {selectedOrder.items.map((item) => (
-                  <Card key={`${selectedOrder.id}-${item.id}-${item.start_date}`} className="p-3">
-                    <div className="flex items-center gap-3">
-                      <img src={item.image_url || `https://picsum.photos/seed/account-detail-${item.id}/120/120`} alt={item.name} className="h-12 w-12 rounded border object-cover" />
-                      <div>
-                        <p className="text-sm font-semibold">{item.name}</p>
-                        <p className="text-xs text-muted-foreground">{item.start_date} to {item.end_date}</p>
-                        <p className="text-xs text-muted-foreground">Qty: {Math.max(1, item.quantity || 1)} • {formatPHP(item.daily_price)}/day</p>
-                      </div>
+                  <div key={`${selectedOrder.id}-${item.id}-${item.start_date}`} className="group flex items-center gap-4 rounded-2xl border border-white/60 bg-white/40 p-3 shadow-sm transition-all hover:bg-white/60">
+                    <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-white/50 bg-[var(--tone-bg)] shadow-inner">
+                      <img src={item.image_url || `https://picsum.photos/seed/account-detail-${item.id}/120/120`} alt={item.name} className="h-full w-full object-cover" />
                     </div>
-                  </Card>
+                    <div className="flex-1 min-w-0">
+                      <p className="truncate text-sm font-bold text-[var(--tone-text)]">{item.name}</p>
+                      <p className="text-xs font-medium text-[var(--tone-text-muted)] mt-0.5">{item.start_date} → {item.end_date}</p>
+                      <p className="text-xs font-semibold text-[var(--tone-accent)] mt-1">Qty: {Math.max(1, item.quantity || 1)}x</p>
+                    </div>
+                    <div className="text-right shrink-0 pr-2">
+                      <p className="text-sm font-black text-[var(--tone-text)]">{formatPHP(item.daily_price)}</p>
+                      <p className="text-[10px] font-semibold tracking-wider text-[var(--tone-text-muted)] uppercase">/ day</p>
+                    </div>
+                  </div>
                 ))}
               </div>
             </div>
 
-            <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
-              <Card className="p-3">
-                <p className="mb-2 text-xs font-semibold uppercase text-muted-foreground">Submitted Files</p>
-                {(selectedOrder.documents || []).length ? (
-                  <div className="space-y-1">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+              <div className="rounded-3xl border border-[var(--tone-accent)]/20 bg-white/20 p-5 backdrop-blur-md">
+                <h4 className="mb-3 text-[10px] font-black uppercase tracking-widest text-[var(--tone-text-muted)]">Attachments</h4>
+                {(selectedOrder.documents || []).length || selectedOrder.lease_agreement_submission_url ? (
+                  <div className="space-y-2">
+                    {selectedOrder.lease_agreement_submission_url && (
+                       <a href={selectedOrder.lease_agreement_submission_url} target="_blank" rel="noreferrer" className="flex items-center justify-between rounded-xl bg-white/50 p-3 text-sm font-medium transition-colors hover:bg-white/80">
+                         <span className="flex items-center gap-2 font-semibold">
+                           <FileDown className="h-4 w-4 text-blue-600" /> Signed Agreement
+                         </span>
+                         <span className="text-xs text-[var(--tone-text-muted)]">View doc &rarr;</span>
+                       </a>
+                    )}
                     {(selectedOrder.documents || []).map((doc, index) => (
-                      <a key={`${selectedOrder.id}-${doc.type}-${index}`} href={doc.url} target="_blank" rel="noreferrer" className="block text-sm underline">
-                        {doc.type || `File ${index + 1}`}
+                      <a key={`${selectedOrder.id}-${doc.type}-${index}`} href={doc.url} target="_blank" rel="noreferrer" className="flex items-center justify-between rounded-xl bg-white/50 p-3 text-sm font-medium transition-colors hover:bg-white/80">
+                        <span className="flex items-center gap-2">
+                          <AlertCircle className="h-4 w-4 text-slate-500" /> {doc.type || `Document ${index + 1}`}
+                        </span>
+                        <span className="text-xs text-[var(--tone-text-muted)]">View file &rarr;</span>
                       </a>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-muted-foreground">No files attached.</p>
+                  <div className="flex h-24 flex-col items-center justify-center rounded-xl border border-dashed border-[var(--tone-accent)]/30 bg-[var(--tone-bg)]/50">
+                    <p className="text-sm font-medium text-[var(--tone-text-muted)]">No attachments found</p>
+                  </div>
                 )}
-              </Card>
-              <Card className="p-3">
-                <p className="mb-2 text-xs font-semibold uppercase text-muted-foreground">Amount Summary</p>
-                <p className="text-sm">Total: <span className="font-semibold">{formatPHP(selectedOrder.total_amount)}</span></p>
-                {selectedOrder.voucher_code ? <p className="text-xs text-muted-foreground">Voucher: {selectedOrder.voucher_code} (-{formatPHP(selectedOrder.voucher_discount || 0)})</p> : null}
-                {selectedOrder.cancellation_reason ? <p className="mt-2 text-xs text-red-700">Cancellation reason: {selectedOrder.cancellation_reason}</p> : null}
-                {selectedOrder.lease_agreement_submission_url ? (
-                  <a href={selectedOrder.lease_agreement_submission_url} target="_blank" rel="noreferrer" className="mt-2 block text-xs underline">
-                    View submitted lease agreement
-                  </a>
-                ) : null}
-              </Card>
+              </div>
+              
+              <div className="rounded-3xl border border-[var(--tone-accent)] bg-[var(--tone-surface)] p-6 shadow-md relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--tone-accent)]/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3"></div>
+                <h4 className="mb-4 text-[10px] font-black uppercase tracking-widest text-[var(--tone-text-muted)]">Final Accounting</h4>
+                
+                <div className="space-y-3 relative z-10">
+                  {selectedOrder.voucher_code && (
+                    <div className="flex items-center justify-between pb-3 border-b border-black/5">
+                      <div>
+                        <span className="text-sm font-semibold text-[var(--tone-text-muted)]">Voucher Applied</span>
+                        <p className="text-xs font-bold uppercase text-green-600">{selectedOrder.voucher_code}</p>
+                      </div>
+                      <span className="text-sm font-bold text-green-600">-{formatPHP(selectedOrder.voucher_discount || 0)}</span>
+                    </div>
+                  )}
+                  {selectedOrder.cancellation_reason && (
+                    <div className="rounded-xl bg-red-50/80 p-3 border border-red-100">
+                      <p className="text-xs font-bold uppercase tracking-wider text-red-600 mb-1">Cancellation Reason</p>
+                      <p className="text-sm font-medium text-red-800">{selectedOrder.cancellation_reason}</p>
+                    </div>
+                  )}
+                  <div className="flex items-end justify-between pt-2">
+                    <span className="text-base font-bold text-[var(--tone-text)]">Total Paid</span>
+                    <span className="text-3xl font-black tracking-tight text-[var(--tone-text)]">{formatPHP(selectedOrder.total_amount)}</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>

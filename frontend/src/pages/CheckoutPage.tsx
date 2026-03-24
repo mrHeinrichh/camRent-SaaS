@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { CircleCheck, ClipboardList, CreditCard, Facebook, FileBadge2, FileText, Globe, Instagram, Mail, MapPin, Music2, Phone, Truck, User2 } from 'lucide-react';
+import { ChevronRight, ChevronLeft, ChevronDown, ClipboardList, CreditCard, Facebook, FileBadge2, FileText, Globe, Instagram, MapPin, Music2, Truck, User2, ShieldCheck, CheckCircle2, Mail } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '@/src/lib/api';
 import { formatPHP } from '@/src/lib/currency';
 import { useAppStore } from '@/src/store';
@@ -44,8 +45,11 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
     reference_image_url: '',
     reference_image_position: 'top',
   });
+
+  const [currentStep, setCurrentStep] = useState(1);
   const [submittingApplication, setSubmittingApplication] = useState(false);
   const [loadingStore, setLoadingStore] = useState(true);
+
   const [formData, setFormData] = useState({
     fullName: '',
     email: user?.email || '',
@@ -59,6 +63,7 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
     paymentMode: 'cash',
     agree: false,
   });
+
   const [billingAddressFile, setBillingAddressFile] = useState<File | null>(null);
   const [leaseAgreementSubmissionFile, setLeaseAgreementSubmissionFile] = useState<File | null>(null);
   const [idRequirements] = useState<IdRequirementsResponse>({ hasPreviousTransaction: false, requireIds: true });
@@ -76,10 +81,24 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
     selfie_id: null,
   });
 
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
+  const clearFieldError = (field: string) => {
+    if (fieldErrors[field]) {
+      setFieldErrors((prev) => {
+        const next = { ...prev };
+        delete next[field];
+        return next;
+      });
+    }
+  };
+
   const rentalSubtotal = useMemo(() => cart.reduce((sum, item) => sum + item.daily_price * Math.max(1, item.quantity || 1), 0), [cart]);
   const finalSecurityDeposit = store?.security_deposit || 0;
   const voucherDiscount = appliedVoucher && appliedVoucher.store_id === cart[0]?.store_id ? Math.max(0, Number(appliedVoucher.discount_amount || 0)) : 0;
   const totalAmount = Math.max(0, rentalSubtotal + finalSecurityDeposit - voucherDiscount);
+
+  // Completion calculation for the mini progress bar
   const completion = useMemo(() => {
     const checks = [
       Boolean(formData.fullName.trim()),
@@ -102,13 +121,12 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
       Boolean(formData.agree),
     ];
     const completed = checks.filter(Boolean).length;
-    const total = checks.length;
     return {
       completed,
-      total,
-      percent: Math.round((completed / Math.max(1, total)) * 100),
+      total: checks.length,
+      percent: Math.round((completed / Math.max(1, checks.length)) * 100),
     };
-  }, [billingAddressFile, documentFiles.id1_back, documentFiles.id1_front, documentFiles.id2_back, documentFiles.id2_front, documentFiles.selfie_id, formData.agree, formData.deliveryAddress, formData.deliveryMode, formData.email, formData.emergencyContact, formData.emergencyContactName, formData.fullName, formData.paymentMode, formData.phone, formData.presentAddress, formData.storeBranchId, leaseAgreementSubmissionFile, store?.branches, store?.lease_agreement_file_url]);
+  }, [billingAddressFile, documentFiles, formData, leaseAgreementSubmissionFile, store]);
 
   useEffect(() => {
     if (!cart[0]?.store_id) {
@@ -132,20 +150,14 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
           });
         } catch {
           setCustomFields([]);
-          setRentalFormSettings({
-            show_branch_map: true,
-            reference_text: '',
-            reference_image_url: '',
-            reference_image_position: 'top',
-          });
         }
         if (!formData.deliveryMode && storeData.delivery_modes?.length) {
-          setFormData((previous) => ({ ...previous, deliveryMode: storeData.delivery_modes![0] }));
+          setFormData((prev) => ({ ...prev, deliveryMode: storeData.delivery_modes![0] }));
         } else if (!formData.deliveryMode) {
-          setFormData((previous) => ({ ...previous, deliveryMode: 'Store Pickup' }));
+          setFormData((prev) => ({ ...prev, deliveryMode: 'Store Pickup' }));
         }
         if (!formData.storeBranchId && storeData.branches?.length) {
-          setFormData((previous) => ({ ...previous, storeBranchId: String(storeData.branches?.[0]?._id || '') }));
+          setFormData((prev) => ({ ...prev, storeBranchId: String(storeData.branches?.[0]?._id || '') }));
         }
       })
       .finally(() => setLoadingStore(false));
@@ -177,65 +189,100 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
         : { _id: 'main', name: 'Main Branch', address: store?.address || '', location_lat: store?.location_lat, location_lng: store?.location_lng }) || null,
     [formData.storeBranchId, store],
   );
+
   const branchMapSrc = useMemo(() => {
     const lat = Number(selectedBranch?.location_lat);
     const lng = Number(selectedBranch?.location_lng);
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) return '';
-    const deltaLng = 0.015;
-    const deltaLat = 0.01;
-    const minLng = Math.max(-180, lng - deltaLng);
-    const maxLng = Math.min(180, lng + deltaLng);
-    const minLat = Math.max(-90, lat - deltaLat);
-    const maxLat = Math.min(90, lat + deltaLat);
-    return `https://www.openstreetmap.org/export/embed.html?bbox=${minLng}%2C${minLat}%2C${maxLng}%2C${maxLat}&layer=mapnik&marker=${lat}%2C${lng}`;
+    const delta = 0.015;
+    return `https://www.openstreetmap.org/export/embed.html?bbox=${lng - delta}%2C${lat - delta}%2C${lng + delta}%2C${lat + delta}&layer=mapnik&marker=${lat}%2C${lng}`;
   }, [selectedBranch]);
+
   const socialLinks = useMemo(() => {
     const rawStore = (store || {}) as Record<string, any>;
-    const custom = Array.isArray(rawStore.custom_social_links)
-      ? rawStore.custom_social_links
-      : Array.isArray(rawStore.customSocialLinks)
-        ? rawStore.customSocialLinks
-        : [];
+    const custom = Array.isArray(rawStore.custom_social_links) ? rawStore.custom_social_links : [];
     return {
       facebook: String(rawStore.facebook_url || '').trim(),
       instagram: String(rawStore.instagram_url || '').trim(),
-      tiktok: String(rawStore.tiktok_url ?? rawStore.tiktokUrl ?? '').trim(),
+      tiktok: String(rawStore.tiktok_url || '').trim(),
       custom: custom.map((entry: unknown) => String(entry || '').trim()).filter(Boolean),
     };
   }, [store]);
 
-  const handleSubmit = async (event: FormEvent) => {
-    event.preventDefault();
-    if (submittingApplication) return;
-    if (!store) return alert('Store details are not available. Please try again.');
-    const effectiveStoreBranchId = formData.storeBranchId || String(store.branches?.[0]?._id || 'main');
-    const missingFields: string[] = [];
-    if (!formData.fullName.trim()) missingFields.push('Full Name');
-    if (!formData.email.trim()) missingFields.push('Email');
-    if (!formData.phone.trim()) missingFields.push('Contact Number');
-    if (!formData.emergencyContactName.trim()) missingFields.push('Emergency Contact Name');
-    if (!formData.emergencyContact.trim()) missingFields.push('Emergency Contact Number');
-    if (!formData.presentAddress.trim()) missingFields.push('Present Address');
-    if (!billingAddressFile) missingFields.push('Billing Address File');
-    if (!effectiveStoreBranchId.trim()) missingFields.push('Store Branch');
-    if (!formData.deliveryMode.trim()) missingFields.push('Delivery Mode');
-    if (!formData.deliveryAddress.trim()) missingFields.push('Delivery Address');
-    if (!formData.paymentMode.trim()) missingFields.push('Payment Mode');
-    if (missingFields.length) {
-      return alert(`Please complete all required fields: ${missingFields.join(', ')}`);
+  const handleNextStep = () => {
+    setFieldErrors({});
+
+    if (currentStep === 1) {
+      const errors: Record<string, string> = {};
+      if (!formData.fullName.trim()) errors.fullName = 'Full Name is required';
+      if (!formData.email.trim()) errors.email = 'Email is required';
+      if (!formData.phone.trim()) errors.phone = 'Contact Number is required';
+      if (!formData.emergencyContactName.trim()) errors.emergencyContactName = 'Emergency Contact Name is required';
+      if (!formData.emergencyContact.trim()) errors.emergencyContact = 'Emergency Contact Number is required';
+      if (!formData.presentAddress.trim()) errors.presentAddress = 'Present Address is required';
+
+      if (Object.keys(errors).length > 0) {
+        setFieldErrors(errors);
+        return;
+      }
+
+      const phoneCheck = validatePhone(formData.phone);
+      if (!phoneCheck.valid) {
+        setFieldErrors({ phone: phoneCheck.error || 'Invalid phone number' });
+        return;
+      }
+      const emergencyCheck = validatePhone(formData.emergencyContact);
+      if (!emergencyCheck.valid) {
+        setFieldErrors({ emergencyContact: emergencyCheck.error || 'Invalid phone number' });
+        return;
+      }
+
+      setCurrentStep(2);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else if (currentStep === 2) {
+      if (!formData.deliveryAddress.trim()) {
+        setFieldErrors({ deliveryAddress: 'Delivery Address is required' });
+        return;
+      }
+      setCurrentStep(3);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
-    if (!formData.agree) return alert('Please agree to the terms');
-    const phoneCheck = validatePhone(formData.phone);
-    if (!phoneCheck.valid) return alert(phoneCheck.error);
-    const emergencyCheck = validatePhone(formData.emergencyContact);
-    if (!emergencyCheck.valid) return alert(emergencyCheck.error);
-    if (store.lease_agreement_file_url && !leaseAgreementSubmissionFile) return alert('Please upload your completed lease agreement file.');
-    if (!documentFiles.id1_front || !documentFiles.id1_back || !documentFiles.id2_front || !documentFiles.id2_back || !documentFiles.selfie_id) {
-      return alert('2 valid IDs (both front and back) and selfie with ID are required.');
+  };
+
+  const prevStep = () => {
+    setFieldErrors({});
+    setCurrentStep((prev) => Math.max(1, prev - 1));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const executeSubmit = async () => {
+    if (submittingApplication || !store) return;
+    setFieldErrors({});
+
+    const errors: Record<string, string> = {};
+    if (!billingAddressFile) errors.billingAddressFile = 'Billing Address File is required';
+    if (!documentFiles.id1_front) errors.id1_front = 'Required';
+    if (!documentFiles.id1_back) errors.id1_back = 'Required';
+    if (!documentFiles.id2_front) errors.id2_front = 'Required';
+    if (!documentFiles.id2_back) errors.id2_back = 'Required';
+    if (!documentFiles.selfie_id) errors.selfie_id = 'Required';
+
+    if (store.lease_agreement_file_url && !leaseAgreementSubmissionFile) {
+      errors.leaseAgreementSubmissionFile = 'Completed lease agreement is required';
+    }
+    if (!formData.agree) {
+      errors.agree = 'You must agree to the terms to proceed';
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      return;
     }
 
     try {
       setSubmittingApplication(true);
+      const effectiveStoreBranchId = formData.storeBranchId || String(store.branches?.[0]?._id || 'main');
+
       let leaseAgreementSubmissionUrl = '';
       if (leaseAgreementSubmissionFile) {
         leaseAgreementSubmissionUrl = await uploadPublicFile(leaseAgreementSubmissionFile);
@@ -243,7 +290,8 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
 
       const billingAddressFileUrl = billingAddressFile ? await uploadPublicFile(billingAddressFile) : '';
       if (!billingAddressFileUrl) {
-        return alert('Billing address file is required.');
+        setFieldErrors({ billingAddressFile: 'Failed to upload billing address file' });
+        return;
       }
 
       const documentUrls: Record<string, string> = {};
@@ -290,7 +338,7 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
         customerEmergencyContactName: formData.emergencyContactName,
         customerEmergencyContact: formData.emergencyContact,
         customerAddress: formData.presentAddress,
-        billingAddressFileUrl: billingAddressFileUrl,
+        billingAddressFileUrl,
         storeBranchId: effectiveStoreBranchId,
         storeBranchName: store.branches?.find((branch) => String(branch._id) === effectiveStoreBranchId)?.name || '',
         storeBranchAddress: store.branches?.find((branch) => String(branch._id) === effectiveStoreBranchId)?.address || store.address || '',
@@ -314,460 +362,377 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
       setLastSubmittedApplication(submittedApplication);
       try {
         localStorage.setItem('camrent-last-submitted-application', JSON.stringify(submittedApplication));
-      } catch {
-        // best-effort guest fallback only
-      }
+      } catch { }
 
       clearCart();
       setAppliedVoucher(null);
       onComplete();
     } catch (error: any) {
-      alert(error.message);
+      setFieldErrors({ submit: error.message || 'An error occurred during submission' });
     } finally {
       setSubmittingApplication(false);
     }
   };
 
-  if (loadingStore) return <div className="container mx-auto max-w-2xl px-4 py-12">Loading store details...</div>;
+  const handleSubmit = (event: FormEvent) => {
+    event.preventDefault();
+    if (currentStep < 3) {
+      handleNextStep();
+    } else {
+      executeSubmit();
+    }
+  };
+
+  if (loadingStore) return <div className="container mx-auto max-w-2xl px-4 py-12 text-center text-[var(--tone-text-muted)]">Loading rental agreement...</div>;
+
+  const steps = [
+    { id: 1, name: 'Your Details', icon: User2 },
+    { id: 2, name: 'Logistics', icon: Truck },
+    { id: 3, name: 'Identity & Payment', icon: ShieldCheck },
+  ];
 
   return (
-    <div className="container mx-auto max-w-3xl px-4 py-10">
-      <Card className="i3d-card space-y-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-        <div className="text-center">
-          <p className="text-xs uppercase tracking-[0.3em] text-slate-400">CamRent PH</p>
-          <h1 className="mt-2 text-3xl font-semibold text-slate-900 sm:text-4xl">Rental Agreement</h1>
-          <p className="mt-2 text-sm text-slate-500">A clean and secure way to submit your rental application.</p>
+    <div className="container mx-auto max-w-4xl px-4 py-8 md:py-12">
+      <div className="mb-10 text-center">
+        <h2 className="text-3xl font-bold tracking-tight text-[var(--tone-text)]">Rental Agreement</h2>
+        <p className="mx-auto mt-2 max-w-md text-sm text-[var(--tone-text-muted)]">A clean and secure 3-step process to submit your rental application.</p>
+      </div>
+
+      <div className="mb-10 w-full max-w-2xl mx-auto px-4">
+        <div className="relative flex justify-between">
+          {/* Background Track */}
+          <div className="absolute left-6 right-6 top-6 -z-10 h-1 -translate-y-1/2 rounded-full bg-[var(--tone-border)]" />
+          {/* Active Track */}
+          <div
+            className="absolute left-6 top-6 -z-10 h-1 -translate-y-1/2 rounded-full bg-[var(--tone-accent)] transition-all duration-500 ease-in-out"
+            style={{ width: `calc(${(currentStep - 1) * 50}%)`, maxWidth: 'calc(100% - 48px)' }}
+          />
+
+          {steps.map((step) => {
+            const isActive = currentStep === step.id;
+            const isCompleted = currentStep > step.id;
+            const StepIcon = isCompleted ? CheckCircle2 : step.icon;
+
+            // Glassmorphic node container
+            // The border matches the app background `--tone-bg` to mask the line behind the circle flawlessly
+            return (
+              <div key={step.id} className="relative z-10 flex w-24 flex-col items-center gap-3">
+                <div
+                  className={`flex h-12 w-12 items-center justify-center rounded-full border-[6px] border-[var(--tone-bg)] shadow-sm transition-all duration-300 ${
+                    isActive
+                      ? 'bg-[var(--tone-accent)] text-[var(--tone-bg)] shadow-[var(--tone-accent)]/20'
+                      : isCompleted
+                      ? 'bg-[var(--color-primary)] text-white'
+                      : 'bg-[var(--tone-surface-soft)] text-[var(--tone-text-muted)]'
+                  }`}
+                >
+                  <StepIcon className="h-[18px] w-[18px]" />
+                </div>
+                <span
+                  className={`text-center text-[10px] sm:text-xs font-bold uppercase tracking-wider ${
+                    isActive ? 'text-[var(--tone-accent)]' : isCompleted ? 'text-[var(--color-primary)]' : 'text-[var(--tone-text-muted)]'
+                  }`}
+                >
+                  {step.name}
+                </span>
+              </div>
+            );
+          })}
         </div>
-        <Card className="i3d-card rounded-2xl border border-slate-200 bg-slate-50 p-4">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="inline-flex items-center gap-2 text-sm font-semibold">
-              <ClipboardList className="h-4 w-4" /> Application Progress
-            </p>
-            <p className="text-xs font-semibold text-muted-foreground">
-              {completion.completed}/{completion.total} completed
-            </p>
-          </div>
-          <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-200">
-            <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${completion.percent}%` }} />
-          </div>
-          <p className="mt-2 text-xs text-slate-500">Fill each section below. Required uploads and agreement are included in progress.</p>
-        </Card>
+      </div>
 
-        {store && (
-          <Card className="i3d-card mb-6 space-y-4 rounded-2xl border border-slate-200 bg-white p-5">
-            <h2 className="text-lg font-bold">{store.name}</h2>
-            <p className="text-sm text-muted-foreground">{store.address}</p>
-            {(socialLinks.facebook || socialLinks.instagram || socialLinks.tiktok || socialLinks.custom.length) ? (
-              <div className="space-y-2 text-sm">
-                {socialLinks.facebook ? (
-                  <p className="flex items-center gap-3 rounded-md border bg-background px-3 py-2">
-                    <Facebook className="h-4 w-4 shrink-0 text-blue-600" />
-                    <a className="underline" href={socialLinks.facebook} target="_blank" rel="noreferrer">
-                      {socialLinks.facebook}
-                    </a>
-                  </p>
-                ) : null}
-                {socialLinks.instagram ? (
-                  <p className="flex items-center gap-3 rounded-md border bg-background px-3 py-2">
-                    <Instagram className="h-4 w-4 shrink-0 text-pink-600" />
-                    <a className="underline" href={socialLinks.instagram} target="_blank" rel="noreferrer">
-                      {socialLinks.instagram}
-                    </a>
-                  </p>
-                ) : null}
-                {socialLinks.tiktok ? (
-                  <p className="flex items-center gap-3 rounded-md border bg-background px-3 py-2">
-                    <Music2 className="h-4 w-4 shrink-0 text-slate-900" />
-                    <a className="underline" href={socialLinks.tiktok} target="_blank" rel="noreferrer">
-                      {socialLinks.tiktok}
-                    </a>
-                  </p>
-                ) : null}
-                {socialLinks.custom.map((link, index) => (
-                  <p key={`checkout-custom-social-${index}`} className="flex items-center gap-3 rounded-md border bg-background px-3 py-2">
-                    <Globe className="h-4 w-4 shrink-0 text-slate-600" />
-                    <a className="underline" href={link} target="_blank" rel="noreferrer">
-                      {link}
-                    </a>
-                  </p>
-                ))}
-              </div>
-            ) : null}
-            {store.payment_details && (
-              <div className="space-y-2">
-                <p className="inline-flex items-center gap-2 text-sm font-semibold">
-                  <CreditCard className="h-4 w-4" /> Payment Details (Customer Reference)
-                </p>
-                <div className="rounded-md border bg-background px-3 py-2 text-sm text-muted-foreground">
-                  <p className="whitespace-pre-line">{store.payment_details}</p>
-                </div>
-              </div>
-            )}
-            {(store.payment_detail_images || []).length ? (
-              <div className="space-y-2">
-                <p className="inline-flex items-center gap-2 text-sm font-semibold">
-                  <FileText className="h-4 w-4" /> Payment QR / Reference Images
-                </p>
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
-                  {(store.payment_detail_images || []).map((url, index) => (
-                    <a key={`${url}-${index}`} href={url} target="_blank" rel="noreferrer" className="block overflow-hidden rounded border bg-muted/20 p-2">
-                      <div className="flex h-40 items-center justify-center overflow-hidden rounded bg-background">
-                        <img src={url} alt={`Payment reference ${index + 1}`} className="h-full w-full object-contain" />
-                      </div>
-                    </a>
-                  ))}
-                </div>
-              </div>
-            ) : null}
-            <div>
-              <p className="inline-flex items-center gap-2 text-sm font-semibold">
-                <Truck className="h-4 w-4" /> Delivery Modes
-              </p>
-              <ul className="list-disc pl-6 text-sm text-muted-foreground">
-                {(store.delivery_modes?.length ? store.delivery_modes : ['Store Pickup']).map((mode) => (
-                  <li key={mode}>{mode}</li>
-                ))}
-              </ul>
-            </div>
-            {store.branches?.length ? (
-              <div>
-                <p className="inline-flex items-center gap-2 text-sm font-semibold">
-                  <MapPin className="h-4 w-4" /> Store Branches
-                </p>
-                <ul className="list-disc pl-6 text-sm text-muted-foreground">
-                  {store.branches.map((branch) => (
-                    <li key={branch._id || branch.address}>
-                      {branch.name ? `${branch.name} - ` : ''}
-                      {branch.address}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ) : null}
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
-              <p className="flex items-center justify-between">
-                <span>Final Security Deposit</span>
-                <span className="font-semibold text-slate-900">{formatPHP(finalSecurityDeposit)}</span>
-              </p>
-              <p className="flex items-center justify-between">
-                <span>Rental Subtotal</span>
-                <span className="font-semibold text-slate-900">{formatPHP(rentalSubtotal)}</span>
-              </p>
-              {voucherDiscount > 0 ? (
-                <p className="flex items-center justify-between text-emerald-700">
-                  <span>Voucher Discount</span>
-                  <span className="font-semibold">-{formatPHP(voucherDiscount)}</span>
-                </p>
-              ) : null}
-              <div className="mt-2 flex items-center justify-between rounded-xl bg-white px-3 py-2">
-                <span className="font-semibold text-slate-900">Total Due</span>
-                <span className="font-semibold text-slate-900">{formatPHP(totalAmount)}</span>
-              </div>
-            </div>
-            {store.lease_agreement_file_url && (
-              <div className="text-sm">
-                <p className="font-semibold">Lease Agreement Template</p>
-                <a href={store.lease_agreement_file_url} target="_blank" rel="noreferrer" className="underline">
-                  Download lease agreement file
-                </a>
-              </div>
-            )}
-          </Card>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-            Save this page as PDF or screenshot to keep your own copy for reference.
-            {!user && onNavigate && (
-              <>
-                {' '}
-                Or <button type="button" className="font-semibold underline" onClick={() => onNavigate('login')}>login</button> so your transaction is saved in your account history.
-              </>
-            )}
-          </div>
-
-          <Card className="i3d-card space-y-4 rounded-2xl border border-slate-200 bg-white p-5">
-            <p className="inline-flex items-center gap-2 text-sm font-semibold">
-              <User2 className="h-4 w-4" /> Applicant Information
-            </p>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-              <label className="text-sm font-medium">Full Name</label>
-              <Input required value={formData.fullName} onChange={(event) => setFormData({ ...formData, fullName: event.target.value })} />
-              </div>
-              <div className="space-y-2">
-              <PhoneInput label="Contact Number" value={formData.phone} required onChange={(value) => setFormData({ ...formData, phone: value })} />
-              </div>
-              <div className="space-y-2">
-              <label className="text-sm font-medium">Emergency Contact Name</label>
-              <Input required value={formData.emergencyContactName} onChange={(event) => setFormData({ ...formData, emergencyContactName: event.target.value })} />
-              </div>
-              <div className="space-y-2">
-              <PhoneInput label="Emergency Contact Number" value={formData.emergencyContact} required onChange={(value) => setFormData({ ...formData, emergencyContact: value })} />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-            <label className="text-sm font-medium">Email</label>
-            <Input
-              type="email"
-              required
-              value={formData.email}
-              onChange={(event) => setFormData({ ...formData, email: event.target.value })}
-              disabled={Boolean(user?.email)}
-            />
-            </div>
-
-            <div className="space-y-2">
-            <label className="text-sm font-medium">Present Address</label>
-            <Input required value={formData.presentAddress} onChange={(event) => setFormData({ ...formData, presentAddress: event.target.value })} />
-            </div>
-          </Card>
-
-          <Card className="i3d-card space-y-4 rounded-2xl border border-slate-200 bg-white p-5">
-            <p className="inline-flex items-center gap-2 text-sm font-semibold">
-              <MapPin className="h-4 w-4" /> Delivery & Branch
-            </p>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Store Branch</label>
-              <select className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm" value={formData.storeBranchId} onChange={(event) => setFormData({ ...formData, storeBranchId: event.target.value })} required>
-                {(store?.branches?.length ? store.branches : [{ _id: 'main', address: store?.address || 'Main Store' }]).map((branch) => (
-                  <option key={String(branch._id || branch.address)} value={String(branch._id || 'main')}>
-                    {branch.name ? `${branch.name} - ` : ''}
-                    {branch.address}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {rentalFormSettings.reference_text && (
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
-                <p className="mb-1 font-semibold text-slate-900">Additional Notes</p>
-                <p className="whitespace-pre-line">{rentalFormSettings.reference_text}</p>
-              </div>
-            )}
-
-            {rentalFormSettings.reference_image_url && rentalFormSettings.reference_image_position === 'top' && (
-              <div className="space-y-2">
-                <p className="text-sm font-semibold">Reference Photo</p>
-                <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
-                  <img src={rentalFormSettings.reference_image_url} alt="Store reference" className="max-h-72 w-full object-cover" />
-                </div>
-              </div>
-            )}
-
-            {rentalFormSettings.show_branch_map && branchMapSrc && (
-              <div className="space-y-2">
-                <iframe title="Selected Branch Map" src={branchMapSrc} className="h-56 w-full rounded-2xl border border-slate-200" loading="lazy" referrerPolicy="no-referrer-when-downgrade" />
-              </div>
-            )}
-
-            {rentalFormSettings.reference_image_url && rentalFormSettings.reference_image_position === 'mid' && (
-              <div className="space-y-2">
-                <p className="text-sm font-semibold">Reference Photo</p>
-                <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
-                  <img src={rentalFormSettings.reference_image_url} alt="Store reference" className="max-h-72 w-full object-cover" />
-                </div>
-              </div>
-            )}
-
-            <div className="space-y-2">
-            <label className="text-sm font-medium">Delivery Mode</label>
-            <select
-              className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm"
-              value={formData.deliveryMode}
-              onChange={(event) => setFormData({ ...formData, deliveryMode: event.target.value })}
+      <form onSubmit={handleSubmit} className="relative mx-auto max-w-2xl min-h-[500px]">
+        <AnimatePresence mode="wait">
+          {currentStep === 1 && (
+            <motion.div
+              key="step1"
+              initial={{ x: -20, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: -20, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="space-y-6"
             >
-              {(store?.delivery_modes?.length ? store.delivery_modes : ['Store Pickup']).map((mode) => (
-                <option key={mode} value={mode}>
-                  {mode}
-                </option>
-              ))}
-            </select>
-            </div>
+              <div className="rounded-2xl border border-[var(--tone-accent)] bg-[var(--tone-surface)] px-4 py-3 text-sm text-[var(--tone-text)] shadow-sm">
+                {!user && onNavigate && (
+                  <p>
+                    <button type="button" className="font-semibold underline hover:text-[var(--tone-accent)]" onClick={() => onNavigate('login')}>Login</button> so your transaction perfectly saves in your account history.
+                  </p>
+                )}
+                <p>All fields accurately matching your Valid IDs are required to pass store verification.</p>
+              </div>
 
-            <div className="space-y-2">
-            <label className="text-sm font-medium">Delivery Address</label>
-            <Input required value={formData.deliveryAddress} onChange={(event) => setFormData({ ...formData, deliveryAddress: event.target.value })} />
-            </div>
-          </Card>
+              <Card className="rounded-3xl border border-white/60 bg-white/40 p-6 shadow-xl backdrop-blur-md sm:p-8">
+                <h2 className="mb-6 inline-flex items-center gap-2 text-lg font-bold text-[var(--tone-text)]">
+                  <User2 className="h-5 w-5 text-[var(--tone-accent)]" /> Applicant Information
+                </h2>
+                <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Input label="Full Name" icon={<User2 className="h-4 w-4" />} required value={formData.fullName} onChange={(e) => { setFormData({ ...formData, fullName: e.target.value }); clearFieldError('fullName'); }} placeholder="John Doe" error={fieldErrors.fullName} />
+                  </div>
+                  <div className="space-y-2">
+                    <PhoneInput label="Contact Number" value={formData.phone} required onChange={(val) => { setFormData({ ...formData, phone: val }); clearFieldError('phone'); }} error={fieldErrors.phone} />
+                  </div>
+                  <div className="space-y-2">
+                    <Input label="Emergency Contact Name" icon={<User2 className="h-4 w-4" />} required value={formData.emergencyContactName} onChange={(e) => { setFormData({ ...formData, emergencyContactName: e.target.value }); clearFieldError('emergencyContactName'); }} placeholder="Jane Doe" error={fieldErrors.emergencyContactName} />
+                  </div>
+                  <div className="space-y-2">
+                    <PhoneInput label="Emergency Contact Number" value={formData.emergencyContact} required onChange={(val) => { setFormData({ ...formData, emergencyContact: val }); clearFieldError('emergencyContact'); }} error={fieldErrors.emergencyContact} />
+                  </div>
+                </div>
 
-          <Card className="i3d-card space-y-4 rounded-2xl border border-slate-200 bg-white p-5">
-            <p className="inline-flex items-center gap-2 text-sm font-semibold">
-              <CreditCard className="h-4 w-4" /> Payment & Required Files
-            </p>
-            <div className="space-y-2">
-            <label className="text-sm font-medium">Payment Mode</label>
-            <select className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm" value={formData.paymentMode} onChange={(event) => setFormData({ ...formData, paymentMode: event.target.value })}>
-              <option value="cash">Cash on Pickup</option>
-              <option value="bank_transfer">Bank Transfer</option>
-              <option value="gcash">GCash</option>
-              <option value="card">Credit/Debit Card</option>
-            </select>
-            </div>
+                <div className="mt-5 space-y-2">
+                  <Input label="Email Address" icon={<Mail className="h-4 w-4" />} type="email" required value={formData.email} onChange={(e) => { setFormData({ ...formData, email: e.target.value }); clearFieldError('email'); }} disabled={Boolean(user?.email)} placeholder="you@example.com" error={fieldErrors.email} />
+                </div>
 
-            <FileUpload
-              label="Upload Completed Lease Agreement"
-              accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg"
-              required={Boolean(store?.lease_agreement_file_url)}
-              file={leaseAgreementSubmissionFile}
-              onChange={(files) => setLeaseAgreementSubmissionFile(files?.[0] ?? null)}
-              helperText="Download the template above, fill it up, then upload your completed copy here."
-            />
+                <div className="mt-5 space-y-2">
+                  <Input label="Present Address" icon={<MapPin className="h-4 w-4" />} required value={formData.presentAddress} onChange={(e) => { setFormData({ ...formData, presentAddress: e.target.value }); clearFieldError('presentAddress'); }} placeholder="123 Main St, City, Province" error={fieldErrors.presentAddress} />
+                </div>
+              </Card>
 
-            <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <h3 className="font-semibold">Rented Gear Details</h3>
-              <div className="grid gap-3">
-                {cart.map((item) => (
-                  <div key={`${item.id}-${item.startDate}-${item.endDate}`} className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-3 text-sm shadow-sm">
-                    <div className="h-16 w-16 overflow-hidden rounded-lg border bg-muted">
-                      <img src={item.image_url || `https://picsum.photos/seed/cart-item-${item.id}/120/120`} alt={item.name} className="h-full w-full object-cover" />
+              <div className="flex justify-end">
+                <Button type="button" className="h-11 px-8 rounded-full shadow-sm" onClick={handleNextStep}>
+                  Next: Delivery & Logistics <ChevronRight className="ml-1 h-4 w-4" />
+                </Button>
+              </div>
+            </motion.div>
+          )}
+
+          {currentStep === 2 && store && (
+            <motion.div
+              key="step2"
+              initial={{ x: 20, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: 20, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="space-y-6"
+            >
+              <Card className="rounded-3xl border border-white/60 bg-white/40 p-6 shadow-xl backdrop-blur-md sm:p-8">
+                <h2 className="mb-6 inline-flex items-center gap-2 text-lg font-bold text-[var(--tone-text)]">
+                  <MapPin className="h-5 w-5 text-[var(--tone-accent)]" /> Store & Logistics
+                </h2>
+                <div className="mb-6 space-y-2 rounded-2xl border border-[var(--tone-accent)] bg-[var(--tone-surface)] p-5 shadow-sm">
+                  <p className="font-bold text-[var(--tone-text)]">{store.name}</p>
+                  <p className="text-sm text-[var(--tone-text-muted)]">{store.address}</p>
+                  <div className="mt-3 flex gap-3 text-[var(--tone-accent)]">
+                    {socialLinks.facebook && <a href={socialLinks.facebook} target="_blank" rel="noreferrer"><Facebook className="h-4 w-4 transition-colors hover:text-[var(--color-primary)]" /></a>}
+                    {socialLinks.instagram && <a href={socialLinks.instagram} target="_blank" rel="noreferrer"><Instagram className="h-4 w-4 transition-colors hover:text-[var(--color-primary)]" /></a>}
+                  </div>
+                </div>
+
+                <div className="grid gap-6">
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-[var(--tone-text)]">Select Store Branch</label>
+                    <div className="relative">
+                      <div className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[var(--tone-text-muted)]"><MapPin className="h-4 w-4" /></div>
+                      <select className="flex h-12 w-full appearance-none rounded-xl border border-[var(--tone-border)] bg-[var(--tone-surface-soft)] pl-11 pr-10 text-[var(--tone-text)] text-sm shadow-sm outline-none transition-all focus:border-[var(--tone-accent)] focus:bg-[var(--tone-surface)] focus:ring-4 focus:ring-[var(--tone-accent)]/20" value={formData.storeBranchId} onChange={(e) => setFormData({ ...formData, storeBranchId: e.target.value })} required>
+                        {(store?.branches?.length ? store.branches : [{ _id: 'main', address: store?.address || 'Main Store' }]).map((branch) => (
+                          <option key={String(branch._id || branch.address)} value={String(branch._id || 'main')}>
+                            {branch.name ? `${branch.name} - ` : ''} {branch.address}
+                          </option>
+                        ))}
+                      </select>
+                      <div className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[var(--tone-text-muted)]"><ChevronDown className="h-4 w-4" /></div>
                     </div>
-                    <div className="flex-1">
-                      <p className="font-semibold text-slate-900">{item.name}</p>
-                      <p className="text-xs text-slate-500">{item.startDate} to {item.endDate}</p>
-                      <div className="mt-1 flex flex-wrap gap-3 text-xs text-slate-500">
-                        <span>Daily rate: {formatPHP(item.daily_price)}</span>
-                        <span>Qty: {Math.max(1, item.quantity || 1)}</span>
+                  </div>
+
+                  {rentalFormSettings.show_branch_map && branchMapSrc && (
+                    <div className="space-y-2">
+                      <iframe title="Map" src={branchMapSrc} className="h-56 w-full rounded-2xl border-[4px] border-white shadow-sm" loading="lazy" referrerPolicy="no-referrer-when-downgrade" />
+                    </div>
+                  )}
+
+                  {rentalFormSettings.reference_text && (
+                    <div className="rounded-2xl border border-[var(--tone-border)] bg-[var(--tone-surface-soft)] p-5 text-sm text-[var(--tone-text)] shadow-sm">
+                      <p className="mb-2 flex items-center gap-2 font-bold text-[var(--tone-text)]"><FileText className="h-4 w-4" /> Store Notes</p>
+                      <p className="whitespace-pre-line leading-relaxed">{rentalFormSettings.reference_text}</p>
+                    </div>
+                  )}
+
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-[var(--tone-text)]">Preferred Delivery Mode</label>
+                    <div className="relative">
+                      <div className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[var(--tone-text-muted)]"><Truck className="h-4 w-4" /></div>
+                      <select className="flex h-12 w-full appearance-none rounded-xl border border-[var(--tone-border)] bg-[var(--tone-surface-soft)] pl-11 pr-10 text-[var(--tone-text)] text-sm shadow-sm outline-none transition-all focus:border-[var(--tone-accent)] focus:bg-[var(--tone-surface)] focus:ring-4 focus:ring-[var(--tone-accent)]/20" value={formData.deliveryMode} onChange={(e) => setFormData({ ...formData, deliveryMode: e.target.value })}>
+                        {(store?.delivery_modes?.length ? store.delivery_modes : ['Store Pickup']).map((mode) => (
+                          <option key={mode} value={mode}>{mode}</option>
+                        ))}
+                      </select>
+                      <div className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[var(--tone-text-muted)]"><ChevronDown className="h-4 w-4" /></div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Input label="Delivery Address" icon={<MapPin className="h-4 w-4" />} required value={formData.deliveryAddress} onChange={(e) => { setFormData({ ...formData, deliveryAddress: e.target.value }); clearFieldError('deliveryAddress'); }} placeholder="Provide full address or specific meetup location." error={fieldErrors.deliveryAddress} />
+                  </div>
+                </div>
+              </Card>
+
+              <div className="flex justify-between px-2">
+                <Button type="button" variant="outline" className="h-12 rounded-full border-[var(--tone-border)] bg-white/60 px-6 font-bold text-[var(--tone-text)] shadow-sm backdrop-blur-sm transition-all hover:bg-white/80" onClick={prevStep}>
+                  <ChevronLeft className="mr-1 h-4 w-4" /> Back
+                </Button>
+                <Button type="button" className="h-12 rounded-full bg-[var(--tone-accent)] px-8 font-bold text-[var(--tone-bg)] shadow-md transition-all hover:bg-[var(--tone-accent)]/90" onClick={handleNextStep}>
+                  Next: Payment <ChevronRight className="ml-1 h-4 w-4" />
+                </Button>
+              </div>
+            </motion.div>
+          )}
+
+          {currentStep === 3 && (
+            <motion.div
+              key="step3"
+              initial={{ x: 20, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: 20, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="space-y-6"
+            >
+              <Card className="rounded-3xl border border-white/60 bg-white/40 p-6 shadow-xl backdrop-blur-md sm:p-8">
+                <h2 className="mb-6 inline-flex items-center gap-2 text-lg font-bold text-[var(--tone-text)]">
+                  <CreditCard className="h-5 w-5 text-[var(--tone-accent)]" /> Identity & Verification
+                </h2>
+
+                <div className="space-y-6">
+                  <div className="rounded-2xl border border-[var(--tone-accent)] bg-[var(--tone-surface)] p-5 shadow-sm">
+                    <p className="mb-2 text-sm font-bold text-[var(--tone-text)]">Required Identification Files</p>
+                    <p className="mb-5 text-sm leading-relaxed text-[var(--tone-text-muted)]">Please upload 2 valid IDs (Front and Back) and a clear selfie of you holding one of the IDs.</p>
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      <FileUpload label="ID 1 Front" accept="image/*,.pdf" required file={documentFiles.id1_front} onChange={(files) => { setDocumentFiles((prev) => ({ ...prev, id1_front: files?.[0] ?? null })); clearFieldError('id1_front'); }} error={fieldErrors.id1_front} />
+                      <FileUpload label="ID 1 Back" accept="image/*,.pdf" required file={documentFiles.id1_back} onChange={(files) => { setDocumentFiles((prev) => ({ ...prev, id1_back: files?.[0] ?? null })); clearFieldError('id1_back'); }} error={fieldErrors.id1_back} />
+                      <FileUpload label="ID 2 Front" accept="image/*,.pdf" required file={documentFiles.id2_front} onChange={(files) => { setDocumentFiles((prev) => ({ ...prev, id2_front: files?.[0] ?? null })); clearFieldError('id2_front'); }} error={fieldErrors.id2_front} />
+                      <FileUpload label="ID 2 Back" accept="image/*,.pdf" required file={documentFiles.id2_back} onChange={(files) => { setDocumentFiles((prev) => ({ ...prev, id2_back: files?.[0] ?? null })); clearFieldError('id2_back'); }} error={fieldErrors.id2_back} />
+                      <div className="sm:col-span-2">
+                        <FileUpload label="Selfie with ID" accept="image/*,.pdf" required file={documentFiles.selfie_id} onChange={(files) => { setDocumentFiles((prev) => ({ ...prev, selfie_id: files?.[0] ?? null })); clearFieldError('selfie_id'); }} error={fieldErrors.selfie_id} />
                       </div>
                     </div>
                   </div>
-                ))}
-              </div>
-            </div>
 
-            <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <h3 className="font-semibold">Identity Documents</h3>
-              <span className="text-xs text-muted-foreground">Required</span>
-            </div>
-            <p className="text-xs text-muted-foreground">Please upload ID 1 (front/back), ID 2 (front/back), and your selfie with ID.</p>
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-              <FileUpload
-                label="ID 1 Front"
-                accept="image/*,.pdf"
-                required
-                file={documentFiles.id1_front}
-                onChange={(files) => setDocumentFiles((prev) => ({ ...prev, id1_front: files?.[0] ?? null }))}
-              />
-              <FileUpload
-                label="ID 1 Back"
-                accept="image/*,.pdf"
-                required
-                file={documentFiles.id1_back}
-                onChange={(files) => setDocumentFiles((prev) => ({ ...prev, id1_back: files?.[0] ?? null }))}
-              />
-              <FileUpload
-                label="ID 2 Front"
-                accept="image/*,.pdf"
-                required
-                file={documentFiles.id2_front}
-                onChange={(files) => setDocumentFiles((prev) => ({ ...prev, id2_front: files?.[0] ?? null }))}
-              />
-              <FileUpload
-                label="ID 2 Back"
-                accept="image/*,.pdf"
-                required
-                file={documentFiles.id2_back}
-                onChange={(files) => setDocumentFiles((prev) => ({ ...prev, id2_back: files?.[0] ?? null }))}
-              />
-              <FileUpload
-                label="Selfie with ID"
-                accept="image/*,.pdf"
-                required
-                file={documentFiles.selfie_id}
-                onChange={(files) => setDocumentFiles((prev) => ({ ...prev, selfie_id: files?.[0] ?? null }))}
-              />
-            </div>
-            </div>
-            <FileUpload
-              label="Billing Address File (Image/PDF)"
-              accept="image/*,.pdf"
-              required
-              file={billingAddressFile}
-              onChange={(files) => setBillingAddressFile(files?.[0] ?? null)}
-              helperText="Upload a billing address document that can be reviewed by the store owner."
-            />
-          </Card>
-          {customFields.length > 0 && (
-            <div className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <h3 className="inline-flex items-center gap-2 font-semibold">
-                <FileBadge2 className="h-4 w-4" /> Additional Store Requirements
-              </h3>
-              {customFields.map((field) => (
-                <div key={field.id} className="space-y-2">
-                  <label className="text-sm font-medium">{field.label}</label>
-                  {field.type === 'textarea' ? (
-                    <textarea
-                      required={field.required}
-                      value={customAnswers[field.id] || ''}
-                      onChange={(event) => setCustomAnswers((prev) => ({ ...prev, [field.id]: event.target.value }))}
-                      placeholder={field.placeholder || ''}
-                      className="min-h-24 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                    />
-                  ) : field.type === 'select' ? (
-                    <select
-                      required={field.required}
-                      value={customAnswers[field.id] || ''}
-                      onChange={(event) => setCustomAnswers((prev) => ({ ...prev, [field.id]: event.target.value }))}
-                      className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm"
-                    >
-                      <option value="">Select option</option>
-                      {(field.options || []).map((option) => (
-                        <option key={option} value={option}>
-                          {option}
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <Input
-                      required={field.required}
-                      type={field.type === 'number' ? 'number' : field.type === 'date' ? 'date' : 'text'}
-                      value={customAnswers[field.id] || ''}
-                      onChange={(event) => setCustomAnswers((prev) => ({ ...prev, [field.id]: event.target.value }))}
-                      placeholder={field.placeholder || ''}
-                    />
+                  <FileUpload label="Billing Address Document" accept="image/*,.pdf" required file={billingAddressFile} onChange={(files) => { setBillingAddressFile(files?.[0] ?? null); clearFieldError('billingAddressFile'); }} helperText="Upload a recent utility bill to verify your address." error={fieldErrors.billingAddressFile} />
+
+                  {store?.lease_agreement_file_url && (
+                    <FileUpload label="Completed Lease Agreement" accept=".pdf,.doc,.docx,.png,.jpg" required file={leaseAgreementSubmissionFile} onChange={(files) => { setLeaseAgreementSubmissionFile(files?.[0] ?? null); clearFieldError('leaseAgreementSubmissionFile'); }} helperText="Download the template from store, fill it, and upload here." error={fieldErrors.leaseAgreementSubmissionFile} />
                   )}
                 </div>
-              ))}
-            </div>
+              </Card>
+
+              {customFields.length > 0 && (
+                <Card className="rounded-3xl border border-white/60 bg-white/40 p-6 shadow-xl backdrop-blur-md sm:p-8">
+                  <h3 className="mb-4 inline-flex items-center gap-2 font-bold text-[var(--tone-text)]">
+                    <FileBadge2 className="h-5 w-5 text-[var(--tone-accent)]" /> Additional Store Requirements
+                  </h3>
+                  <div className="grid gap-4">
+                    {customFields.map((field) => (
+                      <div key={field.id} className="space-y-2">
+                        <label className="text-xs font-bold text-[var(--tone-text)]">{field.label}</label>
+                        {field.type === 'textarea' ? (
+                          <textarea required={field.required} value={customAnswers[field.id] || ''} onChange={(e) => setCustomAnswers((prev) => ({ ...prev, [field.id]: e.target.value }))} placeholder={field.placeholder || ''} className="min-h-[80px] w-full rounded-xl border border-[var(--tone-border)] bg-[var(--tone-surface-soft)] px-4 py-3 text-[var(--tone-text)] text-sm shadow-sm transition-all focus-within:bg-[var(--tone-surface)] focus-within:ring-4 focus-within:ring-[var(--tone-accent)]/20 placeholder:text-[var(--tone-text-muted)] focus-visible:border-[var(--tone-accent)] focus-visible:outline-none" />
+                        ) : field.type === 'select' ? (
+                          <div className="relative">
+                            <select required={field.required} value={customAnswers[field.id] || ''} onChange={(e) => setCustomAnswers((prev) => ({ ...prev, [field.id]: e.target.value }))} className="flex h-12 w-full appearance-none rounded-xl border border-[var(--tone-border)] bg-[var(--tone-surface-soft)] pl-4 pr-10 text-[var(--tone-text)] text-sm shadow-sm outline-none transition-all focus:border-[var(--tone-accent)] focus:bg-[var(--tone-surface)] focus:ring-4 focus:ring-[var(--tone-accent)]/20">
+                              <option value="">Select option</option>
+                              {(field.options || []).map((o) => (<option key={o} value={o}>{o}</option>))}
+                            </select>
+                            <div className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[var(--tone-text-muted)]"><ChevronDown className="h-4 w-4" /></div>
+                          </div>
+                        ) : (
+                          <Input required={field.required} type={field.type === 'number' ? 'number' : field.type === 'date' ? 'date' : 'text'} value={customAnswers[field.id] || ''} onChange={(e) => setCustomAnswers((prev) => ({ ...prev, [field.id]: e.target.value }))} placeholder={field.placeholder || ''} />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+              )}
+
+              <Card className="rounded-3xl border border-white/60 bg-[var(--tone-surface-soft)] p-6 shadow-xl backdrop-blur-md sm:p-8">
+                <div className="mb-8 space-y-3">
+                  <label className="mb-4 block text-sm font-bold text-[var(--tone-text)]">Rented Items</label>
+                  {cart.map((item) => (
+                    <div key={`${item.id}-${item.startDate}`} className="flex items-center gap-5 rounded-2xl border border-[var(--tone-border)] bg-white p-4 shadow-sm transition-shadow hover:shadow-md">
+                      <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-[var(--tone-bg)] shadow-inner">
+                        {item.image_url ? (
+                          <img src={item.image_url} alt={item.name} className="h-full w-full object-cover" />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center text-[var(--tone-text-muted)]"><ClipboardList className="h-8 w-8 opacity-50" /></div>
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-base font-bold text-[var(--tone-text)]">{item.name}</p>
+                        <p className="mt-0.5 text-xs font-semibold text-[var(--tone-text-muted)] opacity-80">{new Date(item.startDate).toLocaleDateString()} &mdash; {new Date(item.endDate).toLocaleDateString()}</p>
+                        <p className="mt-2 font-black text-[var(--tone-accent)]">{formatPHP(item.daily_price)} <span className="text-xs font-normal text-[var(--tone-text-muted)]">x {Math.max(1, item.quantity || 1)} qty</span></p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mb-6">
+                  <label className="mb-3 block text-sm font-bold text-[var(--tone-text)]">Payment Mode</label>
+                  <div className="relative">
+                    <div className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[var(--tone-text-muted)]"><CreditCard className="h-4 w-4" /></div>
+                    <select className="flex h-12 w-full appearance-none rounded-xl border border-[var(--tone-border)] bg-[var(--tone-surface-soft)] pl-11 pr-10 text-[var(--tone-text)] text-sm font-medium shadow-sm outline-none transition-all focus:border-[var(--tone-accent)] focus:bg-[var(--tone-surface)] focus:ring-4 focus:ring-[var(--tone-accent)]/20" value={formData.paymentMode} onChange={(e) => setFormData({ ...formData, paymentMode: e.target.value })}>
+                      <option value="cash">Cash on Pickup</option>
+                      <option value="bank_transfer">Bank Transfer</option>
+                      <option value="gcash">GCash</option>
+                      <option value="card">Credit/Debit Card</option>
+                    </select>
+                    <div className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[var(--tone-text-muted)]"><ChevronDown className="h-4 w-4" /></div>
+                  </div>
+                </div>
+
+                <div className="space-y-4 rounded-3xl border border-[var(--tone-accent)] bg-white p-6 shadow-sm">
+                  <div className="flex items-center justify-between text-sm font-bold text-[var(--tone-text-muted)]">
+                    <span className="flex items-center gap-2"><ShieldCheck className="h-4 w-4" /> Security Deposit</span>
+                    <span className="text-[var(--tone-text)]">{formatPHP(finalSecurityDeposit)}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm font-bold text-[var(--tone-text-muted)]">
+                    <span className="flex items-center gap-2"><ClipboardList className="h-4 w-4" /> Rental Fee ({cart.length} items)</span>
+                    <span className="text-[var(--tone-text)]">{formatPHP(rentalSubtotal)}</span>
+                  </div>
+                  {voucherDiscount > 0 && (
+                    <div className="flex items-center justify-between text-sm font-black text-emerald-600">
+                      <span>Voucher Discount</span>
+                      <span>-{formatPHP(voucherDiscount)}</span>
+                    </div>
+                  )}
+                  <div className="my-1 h-[2px] w-full bg-[var(--tone-bg)] rounded-full" />
+                  <div className="flex items-end justify-between">
+                    <span className="text-sm font-black uppercase tracking-widest text-[var(--tone-text-muted)] opacity-60">Total Due</span>
+                    <span className="text-3xl font-black tracking-tight text-[var(--tone-text)]">{formatPHP(totalAmount)}</span>
+                  </div>
+                </div>
+
+                  <div className="mt-8">
+                    <div className="flex items-start gap-4 rounded-3xl border border-[var(--tone-border)] bg-white p-5 shadow-sm">
+                      <button type="button" className={`relative mt-0.5 inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${formData.agree ? 'bg-emerald-500' : 'bg-[var(--tone-border)]'}`} onClick={() => { setFormData({ ...formData, agree: !formData.agree }); clearFieldError('agree'); }}>
+                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${formData.agree ? 'translate-x-6' : 'translate-x-1'}`} />
+                      </button>
+                      <p className="text-xs leading-relaxed text-[var(--tone-text-muted)]">
+                        I agree to the <button type="button" className="font-bold underline hover:text-[var(--tone-text)]" onClick={() => onNavigate?.('policies')}>Policies and Terms & Conditions</button>. My application will be legally submitted for the store owner's review.
+                      </p>
+                    </div>
+                    {fieldErrors.agree && <p className="mt-2 ml-1 text-xs font-bold text-red-500 animate-fade-up">{fieldErrors.agree}</p>}
+                    {fieldErrors.submit && <p className="mt-4 rounded-xl bg-red-50 p-3 text-center text-sm font-bold text-red-600 border border-red-100">{fieldErrors.submit}</p>}
+                  </div>
+              </Card>
+
+              <div className="flex items-center justify-between px-2">
+                <Button type="button" variant="outline" className="h-12 rounded-full border-[var(--tone-border)] bg-white/60 px-6 font-bold text-[var(--tone-text)] shadow-sm backdrop-blur-sm transition-all hover:bg-white/80" onClick={prevStep}>
+                  <ChevronLeft className="mr-1 h-4 w-4" /> Back
+                </Button>
+                <Button type="submit" className="h-12 rounded-full bg-[var(--tone-accent)] px-8 font-bold text-[var(--tone-bg)] shadow-md transition-all hover:bg-[var(--tone-accent)]/90" disabled={submittingApplication || !formData.agree}>
+                  {submittingApplication ? 'Submitting...' : 'Submit Form'}
+                </Button>
+              </div>
+            </motion.div>
           )}
-
-          <div className="flex items-start gap-3 rounded-2xl border border-primary/10 bg-primary/5 p-4">
-            <button
-              type="button"
-              className={`relative mt-0.5 inline-flex h-5 w-9 items-center rounded-full transition-colors ${formData.agree ? 'bg-emerald-500' : 'bg-slate-300'}`}
-              onClick={() => setFormData({ ...formData, agree: !formData.agree })}
-              aria-label="Toggle policy agreement"
-            >
-              <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${formData.agree ? 'translate-x-4' : 'translate-x-0.5'}`} />
-            </button>
-            <p className="text-xs leading-relaxed text-muted-foreground">
-              I have read and agree to the app{' '}
-              <button type="button" className="font-semibold underline" onClick={() => onNavigate?.('policies')}>
-                Policies and Terms & Conditions
-              </button>
-              . My application will be reviewed by the store owner.
-            </p>
-          </div>
-
-          <Card className="i3d-card space-y-3 rounded-2xl border border-slate-200 bg-white p-5">
-            <div className="flex items-center justify-between text-sm">
-              <span className="font-semibold">Ready to submit</span>
-              <span className="text-xs text-muted-foreground">Progress: {completion.percent}%</span>
-            </div>
-            <Button type="submit" className="h-12 w-full" disabled={submittingApplication}>
-              {submittingApplication ? 'Submitting Application...' : 'Submit Application'}
-            </Button>
-          </Card>
-        </form>
-      </Card>
+        </AnimatePresence>
+      </form>
 
       {submittingApplication && (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/60 p-4">
-          <div className="i3d-modal w-full max-w-sm rounded-xl bg-white p-6 text-center text-slate-900 shadow-2xl">
-            <p className="text-lg font-semibold">Uploading and submitting...</p>
-            <p className="mt-2 text-sm text-slate-600">Please wait. If this takes too long, it will auto-cancel and show an error.</p>
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-[var(--tone-image-overlay)]/40 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-sm rounded-3xl border border-white/60 bg-[var(--tone-surface)]/80 p-8 text-center text-[var(--tone-text)] shadow-2xl backdrop-blur-md">
+            <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-4 border-[var(--tone-border)] border-t-[var(--tone-accent)]"></div>
+            <p className="text-lg font-bold">Uploading Documents...</p>
+            <p className="mt-2 text-sm text-[var(--tone-text-muted)]">Please do not close this window.</p>
           </div>
         </div>
       )}

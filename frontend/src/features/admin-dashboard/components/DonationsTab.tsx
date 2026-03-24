@@ -25,9 +25,19 @@ interface DonationsTabProps {
   onChange: (next: Partial<DonationsTabProps['form']>) => void;
   onSave: () => Promise<void>;
   onExport: () => void;
+  validationErrors?: Record<string, string>;
+  clearValidationError?: (field: string) => void;
 }
 
-export function DonationsTab({ form, saving, onChange, onSave, onExport }: DonationsTabProps) {
+export function DonationsTab({
+  form,
+  saving,
+  onChange,
+  onSave,
+  onExport,
+  validationErrors = {},
+  clearValidationError,
+}: DonationsTabProps) {
   const updateQr = (index: number, patch: Partial<DonationQrInput>) => {
     onChange({
       qr_codes: form.qr_codes.map((entry, current) => (current === index ? { ...entry, ...patch } : entry)),
@@ -54,89 +64,108 @@ export function DonationsTab({ form, saving, onChange, onSave, onExport }: Donat
       </div>
 
       <Card className="space-y-3 p-4">
-        <p className="text-sm font-semibold">Support Page Message</p>
+        <p className="text-[10px] font-black uppercase tracking-widest text-[var(--tone-text-muted)] ml-1">Support Page Message</p>
         <textarea
-          className="min-h-24 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          className={`min-h-24 w-full rounded-xl border px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring ${
+            validationErrors.donMsg ? 'border-red-500' : 'border-[var(--tone-border)] bg-[var(--tone-surface-soft)]'
+          }`}
           value={form.message}
-          onChange={(event) => onChange({ message: event.target.value })}
+          onChange={(event) => {
+            onChange({ message: event.target.value });
+            clearValidationError?.('donMsg');
+          }}
           placeholder="Support this website by donating funds for its maintenance. Any amount will be appreciated."
         />
-        <label className="inline-flex items-center gap-2 text-sm">
-          <input type="checkbox" checked={form.is_active} onChange={(event) => onChange({ is_active: event.target.checked })} />
-          Donation page is active
+        {validationErrors.donMsg && <p className="mt-1.5 ml-1 text-xs font-bold text-red-500">{validationErrors.donMsg}</p>}
+        
+        <label className="inline-flex items-center gap-2 text-sm cursor-pointer pt-1">
+          <input type="checkbox" checked={form.is_active} onChange={(event) => onChange({ is_active: event.target.checked })} className="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
+          <span className="font-medium">Active (Visible on Support Page)</span>
         </label>
       </Card>
 
       <Card className="space-y-3 p-4">
         <div className="flex items-center justify-between">
-          <p className="text-sm font-semibold">QR Codes</p>
-          <Button type="button" variant="outline" size="sm" onClick={addQr}>
-            <Plus className="mr-1 h-3.5 w-3.5" /> Add QR
+          <p className="text-[10px] font-black uppercase tracking-widest text-[var(--tone-text-muted)] ml-1">QR Codes</p>
+          <Button type="button" variant="outline" size="sm" onClick={addQr} className="rounded-xl h-8">
+            <Plus className="mr-1.5 h-3.5 w-3.5" /> Add QR
           </Button>
         </div>
-        <div className="space-y-3">
+        <div className="space-y-4">
           {form.qr_codes.map((entry, index) => (
-            <div key={`donation-qr-${index}`} className="space-y-2 rounded-md border p-3">
-              <div className="grid grid-cols-1 gap-2 md:grid-cols-[1fr,1fr,auto]">
-                <Input placeholder="Label" value={entry.label} onChange={(event) => updateQr(index, { label: event.target.value })} />
-                <Input placeholder="Image URL (optional)" value={entry.url} onChange={(event) => updateQr(index, { url: event.target.value })} />
-                <Button type="button" variant="ghost" className="text-red-600" onClick={() => removeQr(index)}>
-                  <Trash2 className="mr-1 h-3.5 w-3.5" /> Remove
+            <div key={`donation-qr-${index}`} className="space-y-3 rounded-2xl border border-[var(--tone-border)] p-4 bg-[var(--tone-surface-soft)]/30">
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr,1fr,auto] items-end">
+                <Input label="Label" placeholder="e.g. GCash" value={entry.label} onChange={(event) => updateQr(index, { label: event.target.value })} />
+                <Input label="Direct URL" placeholder="https://..." value={entry.url} onChange={(event) => updateQr(index, { url: event.target.value })} />
+                <Button type="button" variant="ghost" className="text-red-500 hover:text-red-600 hover:bg-red-50 h-10 px-3 rounded-xl" onClick={() => removeQr(index)}>
+                  <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
-              <FileUpload
-                label="Upload QR Image"
-                accept="image/*"
-                file={entry.file || null}
-                onChange={(files) => updateQr(index, { file: files?.[0] ?? null })}
-              />
+              <div className="mt-2">
+                <FileUpload
+                  label="Upload QR Image"
+                  accept="image/*"
+                  file={entry.file || null}
+                  onChange={(files) => updateQr(index, { file: files?.[0] ?? null })}
+                />
+              </div>
               {(entry.file || entry.url) ? (
-                <div className="flex h-48 items-center justify-center overflow-hidden rounded-md border bg-muted/30 p-2">
+                <div className="flex h-48 items-center justify-center overflow-hidden rounded-xl border bg-white/50 p-2 shadow-sm">
                   <img src={entry.file ? URL.createObjectURL(entry.file) : entry.url} alt={entry.label || `QR ${index + 1}`} className="h-full w-full object-contain" />
                 </div>
               ) : null}
             </div>
           ))}
-          {!form.qr_codes.length && <p className="text-sm text-muted-foreground">No QR codes yet.</p>}
+          {!form.qr_codes.length && (
+            <div className="py-8 text-center rounded-xl border-2 border-dashed border-muted">
+              <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest opacity-50">No QR codes added</p>
+            </div>
+          )}
         </div>
       </Card>
 
       <Card className="space-y-3 p-4">
         <div className="flex items-center justify-between">
-          <p className="text-sm font-semibold">Bank Details</p>
-          <Button type="button" variant="outline" size="sm" onClick={addBank}>
-            <Plus className="mr-1 h-3.5 w-3.5" /> Add Bank
+          <p className="text-[10px] font-black uppercase tracking-widest text-[var(--tone-text-muted)] ml-1">Bank Details</p>
+          <Button type="button" variant="outline" size="sm" onClick={addBank} className="rounded-xl h-8">
+            <Plus className="mr-1.5 h-3.5 w-3.5" /> Add Bank
           </Button>
         </div>
-        <div className="space-y-3">
+        <div className="space-y-4">
           {form.bank_details.map((entry, index) => (
-            <div key={`donation-bank-${index}`} className="space-y-2 rounded-md border p-3">
-              <div className="grid grid-cols-1 gap-2 md:grid-cols-[1fr,1fr,auto]">
-                <Input placeholder="Bank / Channel Label" value={entry.label} onChange={(event) => updateBank(index, { label: event.target.value })} />
-                <Input placeholder="Image URL (optional)" value={entry.url} onChange={(event) => updateBank(index, { url: event.target.value })} />
-                <Button type="button" variant="ghost" className="text-red-600" onClick={() => removeBank(index)}>
-                  <Trash2 className="mr-1 h-3.5 w-3.5" /> Remove
+            <div key={`donation-bank-${index}`} className="space-y-3 rounded-2xl border border-[var(--tone-border)] p-4 bg-[var(--tone-surface-soft)]/30">
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr,1fr,auto] items-end">
+                <Input label="Label" placeholder="e.g. BDO / PayMaya" value={entry.label} onChange={(event) => updateBank(index, { label: event.target.value })} />
+                <Input label="Direct URL" placeholder="https://..." value={entry.url} onChange={(event) => updateBank(index, { url: event.target.value })} />
+                <Button type="button" variant="ghost" className="text-red-500 hover:text-red-600 hover:bg-red-50 h-10 px-3 rounded-xl" onClick={() => removeBank(index)}>
+                  <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
-              <FileUpload
-                label="Upload Bank Image"
-                accept="image/*"
-                file={entry.file || null}
-                onChange={(files) => updateBank(index, { file: files?.[0] ?? null })}
-              />
+              <div className="mt-2">
+                <FileUpload
+                  label="Upload Bank Image"
+                  accept="image/*"
+                  file={entry.file || null}
+                  onChange={(files) => updateBank(index, { file: files?.[0] ?? null })}
+                />
+              </div>
               {(entry.file || entry.url) ? (
-                <div className="flex h-48 items-center justify-center overflow-hidden rounded-md border bg-muted/30 p-2">
+                <div className="flex h-48 items-center justify-center overflow-hidden rounded-xl border bg-white/50 p-2 shadow-sm">
                   <img src={entry.file ? URL.createObjectURL(entry.file) : entry.url} alt={entry.label || `Bank ${index + 1}`} className="h-full w-full object-contain" />
                 </div>
               ) : null}
             </div>
           ))}
-          {!form.bank_details.length && <p className="text-sm text-muted-foreground">No bank details yet.</p>}
+          {!form.bank_details.length && (
+            <div className="py-8 text-center rounded-xl border-2 border-dashed border-muted">
+              <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest opacity-50">No bank details added</p>
+            </div>
+          )}
         </div>
       </Card>
 
-      <div>
-        <Button disabled={saving} onClick={() => void onSave()}>
+      <div className="pt-4">
+        <Button disabled={saving} onClick={() => void onSave()} className="w-full md:w-auto h-12 px-8 text-lg font-bold rounded-xl shadow-lg hover:shadow-xl transition-all">
           {saving ? 'Saving...' : 'Save Donation Settings'}
         </Button>
       </div>

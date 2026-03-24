@@ -29,12 +29,26 @@ export function LoginPage({ onNavigate, content }: LoginPageProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({});
   const [activeWallpaper, setActiveWallpaper] = useState(0);
   const { setSession } = useAppStore();
   const googleButtonRef = useRef<HTMLDivElement>(null);
   const googleInitializedRef = useRef(false);
   const envMeta = ((import.meta as any).env || {}) as Record<string, string | boolean | undefined>;
   const googleClientId = String(envMeta.VITE_GOOGLE_CLIENT_ID || '').trim();
+
+  const handleEmailChange = (val: string) => {
+    setEmail(val);
+    setError('');
+    setFieldErrors((prev) => ({ ...prev, email: undefined }));
+  };
+
+  const handlePasswordChange = (val: string) => {
+    setPassword(val);
+    setError('');
+    setFieldErrors((prev) => ({ ...prev, password: undefined }));
+  };
 
   useEffect(() => {
     const total = siteTheme.login.wallpapers.length;
@@ -68,13 +82,25 @@ export function LoginPage({ onNavigate, content }: LoginPageProps) {
   const handleLogin = async (event: FormEvent) => {
     event.preventDefault();
     if (submitting) return;
+    setError('');
+    setFieldErrors({});
+
+    if (!email.trim()) {
+      setFieldErrors((prev) => ({ ...prev, email: 'Email is required' }));
+      return;
+    }
+    if (!password.trim()) {
+      setFieldErrors((prev) => ({ ...prev, password: 'Password is required' }));
+      return;
+    }
+
     setSubmitting(true);
     try {
       const data = await api.post<AuthResponse>('/api/auth/login', { email, password });
       setSession(data.user, data.token);
       onNavigate(data.user.role === 'owner' ? 'owner' : 'home');
-    } catch (error: any) {
-      alert(error.message || 'Authentication failed');
+    } catch (err: any) {
+      setError(err.message || 'Authentication failed');
     } finally {
       setSubmitting(false);
     }
@@ -82,13 +108,14 @@ export function LoginPage({ onNavigate, content }: LoginPageProps) {
 
   const handleGoogleCredential = async (credential: string) => {
     if (submitting) return;
+    setError('');
     setSubmitting(true);
     try {
       const data = await api.post<AuthResponse>('/api/auth/google', { credential });
       setSession(data.user, data.token);
       onNavigate(data.user.role === 'owner' ? 'owner' : 'home');
-    } catch (error: any) {
-      alert(error.message || 'Google authentication failed');
+    } catch (err: any) {
+      setError(err.message || 'Google authentication failed');
     } finally {
       setSubmitting(false);
     }
@@ -96,6 +123,7 @@ export function LoginPage({ onNavigate, content }: LoginPageProps) {
 
   const handleRegister = async (state: RegisterFormState) => {
     if (submitting) return;
+    setError('');
     setSubmitting(true);
     try {
       const [profileImageUrl, storeLogoUrl, storeBannerUrl, leaseAgreementFileUrl, paymentDetailImageUrls] = await Promise.all([
@@ -151,8 +179,8 @@ export function LoginPage({ onNavigate, content }: LoginPageProps) {
       const data = await api.post<AuthResponse>('/api/auth/register', payload);
       setSession(data.user, data.token);
       onNavigate(data.user.role === 'owner' ? 'owner' : 'home');
-    } catch (error: any) {
-      alert(error.message || 'Authentication failed');
+    } catch (err: any) {
+      setError(err.message || 'Authentication failed');
     } finally {
       setSubmitting(false);
     }
@@ -223,10 +251,12 @@ export function LoginPage({ onNavigate, content }: LoginPageProps) {
                   email={email}
                   password={password}
                   submitting={submitting}
+                  error={error}
+                  fieldErrors={fieldErrors}
                   googleEnabled={Boolean(googleClientId)}
                   googleButtonRef={googleButtonRef}
-                  onEmailChange={setEmail}
-                  onPasswordChange={setPassword}
+                  onEmailChange={handleEmailChange}
+                  onPasswordChange={handlePasswordChange}
                   onSubmit={handleLogin}
                 />
               )}
