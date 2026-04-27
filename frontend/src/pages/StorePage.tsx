@@ -29,6 +29,7 @@ export function StorePage({ storeId, onNavigateItem }: StorePageProps) {
   const [reportForm, setReportForm] = useState({ subject: '', message: '' });
   const [storeQrUrl, setStoreQrUrl] = useState('');
   const [storeQrError, setStoreQrError] = useState('');
+  const [storePublicLink, setStorePublicLink] = useState('');
   const [reviewNotice, setReviewNotice] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [reportNotice, setReportNotice] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [reportFormError, setReportFormError] = useState<{ subject?: string; message?: string }>({});
@@ -62,6 +63,7 @@ export function StorePage({ storeId, onNavigateItem }: StorePageProps) {
     if (typeof window === 'undefined') return;
     const baseUrl = window.location.origin;
     const storeLink = `${baseUrl}/?store=${storeId}`;
+    setStorePublicLink(storeLink);
     QRCode.toDataURL(storeLink, { width: 320, margin: 1 })
       .then((url) => {
         setStoreQrUrl(url);
@@ -206,6 +208,28 @@ export function StorePage({ storeId, onNavigateItem }: StorePageProps) {
                 <div className="rounded-lg border border-slate-200 bg-white p-3">
                   <img src={storeQrUrl} alt="Store QR code" className="mx-auto h-40 w-40 rounded border bg-white p-2" />
                   <p className="mt-2 text-xs text-muted-foreground">Scan to open this store page.</p>
+                  {storePublicLink ? (
+                    <div className="mt-2 space-y-1">
+                      <p className="text-xs font-semibold text-slate-700">Store Link</p>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <code className="max-w-[16rem] truncate rounded bg-slate-100 px-2 py-1 text-[10px] text-slate-700">{storePublicLink}</code>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={async () => {
+                            try {
+                              await navigator.clipboard.writeText(storePublicLink);
+                              alert('Store link copied.');
+                            } catch {
+                              alert('Unable to copy. Please copy manually.');
+                            }
+                          }}
+                        >
+                          Copy Link
+                        </Button>
+                      </div>
+                    </div>
+                  ) : null}
                   <a href={storeQrUrl} download={`store-${storeId}-qr.png`} className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-slate-900 underline">
                     <Download className="h-4 w-4" /> Download QR
                   </a>

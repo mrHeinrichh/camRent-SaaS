@@ -518,7 +518,16 @@ adminRoutes.post('/admin/stores/:id/active', authenticate, checkRole(['admin']),
     return res.status(400).json({ error: 'isActive must be a boolean' });
   }
 
-  await Store.findByIdAndUpdate(req.params.id, { is_active: isActive });
+  const updateData: any = { is_active: isActive };
+  
+  if (isActive) {
+    const now = new Date();
+    const dueDate = new Date(now);
+    dueDate.setMonth(dueDate.getMonth() + 1);
+    updateData.payment_due_date = dueDate;
+  }
+
+  await Store.findByIdAndUpdate(req.params.id, updateData);
   res.json({ success: true });
 });
 
