@@ -187,8 +187,10 @@ const sendOtpHandler = async (req: any, res: any) => {
   }
 
   const latest = await EmailOtp.findOne({ email }).sort({ created_at: -1 });
-  if (latest?.created_at) {
-    const elapsed = Date.now() - latest.created_at.getTime();
+  if (latest && !latest.sent_at) {
+    await EmailOtp.deleteMany({ email });
+  } else if (latest?.sent_at) {
+    const elapsed = Date.now() - latest.sent_at.getTime();
     if (elapsed < OTP_RESEND_COOLDOWN_SECONDS * 1000) {
       const remaining = Math.ceil((OTP_RESEND_COOLDOWN_SECONDS * 1000 - elapsed) / 1000);
       return res.status(429).json({ error: `Please wait ${remaining}s before requesting another code.` });
@@ -199,12 +201,15 @@ const sendOtpHandler = async (req: any, res: any) => {
   const codeHash = await bcrypt.hash(code, 10);
   const expiresAt = new Date(Date.now() + OTP_EXPIRES_MINUTES * 60 * 1000);
   await EmailOtp.deleteMany({ email });
-  await EmailOtp.create({ email, code_hash: codeHash, expires_at: expiresAt, attempts: 0 });
+  const otpRecord = await EmailOtp.create({ email, code_hash: codeHash, expires_at: expiresAt, attempts: 0 });
 
   try {
     await sendOtpEmail({ to: email, code, expiresMinutes: OTP_EXPIRES_MINUTES });
+    otpRecord.sent_at = new Date();
+    await otpRecord.save();
   } catch (error: any) {
     console.error('[auth] send otp failed', { email, message: error?.message });
+    await EmailOtp.deleteMany({ email });
     return res.status(500).json({ error: 'Unable to send verification email' });
   }
 

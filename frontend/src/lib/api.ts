@@ -2,6 +2,8 @@ import { useAppStore } from '@/src/store';
 import { resolveApiPath } from '@/src/config/apiEndpoints';
 import { resolveApiBase } from '@/src/config/runtime';
 
+const REQUEST_TIMEOUT_MS = 30_000;
+
 async function request<T>(input: string, init?: RequestInit): Promise<T> {
   const token = useAppStore.getState().token;
   const headers = new Headers(init?.headers);
@@ -10,6 +12,8 @@ async function request<T>(input: string, init?: RequestInit): Promise<T> {
   const resolvedPath = typeof input === 'string' && input.startsWith('/api') ? resolveApiPath(input, envMeta) : input;
   const resolvedInput = typeof resolvedPath === 'string' && resolvedPath.startsWith('/api') && apiBaseUrl ? `${apiBaseUrl}${resolvedPath}` : resolvedPath;
   const { beginRequest, endRequest } = useAppStore.getState();
+  const controller = typeof AbortController !== 'undefined' && !init?.signal ? new AbortController() : null;
+  const timeoutId = controller ? window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS) : null;
   beginRequest();
 
   try {
@@ -24,6 +28,7 @@ async function request<T>(input: string, init?: RequestInit): Promise<T> {
     const response = await fetch(resolvedInput, {
       ...init,
       headers,
+      signal: init?.signal || controller?.signal,
     });
 
     const contentType = response.headers.get('content-type') || '';
@@ -60,7 +65,13 @@ async function request<T>(input: string, init?: RequestInit): Promise<T> {
     }
 
     return data as T;
+  } catch (error: any) {
+    if (error?.name === 'AbortError') {
+      throw new Error('Request timed out. Please check your connection and try again.');
+    }
+    throw error;
   } finally {
+    if (timeoutId) window.clearTimeout(timeoutId);
     endRequest();
   }
 }

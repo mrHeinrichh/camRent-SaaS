@@ -2,6 +2,7 @@ import nodemailer from 'nodemailer';
 import { env } from '../config/env';
 
 let transporter: nodemailer.Transporter | null = null;
+const SMTP_TIMEOUT_MS = 15_000;
 
 function getTransporter() {
   if (transporter) return transporter;
@@ -12,6 +13,10 @@ function getTransporter() {
     host: env.smtpHost,
     port: env.smtpPort,
     secure: env.smtpPort === 465,
+    connectionTimeout: SMTP_TIMEOUT_MS,
+    greetingTimeout: SMTP_TIMEOUT_MS,
+    socketTimeout: SMTP_TIMEOUT_MS,
+    dnsTimeout: SMTP_TIMEOUT_MS,
     auth: {
       user: env.smtpUser,
       pass: env.smtpPass,

@@ -6,6 +6,7 @@ const emailOtpSchema = new Schema(
     code_hash: { type: String, required: true },
     expires_at: { type: Date, required: true },
     attempts: { type: Number, default: 0 },
+    sent_at: { type: Date, default: null },
     verified_at: { type: Date, default: null },
   },
   { timestamps: { createdAt: 'created_at', updatedAt: false } },
