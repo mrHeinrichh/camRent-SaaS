@@ -208,9 +208,13 @@ const sendOtpHandler = async (req: any, res: any) => {
     otpRecord.sent_at = new Date();
     await otpRecord.save();
   } catch (error: any) {
-    console.error('[auth] send otp failed', { email, message: error?.message });
+    console.error('[auth] send otp failed', {
+      email,
+      message: error?.message,
+      details: error?.details,
+    });
     await EmailOtp.deleteMany({ email });
-    return res.status(500).json({ error: 'Unable to send verification email' });
+    return res.status(error?.statusCode || 500).json({ error: error?.publicMessage || 'Unable to send verification email' });
   }
 
   res.json({ success: true, expires_in: OTP_EXPIRES_MINUTES * 60 });
