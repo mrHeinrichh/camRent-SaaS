@@ -35,6 +35,29 @@ SMTP_FROM=CamRent PH <yourgmail@gmail.com>
 
 Koyeb blocks outbound SMTP port `25`, but their FAQ recommends port `587` for encrypted SMTP.
 
+## Gmail API Alternative
+
+Render free blocks SMTP ports, so the backend can also send OTP email with the Gmail API over HTTPS.
+
+Set these variables to enable Gmail API delivery:
+
+```text
+GMAIL_CLIENT_ID=...
+GMAIL_CLIENT_SECRET=...
+GMAIL_REFRESH_TOKEN=...
+GMAIL_FROM=CamRent PH <yourgmail@gmail.com>
+```
+
+Generate the refresh token locally:
+
+```bash
+cd backend
+npm run gmail:auth -- --client-id "..." --client-secret "..."
+npm run gmail:auth -- --client-id "..." --client-secret "..." --code "PASTE_CODE_FROM_GOOGLE"
+```
+
+Use the `GMAIL_REFRESH_TOKEN=...` value printed by the second command.
+
 ## Frontend Update
 
 After Koyeb deploys, copy the backend public URL and set these Vercel frontend variables:
