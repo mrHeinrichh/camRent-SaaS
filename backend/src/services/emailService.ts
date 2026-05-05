@@ -37,13 +37,54 @@ function getTransporter() {
   return transporter;
 }
 
+async function sendWithResend(input: { to: string; code: string; expiresMinutes: number }) {
+  const from = env.emailFrom || env.smtpFrom || env.smtpUser;
+  if (!from) {
+    throw new EmailServiceError('Email sender is not configured', 'Email service is not configured on the server.', 503);
+  }
+
+  const response = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${env.resendApiKey}`,
+      'Content-Type': 'application/json',
+      'User-Agent': 'CamRent-PH/1.0',
+    },
+    body: JSON.stringify({
+      from,
+      to: input.to,
+      subject: 'CamRent PH Owner Verification Code',
+      text: `Your CamRent PH verification code is ${input.code}. It expires in ${input.expiresMinutes} minutes.`,
+      html: `<p>Your CamRent PH verification code is <strong>${input.code}</strong>.</p><p>This code expires in ${input.expiresMinutes} minutes.</p>`,
+    }),
+  });
+
+  if (!response.ok) {
+    let details: unknown = null;
+    try {
+      details = await response.json();
+    } catch {
+      details = await response.text();
+    }
+    throw new EmailServiceError('Resend send failed', 'Email provider rejected the verification email. Check email API settings.', 502, {
+      status: response.status,
+      details,
+    });
+  }
+}
+
 export async function sendOtpEmail(input: { to: string; code: string; expiresMinutes: number }) {
+  if (env.resendApiKey) {
+    await sendWithResend(input);
+    return;
+  }
+
   const mailer = getTransporter();
   if (!mailer) {
     throw new EmailServiceError('SMTP is not configured', 'Email service is not configured on the server.', 503);
   }
 
-  const from = env.smtpFrom || env.smtpUser;
+  const from = env.emailFrom || env.smtpFrom || env.smtpUser;
   try {
     await mailer.sendMail({
       from,
