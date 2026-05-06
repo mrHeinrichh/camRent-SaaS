@@ -53,16 +53,13 @@ function encodeBase64Url(input: string) {
   return Buffer.from(input).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
 }
 
-function buildOtpMessage(input: { from: string; to: string; code: string; expiresMinutes: number }) {
-  const html = `<p>Your CamRent PH verification code is <strong>${input.code}</strong>.</p><p>This code expires in ${input.expiresMinutes} minutes.</p>`;
-  const text = `Your CamRent PH verification code is ${input.code}. It expires in ${input.expiresMinutes} minutes.`;
+function buildEmailMessage(input: { from: string; to: string; subject: string; text: string; html: string }) {
   const boundary = `camrent-${Date.now().toString(36)}`;
-  const subject = 'CamRent PH Owner Verification Code';
 
   return [
     `From: ${input.from}`,
     `To: ${input.to}`,
-    `Subject: ${subject}`,
+    `Subject: ${input.subject}`,
     'MIME-Version: 1.0',
     `Content-Type: multipart/alternative; boundary="${boundary}"`,
     '',
@@ -70,19 +67,19 @@ function buildOtpMessage(input: { from: string; to: string; code: string; expire
     'Content-Type: text/plain; charset="UTF-8"',
     'Content-Transfer-Encoding: 7bit',
     '',
-    text,
+    input.text,
     '',
     `--${boundary}`,
     'Content-Type: text/html; charset="UTF-8"',
     'Content-Transfer-Encoding: 7bit',
     '',
-    html,
+    input.html,
     '',
     `--${boundary}--`,
   ].join('\r\n');
 }
 
-async function sendWithGmailApi(input: { to: string; code: string; expiresMinutes: number }) {
+async function sendWithGmailApi(input: { to: string; subject: string; text: string; html: string }) {
   const client = getGmailClient();
   if (!client) {
     return false;
@@ -105,7 +102,7 @@ async function sendWithGmailApi(input: { to: string; code: string; expiresMinute
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      raw: encodeBase64Url(buildOtpMessage({ from, to: input.to, code: input.code, expiresMinutes: input.expiresMinutes })),
+      raw: encodeBase64Url(buildEmailMessage({ from, to: input.to, subject: input.subject, text: input.text, html: input.html })),
     }),
   });
 
@@ -125,7 +122,7 @@ async function sendWithGmailApi(input: { to: string; code: string; expiresMinute
   return true;
 }
 
-export async function sendOtpEmail(input: { to: string; code: string; expiresMinutes: number }) {
+export async function sendEmail(input: { to: string; subject: string; text: string; html: string }) {
   if (await sendWithGmailApi(input)) {
     return;
   }
@@ -140,9 +137,9 @@ export async function sendOtpEmail(input: { to: string; code: string; expiresMin
     await mailer.sendMail({
       from,
       to: input.to,
-      subject: 'CamRent PH Owner Verification Code',
-      text: `Your CamRent PH verification code is ${input.code}. It expires in ${input.expiresMinutes} minutes.`,
-      html: `<p>Your CamRent PH verification code is <strong>${input.code}</strong>.</p><p>This code expires in ${input.expiresMinutes} minutes.</p>`,
+      subject: input.subject,
+      text: input.text,
+      html: input.html,
     });
   } catch (error: any) {
     throw new EmailServiceError('SMTP send failed', 'Email provider rejected the verification email. Check SMTP settings.', 502, {
@@ -152,4 +149,61 @@ export async function sendOtpEmail(input: { to: string; code: string; expiresMin
       response: error?.response,
     });
   }
+}
+
+export async function sendOtpEmail(input: { to: string; code: string; expiresMinutes: number }) {
+  await sendEmail({
+    to: input.to,
+    subject: 'CamRent PH Owner Verification Code',
+    text: `Your CamRent PH verification code is ${input.code}. It expires in ${input.expiresMinutes} minutes.`,
+    html: `<p>Your CamRent PH verification code is <strong>${input.code}</strong>.</p><p>This code expires in ${input.expiresMinutes} minutes.</p>`,
+  });
+}
+
+export async function sendOwnerRegistrationNotification(input: {
+  to?: string;
+  ownerName: string;
+  ownerEmail: string;
+  ownerPhone: string;
+  storeName: string;
+  storeAddress: string;
+  storeId: string;
+}) {
+  const recipient = input.to || env.adminNotificationEmail;
+  if (!recipient) return;
+
+  const submittedAt = new Date().toLocaleString('en-PH', { timeZone: 'Asia/Manila' });
+  await sendEmail({
+    to: recipient,
+    subject: `New CamRent PH shop owner registration: ${input.storeName}`,
+    text: [
+      'A new shop owner registered on CamRent PH.',
+      '',
+      `Store: ${input.storeName}`,
+      `Store ID: ${input.storeId}`,
+      `Address: ${input.storeAddress || '-'}`,
+      `Owner: ${input.ownerName || '-'}`,
+      `Email: ${input.ownerEmail}`,
+      `Phone: ${input.ownerPhone || '-'}`,
+      `Submitted: ${submittedAt}`,
+      '',
+      'Review this owner in the admin dashboard.',
+    ].join('\n'),
+    html: `
+      <div style="font-family:Arial,sans-serif;line-height:1.5;color:#1f2937">
+        <h2>New CamRent PH shop owner registration</h2>
+        <p>A new shop owner registered and is pending review.</p>
+        <table cellpadding="6" cellspacing="0" style="border-collapse:collapse">
+          <tr><td><strong>Store</strong></td><td>${input.storeName}</td></tr>
+          <tr><td><strong>Store ID</strong></td><td>${input.storeId}</td></tr>
+          <tr><td><strong>Address</strong></td><td>${input.storeAddress || '-'}</td></tr>
+          <tr><td><strong>Owner</strong></td><td>${input.ownerName || '-'}</td></tr>
+          <tr><td><strong>Email</strong></td><td>${input.ownerEmail}</td></tr>
+          <tr><td><strong>Phone</strong></td><td>${input.ownerPhone || '-'}</td></tr>
+          <tr><td><strong>Submitted</strong></td><td>${submittedAt}</td></tr>
+        </table>
+        <p>Review this owner in the admin dashboard.</p>
+      </div>
+    `,
+  });
 }

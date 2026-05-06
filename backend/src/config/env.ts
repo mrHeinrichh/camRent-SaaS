@@ -24,6 +24,7 @@ export const env = {
   gmailClientSecret: process.env.GMAIL_CLIENT_SECRET?.trim() || '',
   gmailRefreshToken: process.env.GMAIL_REFRESH_TOKEN?.trim() || '',
   gmailFrom: process.env.GMAIL_FROM?.trim() || '',
+  adminNotificationEmail: process.env.ADMIN_NOTIFICATION_EMAIL?.trim() || 'mrheinrichhh@gmail.com',
   smtpHost: process.env.SMTP_HOST?.trim() || 'smtp.gmail.com',
   smtpPort: Number(process.env.SMTP_PORT || 465),
   smtpUser: process.env.SMTP_USER?.trim() || '',

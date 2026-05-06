@@ -9,7 +9,7 @@ import { authenticate, checkRole, requireAuth } from '../middleware/auth';
 import { EmailOtp } from '../models/EmailOtp';
 import { Store } from '../models/Store';
 import { User } from '../models/User';
-import { sendOtpEmail } from '../services/emailService';
+import { sendOtpEmail, sendOwnerRegistrationNotification } from '../services/emailService';
 import type { AuthedRequest } from '../types/auth';
 import { validateE164Phone } from '../utils/phone';
 import { serialize } from '../utils/mongo';
@@ -136,6 +136,24 @@ authRoutes.post('/register', async (req, res) => {
         storeId: createdStore._id.toString(),
         storeName: createdStore.name,
       });
+      try {
+        await sendOwnerRegistrationNotification({
+          ownerName: String(full_name || '').trim(),
+          ownerEmail: user.email,
+          ownerPhone: String(phone || '').trim(),
+          storeName: String(createdStore.name || '').trim(),
+          storeAddress: String(createdStore.address || '').trim(),
+          storeId: createdStore._id.toString(),
+        });
+      } catch (notificationError: any) {
+        console.error('[auth] owner registration notification failed', {
+          userId: user._id.toString(),
+          email: user.email,
+          storeId: createdStore._id.toString(),
+          message: notificationError?.message,
+          details: notificationError?.details,
+        });
+      }
     } else {
       console.log('[auth] renter registered', {
         userId: user._id.toString(),
