@@ -60,9 +60,9 @@ export const defaultSiteContent = {
       { label: 'Support This Website', page: 'donate' },
     ],
     social_links: [
-      { label: 'Facebook', url: '#' },
-      { label: 'Instagram', url: '#' },
-      { label: 'TikTok', url: '#' },
+      { label: 'Facebook', url: 'https://www.facebook.com/CamRentPH/' },
+      { label: 'Instagram', url: 'https://www.instagram.com/cam_rent_ph' },
+      { label: 'TikTok', url: 'https://www.tiktok.com/@camrentph' },
     ],
   },
 } as const;
