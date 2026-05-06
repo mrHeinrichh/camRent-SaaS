@@ -1,4 +1,4 @@
-import { ShoppingCart, Star } from 'lucide-react';
+import { Eye, Star } from 'lucide-react';
 import { motion } from 'motion/react';
 import { formatPHP } from '@/src/lib/currency';
 import type { GearFeedItem } from '@/src/features/home/types';
@@ -7,11 +7,10 @@ import { Button, Card } from '@/src/components/ui';
 interface GearCardProps {
   gear: GearFeedItem;
   onOpenStore: (storeId: string) => void;
-  onAddToCart: (gear: GearFeedItem) => void;
-  justAdded?: boolean;
+  onOpenItem: (itemId: string) => void;
 }
 
-export function GearCard({ gear, onOpenStore, onAddToCart, justAdded }: GearCardProps) {
+export function GearCard({ gear, onOpenStore, onOpenItem }: GearCardProps) {
   return (
     <motion.div whileHover={{ y: -5 }} transition={{ type: 'spring', stiffness: 300 }}>
       <Card className="group flex h-full flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-[0_18px_40px_rgba(15,23,42,0.12)] transition-transform duration-300 [transform-style:preserve-3d] hover:-translate-y-1 hover:[transform:rotateX(1deg)_rotateY(-2deg)_translateZ(8px)]">
@@ -48,10 +47,10 @@ export function GearCard({ gear, onOpenStore, onAddToCart, justAdded }: GearCard
               <p className="text-[10px] text-slate-500 sm:text-xs">per day</p>
             </div>
             <Button
-              className={`h-8 gap-2 rounded-full text-xs sm:h-9 sm:text-sm ${justAdded ? 'bg-emerald-500 text-white' : 'bg-[var(--tone-accent)] text-[var(--tone-accent-text)] hover:opacity-90'}`}
-              onClick={() => onAddToCart(gear)}
+              className="h-8 gap-2 rounded-full bg-[var(--tone-accent)] text-xs text-[var(--tone-accent-text)] hover:opacity-90 sm:h-9 sm:text-sm"
+              onClick={() => onOpenItem(gear.id)}
             >
-              <ShoppingCart className={`h-4 w-4 ${justAdded ? 'animate-bounce' : ''}`} /> {justAdded ? 'Added' : 'Add'}
+              <Eye className="h-4 w-4" /> View Details
             </Button>
           </div>
         </div>

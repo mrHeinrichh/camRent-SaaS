@@ -109,6 +109,8 @@ export function AccountPage({ onNavigate }: AccountPageProps) {
         image_url: item.image_url,
         startDate: format(new Date(), 'yyyy-MM-dd'),
         endDate: format(addDays(new Date(), 1), 'yyyy-MM-dd'),
+        startTime: '09:00',
+        endTime: '18:00',
         store_id: order.store_id,
       });
     });
@@ -129,7 +131,9 @@ export function AccountPage({ onNavigate }: AccountPageProps) {
       id: `${order.id}-${item.id}-${item.start_date}-${item.end_date}`,
       start: item.start_date,
       end: item.end_date,
-      label: `${item.name} (${order.status.replace(/_/g, ' ')})`,
+      startTime: item.start_time || '',
+      endTime: item.end_time || '',
+      label: `${item.name} (${order.status.replace(/_/g, ' ')})${item.start_time || item.end_time ? ` • ${item.start_time || '--:--'}-${item.end_time || '--:--'}` : ''}`,
       tone:
         (order.status === 'PENDING_REVIEW'
           ? 'pending'

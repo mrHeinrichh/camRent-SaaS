@@ -12,6 +12,10 @@ export const faqItems = [
     a: 'Store owners control vouchers. Voucher rules, eligibility, and usage are store-managed and may differ per store.',
   },
   {
+    q: 'How are rental dates and times billed?',
+    a: 'Each store can choose its rental billing mode. A shop may bill by 24-hour periods, where elapsed rental time is counted from the selected start date/time to end date/time, or by calendar days, where each selected date counts as one billing day.',
+  },
+  {
     q: 'Who decides refunds and is CamRent PH liable?',
     a: 'Refund decisions are at the sole discretion of the store owner. CamRent PH is not a payment provider and is not liable for losses or refund outcomes. Users should review store policies carefully before transacting.',
   },
@@ -43,6 +47,7 @@ export const faqItems = [
 
 export const rentalGuideItems = [
   'Create complete gear entries: clear name, accurate category/brand, condition notes, and updated stock count.',
+  'Set the Rental Billing Mode in your store profile: choose 24-hour periods for elapsed-time billing or calendar days when each selected date should count.',
   'Use booking calendar and block dates to prevent double bookings during maintenance, shoots, or private reservations.',
   'Require complete renter documents before approval and review ID quality before changing status to approved.',
   'Use branch selection and delivery details carefully to avoid fulfillment confusion and pickup/dropoff disputes.',

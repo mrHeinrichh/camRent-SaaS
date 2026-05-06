@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '@/src/lib/api';
-import type { Booking, FraudListEntry, Item, ManualBlock, OwnerApplication, OwnerDashboardData, RentalFormField, RentalFormSchemaResponse, SupportTicket, Voucher } from '@/src/types/domain';
+import type { Booking, FraudListEntry, Item, ManualBlock, OwnerApplication, OwnerDashboardData, RentalBillingMode, RentalFormField, RentalFormSchemaResponse, SupportTicket, Voucher } from '@/src/types/domain';
 import { exportRowsToCsv } from '@/src/lib/export';
 import { Button } from '@/src/components/ui';
 import type { ItemEditor, OwnerTab } from '@/src/features/owner-dashboard/types';
@@ -405,6 +405,7 @@ export function OwnerDashboardPage() {
     tiktok_url: string;
     custom_social_links?: string[];
     payment_details: string;
+    rental_billing_mode?: RentalBillingMode;
     payment_detail_images?: string[];
     branches?: Array<{ name?: string; address: string; location_lat?: number | null; location_lng?: number | null }>;
     location_lat?: number | null;
@@ -741,14 +742,37 @@ export function OwnerDashboardPage() {
   };
 
   return (
-    <div className="relative flex min-h-[calc(100vh-64px)] flex-col overflow-hidden bg-[var(--tone-bg)] md:flex-row">
-      <div className="pointer-events-none absolute -left-28 top-24 h-72 w-72 rounded-full bg-cyan-300/25 blur-3xl animate-float-soft" />
-      <div className="pointer-events-none absolute right-0 top-1/3 h-80 w-80 rounded-full bg-emerald-300/20 blur-3xl animate-pulse-soft" />
+    <div className="owner-dashboard-shell relative flex min-h-[calc(100vh-64px)] flex-col overflow-hidden bg-[var(--tone-bg)] md:flex-row">
       <OwnerSidebar activeTab={activeTab} onChangeTab={handleChangeTab} pendingApplicationsCount={pendingApplicationsCount} />
       <main className="relative z-10 flex-1 overflow-auto p-4 animate-fade-up sm:p-6 md:p-8">
-        <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+        <div className="mx-auto max-w-[1500px] space-y-5">
+          <div className="owner-hero">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.28em] text-[var(--tone-accent)]">Owner Workspace</p>
+              <h1 className="mt-2 text-2xl font-black tracking-tight text-[var(--tone-text)] sm:text-3xl">
+                {data.store?.name || 'Store Dashboard'}
+              </h1>
+              <p className="mt-1 max-w-2xl text-sm text-[var(--tone-text-muted)]">
+                Manage bookings, inventory, customer checks, and store settings from one operational view.
+              </p>
+            </div>
+            <div className="grid grid-cols-3 gap-2 text-center">
+              <div className="owner-hero-metric">
+                <span>{pendingApplicationsCount}</span>
+                <p>Pending</p>
+              </div>
+              <div className="owner-hero-metric">
+                <span>{inventory.length}</span>
+                <p>Gear</p>
+              </div>
+              <div className="owner-hero-metric">
+                <span>{data.stats?.total_rentals || 0}</span>
+                <p>Rentals</p>
+              </div>
+            </div>
+          </div>
         {ownerNotice ? (
-          <div className="mb-6 rounded-xl border border-amber-300 bg-amber-50 p-4 shadow-sm animate-fade-up-delay">
+          <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 shadow-sm animate-fade-up-delay">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h3 className="text-base font-bold text-amber-900">{ownerNotice.title}</h3>
@@ -760,6 +784,7 @@ export function OwnerDashboardPage() {
             </div>
           </div>
         ) : null}
+        <div className="owner-content-panel">
         {detailView === 'none' ? (
           <OwnerTabs
             activeTab={activeTab}
@@ -867,6 +892,7 @@ export function OwnerDashboardPage() {
             clearValidationError={clearValidationError}
           />
         )}
+        </div>
         </div>
       </main>
     </div>

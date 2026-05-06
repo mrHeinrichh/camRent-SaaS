@@ -13,6 +13,7 @@ import type { AuthedRequest } from '../types/auth';
 import { validateE164Phone } from '../utils/phone';
 import { serialize, serializeMany, toId } from '../utils/mongo';
 import { hasBookingConflict, hasBookingConflictForQuantity } from '../services/bookingService';
+import { getRentalDayCount } from '../utils/rentalPricing';
 
 export const orderRoutes = Router();
 const normalizeComparable = (value: unknown) => String(value || '').trim().toLowerCase();
@@ -124,7 +125,18 @@ orderRoutes.post('/orders', authenticate, async (req: AuthedRequest, res) => {
       voucherDiscount = Math.max(0, Number(voucher.discount_amount) || 0);
       appliedVoucherCode = normalizedVoucherCode;
     }
-    const adjustedTotal = Math.max(0, Number(total_amount || 0) - voucherDiscount);
+    const calculatedRentalSubtotal = items.reduce((sum: number, item: any) => {
+      const rentalDays = getRentalDayCount({
+        startDate: String(item.startDate || ''),
+        endDate: String(item.endDate || ''),
+        startTime: String(item.startTime || ''),
+        endTime: String(item.endTime || ''),
+        rentalBillingMode: (store as any).rental_billing_mode === 'calendar_day' ? 'calendar_day' : 'twenty_four_hour',
+      });
+      return sum + Number(item.daily_price || 0) * rentalDays * Math.max(1, Number(item.quantity) || 1);
+    }, 0);
+    const storeSecurityDeposit = Math.max(0, Number((store as any).security_deposit) || 0);
+    const adjustedTotal = Math.max(0, calculatedRentalSubtotal + storeSecurityDeposit - voucherDiscount);
 
     const order = await Order.create({
       store_id: toId(store_id),
@@ -156,6 +168,8 @@ orderRoutes.post('/orders', authenticate, async (req: AuthedRequest, res) => {
         item_id: toId(item.id),
         start_date: item.startDate,
         end_date: item.endDate,
+        start_time: String(item.startTime || '').trim(),
+        end_time: String(item.endTime || '').trim(),
         price_per_day: item.daily_price,
         quantity: Math.max(1, Number(item.quantity) || 1),
       })),
@@ -249,6 +263,8 @@ orderRoutes.get('/account/orders', authenticate, requireAuth, async (req: Authed
           description: item?.description || '',
           start_date: orderItem.start_date,
           end_date: orderItem.end_date,
+          start_time: (orderItem as any).start_time || '',
+          end_time: (orderItem as any).end_time || '',
           daily_price: orderItem.price_per_day,
           quantity: Math.max(1, Number((orderItem as any).quantity) || 1),
           image_url: item?.image_url || '',
@@ -309,6 +325,8 @@ orderRoutes.get('/orders/:id/details', authenticate, checkRole(['owner', 'admin'
       ...serialize(itemsById.get(orderItem.item_id.toString()) as any),
       start_date: orderItem.start_date,
       end_date: orderItem.end_date,
+      start_time: (orderItem as any).start_time || '',
+      end_time: (orderItem as any).end_time || '',
       price_per_day: orderItem.price_per_day,
       quantity: Math.max(1, Number((orderItem as any).quantity) || 1),
     })),

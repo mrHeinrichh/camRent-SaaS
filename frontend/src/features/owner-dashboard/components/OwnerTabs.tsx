@@ -9,7 +9,7 @@ import { FileUpload } from '@/src/components/FileUpload';
 import { EmptyState } from '@/src/components/EmptyState';
 import { formatPHP } from '@/src/lib/currency';
 import { api } from '@/src/lib/api';
-import type { FraudListEntry, Item, ManualBlock, OwnerApplication, OwnerDashboardData, RentalFormField, SupportTicket, Voucher } from '@/src/types/domain';
+import type { FraudListEntry, Item, ManualBlock, OwnerApplication, OwnerDashboardData, RentalBillingMode, RentalFormField, SupportTicket, Voucher } from '@/src/types/domain';
 import type { OwnerTab } from '@/src/features/owner-dashboard/types';
 
 interface OwnerTabsProps {
@@ -49,7 +49,7 @@ interface OwnerTabsProps {
   onChangeSelectedCalendarItemId: (id: string) => void;
   onRefreshCalendar: () => void;
   calendarItems: Item[];
-  availabilityByItem: Record<string, { bookings: Array<{ start_date: string; end_date: string; status: string; renter_name?: string }>; manualBlocks: ManualBlock[] }>;
+  availabilityByItem: Record<string, { bookings: Array<{ start_date: string; end_date: string; start_time?: string; end_time?: string; status: string; renter_name?: string }>; manualBlocks: ManualBlock[] }>;
   rentalFormFields: RentalFormField[];
   rentalFormSettings: {
     show_branch_map: boolean;
@@ -97,6 +97,7 @@ interface OwnerTabsProps {
     tiktok_url: string;
     custom_social_links?: string[];
     payment_details: string;
+    rental_billing_mode?: RentalBillingMode;
     payment_detail_images?: string[];
     branches?: Array<{ name?: string; address: string; location_lat?: number | null; location_lng?: number | null }>;
     location_lat?: number | null;
@@ -168,6 +169,7 @@ export function OwnerTabs({
   const [fileLoading, setFileLoading] = useState(false);
   const [expandedCustomerEmail, setExpandedCustomerEmail] = useState<string | null>(null);
   const [profileSaving, setProfileSaving] = useState(false);
+  const [billingModeSaving, setBillingModeSaving] = useState(false);
   const [profileEditMode, setProfileEditMode] = useState(false);
   const [logoImageFile, setLogoImageFile] = useState<File | null>(null);
   const [bannerImageFile, setBannerImageFile] = useState<File | null>(null);
@@ -210,6 +212,7 @@ export function OwnerTabs({
     tiktok_url: '',
     custom_social_links: [''],
     payment_details: '',
+    rental_billing_mode: 'twenty_four_hour' as RentalBillingMode,
     location_lat: '',
     location_lng: '',
   });
@@ -237,6 +240,7 @@ export function OwnerTabs({
       tiktok_url: resolvedTiktok,
       custom_social_links: (resolvedCustomSocialLinks.length ? resolvedCustomSocialLinks : ['']) as string[],
       payment_details: data.store?.payment_details || '',
+      rental_billing_mode: data.store?.rental_billing_mode === 'calendar_day' ? 'calendar_day' : 'twenty_four_hour',
       location_lat: data.store?.location_lat != null ? String(data.store.location_lat) : '',
       location_lng: data.store?.location_lng != null ? String(data.store.location_lng) : '',
     });
@@ -264,6 +268,7 @@ export function OwnerTabs({
     (data.store as any)?.tiktokUrl,
     (data.store as any)?.customSocialLinks,
     data.store?.payment_details,
+    data.store?.rental_billing_mode,
     data.store?.payment_detail_images,
     data.store?.branches,
     data.store?.location_lat,
@@ -489,6 +494,22 @@ export function OwnerTabs({
     }
   };
 
+  const saveRentalBillingMode = async () => {
+    try {
+      setBillingModeSaving(true);
+      await api.put('/api/owner/store-profile', {
+        rental_billing_mode: storeProfileForm.rental_billing_mode,
+      });
+      setOwnerNotice({ type: 'success', message: 'Rental billing mode updated.' });
+      setTimeout(() => setOwnerNotice(null), 3500);
+    } catch (error: any) {
+      setOwnerNotice({ type: 'error', message: error?.message || 'Unable to update rental billing mode.' });
+      setTimeout(() => setOwnerNotice(null), 5000);
+    } finally {
+      setBillingModeSaving(false);
+    }
+  };
+
   return (
     <>
       {activeTab === 'overview' && (
@@ -698,6 +719,20 @@ export function OwnerTabs({
                     />
                     {validationErrors.paymentDetails && <p className="mt-1 text-xs text-red-500">{validationErrors.paymentDetails}</p>}
                   </label>
+                  <label className="space-y-1 text-sm md:col-span-2">
+                    <span className="text-xs text-muted-foreground">Rental Billing Mode</span>
+                    <select
+                      className="h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm"
+                      value={storeProfileForm.rental_billing_mode}
+                      onChange={(event) => setStoreProfileForm((prev) => ({ ...prev, rental_billing_mode: event.target.value as RentalBillingMode }))}
+                    >
+                      <option value="twenty_four_hour">24-hour periods</option>
+                      <option value="calendar_day">Calendar days</option>
+                    </select>
+                    <p className="text-xs text-muted-foreground">
+                      24-hour periods count elapsed rental time. Calendar days count each selected date as one billing day.
+                    </p>
+                  </label>
                   <div className="space-y-2 md:col-span-2">
                     <FileUpload
                       label="Payment QR / Reference Images"
@@ -856,6 +891,7 @@ export function OwnerTabs({
                           tiktok_url: storeProfileForm.tiktok_url,
                           custom_social_links: (storeProfileForm.custom_social_links || []).map((value) => value.trim()).filter(Boolean),
                           payment_details: storeProfileForm.payment_details,
+                          rental_billing_mode: storeProfileForm.rental_billing_mode,
                           payment_detail_images: nextPaymentImageUrls,
                           branches: parsedBranches.map((branch) => ({
                             name: branch.name,
@@ -915,6 +951,27 @@ export function OwnerTabs({
                 ))}
                 <p><span className="font-semibold">Location:</span> {storeProfileForm.location_lat || '-'}, {storeProfileForm.location_lng || '-'}</p>
                 <p><span className="font-semibold">Payment Details:</span> {storeProfileForm.payment_details || '-'}</p>
+                <div className="space-y-2 rounded-lg border border-blue-100 bg-blue-50 p-3 md:col-span-2">
+                  <div>
+                    <p className="text-sm font-semibold text-blue-950">Rental Billing Preference</p>
+                    <p className="text-xs text-blue-900">
+                      Choose how your current shop charges rental dates. This affects customer totals, checkout, calendars, and owner reports.
+                    </p>
+                  </div>
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                    <select
+                      className="h-10 rounded-md border border-blue-200 bg-white px-3 py-2 text-sm text-blue-950 sm:w-72"
+                      value={storeProfileForm.rental_billing_mode}
+                      onChange={(event) => setStoreProfileForm((prev) => ({ ...prev, rental_billing_mode: event.target.value as RentalBillingMode }))}
+                    >
+                      <option value="twenty_four_hour">24-hour periods</option>
+                      <option value="calendar_day">Calendar days</option>
+                    </select>
+                    <Button type="button" size="sm" onClick={saveRentalBillingMode} disabled={billingModeSaving}>
+                      {billingModeSaving ? 'Saving...' : 'Save Billing Mode'}
+                    </Button>
+                  </div>
+                </div>
                 <p className="md:col-span-2"><span className="font-semibold">Description:</span> {storeProfileForm.description || '-'}</p>
                 <div className="md:col-span-2 grid gap-4 md:grid-cols-2">
                   <div className="rounded-lg border border-slate-200 bg-white p-3">
@@ -1680,8 +1737,10 @@ export function OwnerTabs({
                   key: `booking-${booking.start_date}-${booking.end_date}-${booking.status}`,
                   start: booking.start_date,
                   end: booking.end_date,
+                  startTime: booking.start_time || '',
+                  endTime: booking.end_time || '',
                   status: booking.status,
-                  label: `${booking.renter_name || 'Unknown renter'} • ${booking.status.replace(/_/g, ' ')}`,
+                  label: `${booking.renter_name || 'Unknown renter'} • ${booking.status.replace(/_/g, ' ')}${booking.start_time || booking.end_time ? ` • ${booking.start_time || '--:--'}-${booking.end_time || '--:--'}` : ''}`,
                 })),
                 ...availability.manualBlocks.map((block) => ({
                   key: `block-${block.id}`,
@@ -1713,6 +1772,8 @@ export function OwnerTabs({
                         id: slot.key,
                         start: slot.start,
                         end: slot.end,
+                        startTime: (slot as any).startTime || '',
+                        endTime: (slot as any).endTime || '',
                         label: `${item.name} • ${slot.label}`,
                         tone,
                       };

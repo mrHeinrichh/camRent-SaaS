@@ -14,8 +14,8 @@ interface CartSlice {
   cart: CartItem[];
   appliedVoucher: { code: string; discount_amount: number; store_id: string } | null;
   addToCart: (item: CartItem) => void;
-  updateCartQuantity: (id: string, startDate: string, endDate: string, quantity: number) => void;
-  removeFromCart: (id: string, startDate?: string, endDate?: string) => void;
+  updateCartQuantity: (id: string, startDate: string, endDate: string, quantity: number, startTime?: string, endTime?: string) => void;
+  removeFromCart: (id: string, startDate?: string, endDate?: string, startTime?: string, endTime?: string) => void;
   removeFromCartAtIndex: (index: number) => void;
   clearCart: () => void;
   setAppliedVoucher: (voucher: { code: string; discount_amount: number; store_id: string } | null) => void;
@@ -78,7 +78,7 @@ export const useAppStore = create<AppStore>()(
           const quantityToAdd = Math.max(1, item.quantity || 1);
           const clearVoucher = state.appliedVoucher && state.appliedVoucher.store_id !== item.store_id;
           const existingIndex = state.cart.findIndex(
-            (entry) => entry.id === item.id && entry.startDate === item.startDate && entry.endDate === item.endDate,
+            (entry) => entry.id === item.id && entry.startDate === item.startDate && entry.endDate === item.endDate && (entry.startTime || '') === (item.startTime || '') && (entry.endTime || '') === (item.endTime || ''),
           );
           if (existingIndex === -1) {
             return { cart: [...state.cart, { ...item, quantity: quantityToAdd }], appliedVoucher: clearVoucher ? null : state.appliedVoucher };
@@ -90,17 +90,17 @@ export const useAppStore = create<AppStore>()(
           updated[existingIndex] = { ...existing, quantity: nextQuantity };
           return { cart: updated, appliedVoucher: clearVoucher ? null : state.appliedVoucher };
         }),
-      updateCartQuantity: (id, startDate, endDate, quantity) =>
+      updateCartQuantity: (id, startDate, endDate, quantity, startTime, endTime) =>
         set((state) => ({
           cart: state.cart.map((item) =>
-            item.id === id && item.startDate === startDate && item.endDate === endDate
+            item.id === id && item.startDate === startDate && item.endDate === endDate && (item.startTime || '') === (startTime || '') && (item.endTime || '') === (endTime || '')
               ? { ...item, quantity: Math.max(1, Math.min(Math.max(1, item.stock || 1), Math.floor(quantity))) }
               : item,
           ),
         })),
-      removeFromCart: (id, startDate, endDate) =>
+      removeFromCart: (id, startDate, endDate, startTime, endTime) =>
         set((state) => {
-          let nextCart = state.cart.filter((item) => !(item.id === id && item.startDate === startDate && item.endDate === endDate));
+          let nextCart = state.cart.filter((item) => !(item.id === id && item.startDate === startDate && item.endDate === endDate && (item.startTime || '') === (startTime || '') && (item.endTime || '') === (endTime || '')));
           if (nextCart.length === state.cart.length) {
             nextCart = state.cart.filter((item) => item.id !== id);
           }

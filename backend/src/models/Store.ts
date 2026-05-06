@@ -49,6 +49,7 @@ const storeSchema = new Schema(
       },
       default: { show_branch_map: true, reference_text: '', reference_image_url: '', reference_image_position: 'top' },
     },
+    rental_billing_mode: { type: String, enum: ['calendar_day', 'twenty_four_hour'], default: 'twenty_four_hour' },
     security_deposit: { type: Number, default: 0 },
     rating: { type: Number, default: 0 },
   },

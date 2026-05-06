@@ -1,4 +1,4 @@
-import type { UserRole } from '@/src/types/domain';
+import type { RentalBillingMode, UserRole } from '@/src/types/domain';
 
 export type RegisterRole = Extract<UserRole, 'renter' | 'owner'>;
 
@@ -26,6 +26,7 @@ export interface RegisterFormState {
   customSocialLinks: string[];
   paymentDetails: string;
   paymentDetailImages: File[];
+  rentalBillingMode: RentalBillingMode;
   leaseAgreementFile: File | null;
   securityDeposit: string;
   deliveryModes: string[];

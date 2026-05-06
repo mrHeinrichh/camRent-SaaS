@@ -42,6 +42,9 @@ export function registerOwnerStoreProfileRoutes(router: Router) {
       if (Array.isArray(body.delivery_modes)) {
         store.delivery_modes = body.delivery_modes.map((mode: unknown) => String(mode || '').trim()).filter(Boolean);
       }
+      if (body.rental_billing_mode !== undefined) {
+        store.rental_billing_mode = body.rental_billing_mode === 'calendar_day' ? 'calendar_day' : 'twenty_four_hour';
+      }
       if (Array.isArray(body.branches)) {
         store.branches = body.branches
           .map((branch: any) => ({

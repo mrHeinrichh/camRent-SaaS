@@ -21,6 +21,8 @@ export interface CalendarPeriod {
   id: string;
   start: string;
   end: string;
+  startTime?: string;
+  endTime?: string;
   label: string;
   tone: CalendarPeriodTone;
 }
@@ -44,6 +46,12 @@ const toneMeta: Record<CalendarPeriodTone, { label: string; icon: typeof CheckCi
   pending: { label: 'Pending', icon: Clock3, badgeClass: 'text-amber-700 bg-amber-50 border-amber-200', barClass: 'bg-amber-500' },
   rejected: { label: 'Not Approved', icon: XCircle, badgeClass: 'text-rose-700 bg-rose-50 border-rose-200', barClass: 'bg-rose-500' },
   blocked: { label: 'Manual Block', icon: Lock, badgeClass: 'text-slate-700 bg-slate-50 border-slate-200', barClass: 'bg-slate-500' },
+};
+
+const formatPeriodWindow = (period: CalendarPeriod) => {
+  const startTime = period.startTime || '';
+  const endTime = period.endTime || '';
+  return `${format(parseISO(period.start), 'MMM dd, yyyy')}${startTime ? ` ${startTime}` : ''} to ${format(parseISO(period.end), 'MMM dd, yyyy')}${endTime ? ` ${endTime}` : ''}`;
 };
 
 export function PeriodCalendar({ periods }: PeriodCalendarProps) {
@@ -89,6 +97,9 @@ export function PeriodCalendar({ periods }: PeriodCalendarProps) {
 
   return (
     <div className="space-y-4 rounded-xl border p-4">
+      <p className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-xs font-medium text-blue-900">
+        Stores can bill rentals by 24-hour periods or calendar days. Check the store billing mode when reviewing rental windows.
+      </p>
       <div className="flex items-center justify-between">
         <Button variant="outline" size="sm" onClick={() => setMonthCursor((prev) => subMonths(prev, 1))}>
           Prev
@@ -113,9 +124,7 @@ export function PeriodCalendar({ periods }: PeriodCalendarProps) {
             }),
           );
           const tones = [...new Set(dayPeriods.map((period) => period.tone))].sort((a, b) => tonePriority.indexOf(a) - tonePriority.indexOf(b));
-          const hoverTitle = dayPeriods.length
-            ? dayPeriods.map((period) => period.label).join('\n')
-            : 'No bookings/blocks';
+          const hoverTitle = dayPeriods.length ? dayPeriods.map((period) => `${period.label} • ${formatPeriodWindow(period)}`).join('\n') : 'No bookings/blocks';
           return (
             <div
               key={day.toISOString()}
@@ -178,7 +187,7 @@ export function PeriodCalendar({ periods }: PeriodCalendarProps) {
                   <span className={cn('inline-flex items-center gap-1 rounded border px-2 py-0.5 text-[10px] font-semibold', toneMeta[period.tone].badgeClass)}>
                     <ToneIcon className="h-3 w-3" /> {toneMeta[period.tone].label}
                   </span>
-                  <p className="text-muted-foreground">{period.label}</p>
+                  <p className="text-muted-foreground">{period.label} • {formatPeriodWindow(period)}</p>
                 </div>
               );
             })}
@@ -202,7 +211,7 @@ export function PeriodCalendar({ periods }: PeriodCalendarProps) {
                         <ToneIcon className="h-3 w-3" /> {toneMeta[period.tone].label.toUpperCase()}
                       </span>
                     </div>
-                    <p className="text-xs font-semibold">{format(parseISO(period.start), 'MMM dd, yyyy')} to {format(parseISO(period.end), 'MMM dd, yyyy')}</p>
+                    <p className="text-xs font-semibold">{formatPeriodWindow(period)}</p>
                     <p className="mt-1 text-xs text-muted-foreground">{period.label}</p>
                   </div>
                 );

@@ -78,6 +78,8 @@ itemRoutes.get('/:id', authenticate, async (req: AuthedRequest, res) => {
     bookings.push({
       start_date: orderItem.start_date,
       end_date: orderItem.end_date,
+      start_time: (orderItem as any).start_time || '',
+      end_time: (orderItem as any).end_time || '',
       status: order.status,
       renter_name: order.renter_name,
     });
@@ -86,6 +88,7 @@ itemRoutes.get('/:id', authenticate, async (req: AuthedRequest, res) => {
   const manualBlocks = await ManualBlock.find({ item_id: item._id }).lean();
   res.json({
     ...serialize(item as any),
+    rental_billing_mode: (store as any).rental_billing_mode === 'calendar_day' ? 'calendar_day' : 'twenty_four_hour',
     bookings,
     manualBlocks: serializeMany(manualBlocks as any[]),
   });

@@ -171,6 +171,7 @@ export function LoginPage({ onNavigate, content }: LoginPageProps) {
         custom_social_links: state.role === 'owner' ? state.customSocialLinks : undefined,
         payment_details: state.role === 'owner' ? state.paymentDetails : undefined,
         payment_detail_images: state.role === 'owner' ? paymentDetailImageUrls : undefined,
+        rental_billing_mode: state.role === 'owner' ? state.rentalBillingMode : undefined,
         delivery_modes: state.role === 'owner' ? state.deliveryModes.filter((mode) => mode.trim()) : undefined,
         lease_agreement_file_url: state.role === 'owner' ? leaseAgreementFileUrl : undefined,
         security_deposit: state.role === 'owner' && state.securityDeposit.trim() ? Number.parseFloat(state.securityDeposit) : undefined,

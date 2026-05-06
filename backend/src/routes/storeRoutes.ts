@@ -171,6 +171,7 @@ storeRoutes.post('/', authenticate, checkRole(['owner']), async (req: AuthedRequ
     delivery_modes,
     branches,
     lease_agreement_file_url,
+    rental_billing_mode,
     rental_form_schema,
     rental_form_settings,
     security_deposit,
@@ -205,6 +206,7 @@ storeRoutes.post('/', authenticate, checkRole(['owner']), async (req: AuthedRequ
           .filter((branch: any) => branch.address)
       : [],
     lease_agreement_file_url: lease_agreement_file_url || '',
+    rental_billing_mode: rental_billing_mode === 'calendar_day' ? 'calendar_day' : 'twenty_four_hour',
     rental_form_schema: { version: STANDARD_RENTAL_FORM_VERSION, fields },
     rental_form_settings: {
       show_branch_map: settingsPayload.show_branch_map !== false,

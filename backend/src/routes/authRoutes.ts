@@ -47,6 +47,7 @@ authRoutes.post('/register', async (req, res) => {
     store_branches,
     lease_agreement_file_url,
     security_deposit,
+    rental_billing_mode,
   } = req.body;
   try {
     const normalizedEmail = String(email || '').trim().toLowerCase();
@@ -126,6 +127,7 @@ authRoutes.post('/register', async (req, res) => {
         branches,
         lease_agreement_file_url: lease_agreement_file_url || '',
         security_deposit: Number.isFinite(Number(security_deposit)) ? Number(security_deposit) : 0,
+        rental_billing_mode: rental_billing_mode === 'calendar_day' ? 'calendar_day' : 'twenty_four_hour',
       });
 
       console.log('[auth] owner registered with store', {

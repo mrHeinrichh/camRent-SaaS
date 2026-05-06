@@ -1,4 +1,5 @@
 export type UserRole = 'renter' | 'owner' | 'admin';
+export type RentalBillingMode = 'calendar_day' | 'twenty_four_hour';
 
 export interface User {
   id: string;
@@ -39,6 +40,7 @@ export interface Store {
   }>;
   lease_agreement_file_url?: string;
   security_deposit?: number;
+  rental_billing_mode?: RentalBillingMode;
   rating: number;
   total_reviews?: number;
 }
@@ -56,6 +58,8 @@ export interface StoreReview {
 export interface Booking {
   start_date: string;
   end_date: string;
+  start_time?: string;
+  end_time?: string;
   status: string;
   renter_name?: string;
 }
@@ -102,6 +106,7 @@ export interface Item {
   brand?: string;
   stock?: number;
   is_available?: boolean;
+  rental_billing_mode?: RentalBillingMode;
   bookings?: Booking[];
   manualBlocks?: ManualBlock[];
 }
@@ -116,6 +121,9 @@ export interface CartItem {
   quantity?: number;
   startDate: string;
   endDate: string;
+  startTime?: string;
+  endTime?: string;
+  rentalBillingMode?: RentalBillingMode;
   store_id: string;
 }
 
@@ -125,6 +133,8 @@ export interface OrderHistoryItem {
   description?: string;
   start_date: string;
   end_date: string;
+  start_time?: string;
+  end_time?: string;
   daily_price: number;
   image_url: string;
   quantity?: number;
@@ -471,6 +481,6 @@ export interface SubmittedApplication {
   paymentMode: string;
   leaseAgreementSubmissionUrl: string;
   customAnswers?: Record<string, string>;
-  items: Array<{ name: string; image_url?: string; startDate: string; endDate: string; daily_price: number; deposit_amount: number; quantity?: number }>;
+  items: Array<{ name: string; image_url?: string; startDate: string; endDate: string; startTime?: string; endTime?: string; daily_price: number; deposit_amount: number; quantity?: number; rentalBillingMode?: RentalBillingMode }>;
   totalAmount: number;
 }

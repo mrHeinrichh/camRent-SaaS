@@ -3,6 +3,7 @@ import QRCode from 'qrcode';
 import { Download, Facebook, Globe, Instagram, MapPin, Music2, Receipt, Search, ShieldAlert, Star } from 'lucide-react';
 import { api } from '@/src/lib/api';
 import { formatPHP } from '@/src/lib/currency';
+import { getRentalBillingModeLabel } from '@/src/lib/rentalPricing';
 import { useAppStore } from '@/src/store';
 import type { Item, Store, StoreReview } from '@/src/types/domain';
 import { Button, Card, Input, cn } from '@/src/components/ui';
@@ -100,6 +101,8 @@ export function StorePage({ storeId, onNavigateItem }: StorePageProps) {
   };
   const availableCategories = ['All Gear', ...Array.from(new Set(store.items.map((item) => item.category).filter(Boolean)))];
   const visibleItems = selectedCategory === 'All Gear' ? store.items : store.items.filter((item) => item.category === selectedCategory);
+  const rentalBillingMode = store.rental_billing_mode === 'calendar_day' ? 'calendar_day' : 'twenty_four_hour';
+  const rentalBillingModeLabel = getRentalBillingModeLabel(rentalBillingMode);
 
   return (
     <div className="min-h-screen bg-[var(--tone-bg)] pb-12">
@@ -175,6 +178,15 @@ export function StorePage({ storeId, onNavigateItem }: StorePageProps) {
                 ) : null}
               </div>
             ) : null}
+            <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4 text-sm text-blue-950 shadow-sm">
+              <h4 className="mb-1 font-semibold">Rental Billing Mode</h4>
+              <p>This shop uses {rentalBillingModeLabel}.</p>
+              <p className="mt-1 text-xs text-blue-900">
+                {rentalBillingMode === 'calendar_day'
+                  ? 'Each selected calendar date counts as one billing day.'
+                  : 'Billing is counted by elapsed rental time from start date/time to end date/time.'}
+              </p>
+            </div>
             {(socialLinks.facebook || socialLinks.instagram || socialLinks.tiktok || socialLinks.custom.length) ? (
               <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
                 <h4 className="mb-2 font-semibold">Social Links</h4>
@@ -383,6 +395,7 @@ export function StorePage({ storeId, onNavigateItem }: StorePageProps) {
                       <div>
                         <span className="text-sm font-extrabold text-slate-900 sm:text-base">{formatPHP(item.daily_price)}</span>
                         <span className="text-xs text-slate-500"> / day</span>
+                        <p className="text-[11px] font-medium text-blue-700">{rentalBillingModeLabel}</p>
                         <p className="text-[11px] text-slate-500">Stock: {Math.max(0, item.stock || 0)}</p>
                       </div>
                       <Button size="sm" variant="outline" className="rounded-full">

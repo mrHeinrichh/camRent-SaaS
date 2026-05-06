@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { CheckCircle2, Download, FileImage, FileText, MapPin, Phone, ReceiptText, Store, Truck, User, ChevronRight, X, User2, Package, Mail, CreditCard, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatPHP } from '@/src/lib/currency';
+import { getRentalBillingModeLabel, getRentalDayCount } from '@/src/lib/rentalPricing';
 import { Button, Card, cn } from '@/src/components/ui';
 import { useAppStore } from '@/src/store';
 import type { SubmittedApplication } from '@/src/types/domain';
@@ -46,7 +47,7 @@ export function SuccessPage({ onBackHome, onOpenAccount }: SuccessPageProps) {
       ...(displayedSubmission.leaseAgreementSubmissionUrl ? [`Lease File: ${displayedSubmission.leaseAgreementSubmissionUrl}`] : []),
       'Items:',
       ...displayedSubmission.items.map(
-        (item) => `- ${item.name} (${item.startDate} to ${item.endDate}) - ${formatPHP(item.daily_price)}`,
+        (item) => `- ${item.name} (${item.startDate} ${item.startTime || '09:00'} to ${item.endDate} ${item.endTime || '18:00'}, ${getRentalDayCount(item)} billing day by ${getRentalBillingModeLabel(item.rentalBillingMode)}) - ${formatPHP(item.daily_price)}`,
       ),
       `Total Amount: ${formatPHP(displayedSubmission.totalAmount)}`,
     ];
@@ -197,8 +198,9 @@ export function SuccessPage({ onBackHome, onOpenAccount }: SuccessPageProps) {
                               <img src={item.image_url || `https://picsum.photos/seed/success-${item.name}-${index}/240/240`} alt={item.name} className="h-24 sm:h-32 w-full object-cover grayscale-[20%] group-hover:grayscale-0 transition-all" />
                               <div className="p-3">
                                 <p className="line-clamp-1 text-[10px] sm:text-xs font-black text-[var(--tone-text)]">{item.name}</p>
-                                <p className="mt-0.5 text-[8px] sm:text-[10px] font-medium text-[var(--tone-text-muted)]">{item.startDate} &mdash; {item.endDate}</p>
-                                <p className="mt-2 text-xs font-black text-[var(--tone-accent)]">{formatPHP(item.daily_price)}</p>
+                                <p className="mt-0.5 text-[8px] sm:text-[10px] font-medium text-[var(--tone-text-muted)]">{item.startDate} {item.startTime || '09:00'} &mdash; {item.endDate} {item.endTime || '18:00'}</p>
+                                <p className="mt-2 text-xs font-black text-[var(--tone-accent)]">{formatPHP(item.daily_price)} x {getRentalDayCount(item)} billing day{getRentalDayCount(item) === 1 ? '' : 's'}</p>
+                                <p className="mt-1 text-[8px] sm:text-[10px] font-semibold text-[var(--tone-text-muted)]">Billing: {getRentalBillingModeLabel(item.rentalBillingMode)}</p>
                               </div>
                             </div>
                           ))}

@@ -3,6 +3,7 @@ import { ChevronRight, ChevronLeft, ChevronDown, ClipboardList, CreditCard, Face
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '@/src/lib/api';
 import { formatPHP } from '@/src/lib/currency';
+import { getCartItemRentalTotal, getRentalBillingModeLabel, getRentalDayCount } from '@/src/lib/rentalPricing';
 import { useAppStore } from '@/src/store';
 import type { AppPage } from '@/src/types/app';
 import type { RentalFormField, RentalFormSchemaResponse, Store, SubmittedApplication } from '@/src/types/domain';
@@ -93,7 +94,15 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
     }
   };
 
-  const rentalSubtotal = useMemo(() => cart.reduce((sum, item) => sum + item.daily_price * Math.max(1, item.quantity || 1), 0), [cart]);
+  const cartWithBillingMode = useMemo(
+    () =>
+      cart.map((item) => ({
+        ...item,
+        rentalBillingMode: item.rentalBillingMode || store?.rental_billing_mode || 'twenty_four_hour',
+      })),
+    [cart, store?.rental_billing_mode],
+  );
+  const rentalSubtotal = useMemo(() => cartWithBillingMode.reduce((sum, item) => sum + getCartItemRentalTotal(item), 0), [cartWithBillingMode]);
   const finalSecurityDeposit = store?.security_deposit || 0;
   const voucherDiscount = appliedVoucher && appliedVoucher.store_id === cart[0]?.store_id ? Math.max(0, Number(appliedVoucher.discount_amount || 0)) : 0;
   const totalAmount = Math.max(0, rentalSubtotal + finalSecurityDeposit - voucherDiscount);
@@ -321,7 +330,7 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
           custom_answers: customAnswers,
           document_urls: documentUrls,
           voucher_code: appliedVoucher?.store_id === cart[0].store_id ? appliedVoucher.code : '',
-          items: cart,
+          items: cartWithBillingMode,
           total_amount: totalAmount,
         }),
         45000,
@@ -347,14 +356,17 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
         paymentMode: formData.paymentMode,
         leaseAgreementSubmissionUrl,
         customAnswers,
-        items: cart.map((item) => ({
+        items: cartWithBillingMode.map((item) => ({
           name: item.name,
           startDate: item.startDate,
           endDate: item.endDate,
+          startTime: item.startTime || '09:00',
+          endTime: item.endTime || '18:00',
           daily_price: item.daily_price,
           deposit_amount: item.deposit_amount,
           quantity: Math.max(1, item.quantity || 1),
           image_url: item.image_url,
+          rentalBillingMode: item.rentalBillingMode,
         })),
         totalAmount,
       };
@@ -646,8 +658,11 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
               <Card className="rounded-3xl border border-white/60 bg-[var(--tone-surface-soft)] p-6 shadow-xl backdrop-blur-md sm:p-8">
                 <div className="mb-8 space-y-3">
                   <label className="mb-4 block text-sm font-bold text-[var(--tone-text)]">Rented Items</label>
-                  {cart.map((item) => (
-                    <div key={`${item.id}-${item.startDate}`} className="flex items-center gap-5 rounded-2xl border border-[var(--tone-border)] bg-white p-4 shadow-sm transition-shadow hover:shadow-md">
+                  <p className="rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-950">
+                    This shop uses {getRentalBillingModeLabel(cartWithBillingMode[0]?.rentalBillingMode)} for rental billing.
+                  </p>
+                  {cartWithBillingMode.map((item) => (
+                    <div key={`${item.id}-${item.startDate}-${item.startTime || ''}-${item.endDate}-${item.endTime || ''}`} className="flex items-center gap-5 rounded-2xl border border-[var(--tone-border)] bg-white p-4 shadow-sm transition-shadow hover:shadow-md">
                       <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-[var(--tone-bg)] shadow-inner">
                         {item.image_url ? (
                           <img src={item.image_url} alt={item.name} className="h-full w-full object-cover" />
@@ -657,8 +672,8 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-base font-bold text-[var(--tone-text)]">{item.name}</p>
-                        <p className="mt-0.5 text-xs font-semibold text-[var(--tone-text-muted)] opacity-80">{new Date(item.startDate).toLocaleDateString()} &mdash; {new Date(item.endDate).toLocaleDateString()}</p>
-                        <p className="mt-2 font-black text-[var(--tone-accent)]">{formatPHP(item.daily_price)} <span className="text-xs font-normal text-[var(--tone-text-muted)]">x {Math.max(1, item.quantity || 1)} qty</span></p>
+                        <p className="mt-0.5 text-xs font-semibold text-[var(--tone-text-muted)] opacity-80">{new Date(item.startDate).toLocaleDateString()} {item.startTime || '09:00'} &mdash; {new Date(item.endDate).toLocaleDateString()} {item.endTime || '18:00'}</p>
+                        <p className="mt-2 font-black text-[var(--tone-accent)]">{formatPHP(getCartItemRentalTotal(item))} <span className="text-xs font-normal text-[var(--tone-text-muted)]">({formatPHP(item.daily_price)} x {getRentalDayCount(item)} billing day{getRentalDayCount(item) === 1 ? '' : 's'} by {getRentalBillingModeLabel(item.rentalBillingMode)} x {Math.max(1, item.quantity || 1)} qty)</span></p>
                       </div>
                     </div>
                   ))}

@@ -105,4 +105,248 @@
     background-size: 200% 200%;
     animation: shimmer-x 9s linear infinite alternate;
   }
+
+  .owner-dashboard-shell {
+    background:
+      linear-gradient(180deg, color-mix(in srgb, var(--tone-surface) 84%, white 16%) 0%, var(--tone-bg) 42%),
+      var(--tone-bg);
+  }
+
+  .owner-sidebar {
+    position: sticky;
+    top: 64px;
+    z-index: 20;
+    width: 100%;
+    border-bottom: 1px solid var(--tone-border);
+    background: color-mix(in srgb, var(--tone-surface-soft) 92%, white 8%);
+    padding: 0.75rem;
+    box-shadow: 0 14px 30px rgba(47, 30, 18, 0.06);
+  }
+
+  .owner-sidebar-brand {
+    display: none;
+  }
+
+  .owner-sidebar-mark {
+    display: grid;
+    height: 2.5rem;
+    width: 2.5rem;
+    place-items: center;
+    border-radius: 0.75rem;
+    border: 1px solid color-mix(in srgb, var(--tone-accent) 42%, var(--tone-border));
+    background: var(--tone-accent);
+    color: var(--tone-accent-text);
+    font-size: 0.75rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    box-shadow: 0 12px 22px rgba(217, 162, 106, 0.28);
+  }
+
+  .owner-sidebar-nav {
+    display: flex;
+    gap: 0.5rem;
+    overflow-x: auto;
+    padding-bottom: 0.15rem;
+    scrollbar-width: thin;
+  }
+
+  .owner-nav-button {
+    position: relative;
+    display: inline-flex;
+    min-width: max-content;
+    align-items: center;
+    gap: 0.6rem;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    padding: 0.65rem 0.85rem;
+    color: var(--tone-text-muted);
+    transition: background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+  }
+
+  .owner-nav-button:hover {
+    border-color: color-mix(in srgb, var(--tone-accent) 28%, var(--tone-border));
+    background: color-mix(in srgb, var(--tone-accent) 12%, white);
+    color: var(--tone-text);
+  }
+
+  .owner-nav-button-active {
+    border-color: color-mix(in srgb, var(--tone-accent) 56%, var(--tone-border));
+    background: color-mix(in srgb, var(--tone-accent) 24%, white);
+    color: var(--tone-text);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.62), 0 12px 24px rgba(47, 30, 18, 0.08);
+  }
+
+  .owner-nav-button-active::before {
+    content: "";
+    position: absolute;
+    inset: auto 1rem -0.25rem 1rem;
+    height: 3px;
+    border-radius: 999px;
+    background: var(--tone-accent);
+  }
+
+  .owner-nav-icon {
+    display: grid;
+    height: 2rem;
+    width: 2rem;
+    place-items: center;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--tone-surface) 80%, white 20%);
+  }
+
+  .owner-nav-badge {
+    display: grid;
+    min-width: 1.35rem;
+    height: 1.35rem;
+    place-items: center;
+    border-radius: 999px;
+    background: #f59e0b;
+    color: white;
+    font-size: 0.68rem;
+    font-weight: 900;
+  }
+
+  .owner-hero {
+    display: grid;
+    gap: 1rem;
+    border: 1px solid color-mix(in srgb, var(--tone-border) 84%, white 16%);
+    border-radius: 1.35rem;
+    background: color-mix(in srgb, var(--tone-surface-soft) 88%, white 12%);
+    padding: 1rem;
+    box-shadow: 0 24px 60px rgba(47, 30, 18, 0.08);
+  }
+
+  .owner-hero-metric {
+    min-width: 4.8rem;
+    border-radius: 1rem;
+    border: 1px solid color-mix(in srgb, var(--tone-border) 80%, white 20%);
+    background: white;
+    padding: 0.75rem 0.6rem;
+  }
+
+  .owner-hero-metric span {
+    display: block;
+    color: var(--tone-text);
+    font-size: 1.25rem;
+    font-weight: 900;
+    line-height: 1;
+  }
+
+  .owner-hero-metric p {
+    margin-top: 0.3rem;
+    color: var(--tone-text-muted);
+    font-size: 0.68rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .owner-content-panel {
+    border: 1px solid color-mix(in srgb, var(--tone-border) 82%, white 18%);
+    border-radius: 1.35rem;
+    background: color-mix(in srgb, var(--tone-panel-overlay) 88%, white 12%);
+    padding: 1rem;
+    box-shadow: 0 18px 50px rgba(47, 30, 18, 0.07);
+  }
+
+  .owner-dashboard-shell .i3d-card {
+    border-color: color-mix(in srgb, var(--tone-border) 84%, white 16%);
+    background: color-mix(in srgb, white 88%, var(--tone-surface-soft) 12%);
+    box-shadow: 0 12px 28px rgba(47, 30, 18, 0.06);
+  }
+
+  .owner-dashboard-shell .i3d-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 20px 44px rgba(47, 30, 18, 0.11);
+  }
+
+  .owner-dashboard-shell table {
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+
+  .owner-dashboard-shell thead {
+    background: color-mix(in srgb, var(--tone-surface) 78%, white 22%);
+  }
+
+  .owner-dashboard-shell th {
+    color: var(--tone-text-muted);
+    font-size: 0.72rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .owner-dashboard-shell tbody tr {
+    transition: background-color 0.16s ease, transform 0.16s ease, box-shadow 0.16s ease;
+  }
+
+  .owner-dashboard-shell tbody tr:hover {
+    background: color-mix(in srgb, var(--tone-accent) 9%, white);
+  }
+
+  .owner-dashboard-shell input,
+  .owner-dashboard-shell select,
+  .owner-dashboard-shell textarea {
+    background-color: color-mix(in srgb, white 76%, var(--tone-surface-soft) 24%);
+  }
+
+  .owner-dashboard-shell input:focus,
+  .owner-dashboard-shell select:focus,
+  .owner-dashboard-shell textarea:focus {
+    border-color: color-mix(in srgb, var(--tone-accent) 68%, var(--tone-border));
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--tone-accent) 18%, transparent);
+  }
+
+  @media (min-width: 768px) {
+    .owner-sidebar {
+      top: 64px;
+      height: calc(100vh - 64px);
+      width: 18rem;
+      flex-shrink: 0;
+      overflow-y: auto;
+      border-right: 1px solid var(--tone-border);
+      border-bottom: 0;
+      padding: 1rem;
+    }
+
+    .owner-sidebar-brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      border-bottom: 1px solid color-mix(in srgb, var(--tone-border) 70%, white 30%);
+      padding: 0.25rem 0.25rem 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .owner-sidebar-nav {
+      display: grid;
+      gap: 0.45rem;
+      overflow: visible;
+      padding-bottom: 0;
+    }
+
+    .owner-nav-button {
+      width: 100%;
+      min-width: 0;
+      border-radius: 0.95rem;
+      padding: 0.65rem;
+    }
+
+    .owner-nav-button-active::before {
+      inset: 0.65rem auto 0.65rem -0.25rem;
+      width: 4px;
+      height: auto;
+    }
+
+    .owner-hero {
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      padding: 1.25rem;
+    }
+
+    .owner-content-panel {
+      padding: 1.25rem;
+    }
+  }
 }

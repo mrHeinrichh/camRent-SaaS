@@ -5,6 +5,7 @@ import { PhoneInput } from '@/src/components/PhoneInput';
 import { api } from '@/src/lib/api';
 import { validatePhone } from '@/src/lib/phone';
 import type { RegisterFormState, StoreBranchInput } from '@/src/features/auth/types';
+import type { RentalBillingMode } from '@/src/types/domain';
 
 interface RegisterWizardProps {
   submitting: boolean;
@@ -32,6 +33,7 @@ export function RegisterWizard({ submitting, onSubmit, onOpenPolicies }: Registe
   const [customSocialLinks, setCustomSocialLinks] = useState<string[]>(['']);
   const [paymentDetails, setPaymentDetails] = useState('');
   const [paymentDetailImages, setPaymentDetailImages] = useState<File[]>([]);
+  const [rentalBillingMode, setRentalBillingMode] = useState<RentalBillingMode>('twenty_four_hour');
   const [leaseAgreementFile, setLeaseAgreementFile] = useState<File | null>(null);
   const [securityDeposit, setSecurityDeposit] = useState('');
   const [deliveryModes, setDeliveryModes] = useState<string[]>(['Store Pickup']);
@@ -295,6 +297,7 @@ export function RegisterWizard({ submitting, onSubmit, onOpenPolicies }: Registe
       customSocialLinks: customSocialLinks.map((value) => value.trim()).filter(Boolean),
       paymentDetails,
       paymentDetailImages,
+      rentalBillingMode,
       leaseAgreementFile,
       securityDeposit,
       deliveryModes,
@@ -504,6 +507,20 @@ export function RegisterWizard({ submitting, onSubmit, onOpenPolicies }: Registe
             files={paymentDetailImages}
             onChange={(files) => setPaymentDetailImages(Array.from(files || []))}
           />
+          <div className="space-y-2 rounded-md border border-blue-100 bg-blue-50 p-3">
+            <label className="text-sm font-medium text-blue-950">Rental Billing Mode</label>
+            <select
+              className="w-full rounded-md border border-blue-200 bg-white px-3 py-2 text-sm text-blue-950"
+              value={rentalBillingMode}
+              onChange={(event) => setRentalBillingMode(event.target.value === 'calendar_day' ? 'calendar_day' : 'twenty_four_hour')}
+            >
+              <option value="twenty_four_hour">24-hour periods</option>
+              <option value="calendar_day">Calendar days</option>
+            </select>
+            <p className="text-xs text-blue-900">
+              24-hour periods count elapsed time from pickup to return. Calendar days count each selected date as one billing day.
+            </p>
+          </div>
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <label className="text-sm font-medium">Delivery Modes</label>

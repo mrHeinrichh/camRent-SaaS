@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { api } from '@/src/lib/api';
 import { useAppStore } from '@/src/store';
 import type { Announcement, Store } from '@/src/types/domain';
@@ -33,10 +33,8 @@ export function HomePage({ onNavigate, content }: HomePageProps) {
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [locating, setLocating] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [recentlyAddedId, setRecentlyAddedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const addedTimerRef = useRef<number | null>(null);
-  const { user, homeSearchQuery, setHomeSearchQuery, addToCart, setPage } = useAppStore();
+  const { user, homeSearchQuery, setHomeSearchQuery, openItem, setPage } = useAppStore();
 
   useEffect(() => {
     if (user?.role === 'owner') return;
@@ -126,31 +124,6 @@ export function HomePage({ onNavigate, content }: HomePageProps) {
   useEffect(() => {
     setCurrentPage(1);
   }, [viewMode, homeSearchQuery, minRating, nearMeOnly, selectedCategory, selectedBrand, sortMode, userLocation]);
-
-  const handleAddToCart = (gear: GearFeedItem) => {
-    if (user?.role === 'owner' || user?.role === 'admin') return;
-    const start = new Date();
-    start.setDate(start.getDate() + 1);
-    const end = new Date();
-    end.setDate(end.getDate() + 2);
-    const toISODate = (value: Date) => value.toISOString().slice(0, 10);
-    addToCart({
-      id: gear.id,
-      name: gear.name,
-      daily_price: Number(gear.daily_price || 0),
-      deposit_amount: 0,
-      image_url: gear.image_url || '',
-      quantity: 1,
-      stock: Math.max(1, Number(gear.stock || 1)),
-      startDate: toISODate(start),
-      endDate: toISODate(end),
-      store_id: gear.store_id,
-    });
-    setRecentlyAddedId(gear.id);
-    if (addedTimerRef.current) window.clearTimeout(addedTimerRef.current);
-    addedTimerRef.current = window.setTimeout(() => setRecentlyAddedId(null), 1200);
-    setPage('cart');
-  };
 
   const handleToggleNearMe = () => {
     if (!nearMeOnly && !userLocation) {
@@ -265,7 +238,7 @@ export function HomePage({ onNavigate, content }: HomePageProps) {
         {viewMode === 'gears' ? (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 lg:gap-6 animate-fade-up items-stretch">
             {pagedGears.map((gear) => (
-              <GearCard key={gear.id} gear={gear} onOpenStore={onNavigate} onAddToCart={handleAddToCart} justAdded={recentlyAddedId === gear.id} />
+              <GearCard key={gear.id} gear={gear} onOpenStore={onNavigate} onOpenItem={openItem} />
             ))}
           </div>
         ) : (

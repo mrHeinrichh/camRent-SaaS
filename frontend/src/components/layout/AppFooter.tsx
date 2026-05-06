@@ -8,7 +8,7 @@ interface AppFooterProps {
 }
 
 export function AppFooter({ onNavigate, content }: AppFooterProps) {
-  const resolved = mergeSiteContent(defaultSiteContent, content as any);
+  const resolved = mergeSiteContent(defaultSiteContent, content as any) as unknown as SiteContent;
   const footer = resolved.footer;
   return (
     <footer className="mt-16 bg-[var(--tone-bg)]">

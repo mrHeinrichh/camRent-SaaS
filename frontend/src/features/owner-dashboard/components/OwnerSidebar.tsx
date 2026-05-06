@@ -1,5 +1,16 @@
-import { Calendar as CalendarIcon, Camera, Clock, LayoutDashboard, MessageSquare, ReceiptText, ShieldAlert, TicketPercent, Users } from 'lucide-react';
-import { Button } from '@/src/components/ui';
+import {
+  Calendar as CalendarIcon,
+  Camera,
+  Clock,
+  LayoutDashboard,
+  MessageSquare,
+  ReceiptText,
+  ShieldAlert,
+  SlidersHorizontal,
+  TicketPercent,
+  Users,
+} from 'lucide-react';
+import { cn } from '@/src/components/ui';
 import type { OwnerTab } from '@/src/features/owner-dashboard/types';
 
 interface OwnerSidebarProps {
@@ -8,86 +19,59 @@ interface OwnerSidebarProps {
   pendingApplicationsCount?: number;
 }
 
+const ownerNavItems: Array<{
+  tab: OwnerTab;
+  label: string;
+  description: string;
+  icon: typeof LayoutDashboard;
+}> = [
+  { tab: 'overview', label: 'Overview', description: 'Store health', icon: LayoutDashboard },
+  { tab: 'applications', label: 'Applications', description: 'Review renters', icon: Clock },
+  { tab: 'inventory', label: 'Inventory', description: 'Manage gear', icon: Camera },
+  { tab: 'calendar', label: 'Calendar', description: 'Availability', icon: CalendarIcon },
+  { tab: 'customers', label: 'Customers', description: 'Renter records', icon: Users },
+  { tab: 'transactions', label: 'Transactions', description: 'Rental history', icon: ReceiptText },
+  { tab: 'form', label: 'Form Builder', description: 'Requirements', icon: SlidersHorizontal },
+  { tab: 'fraud', label: 'Fraud List', description: 'Risk controls', icon: ShieldAlert },
+  { tab: 'support', label: 'Support', description: 'Feedback desk', icon: MessageSquare },
+  { tab: 'vouchers', label: 'Vouchers', description: 'Discounts', icon: TicketPercent },
+];
+
 export function OwnerSidebar({ activeTab, onChangeTab, pendingApplicationsCount = 0 }: OwnerSidebarProps) {
   return (
-    <aside className="w-full border-b bg-gradient-to-b from-slate-100 to-cyan-50/70 p-3 md:w-64 md:space-y-2 md:border-b-0 md:border-r md:p-6">
-      <div className="flex gap-2 overflow-x-auto md:block md:space-y-2">
-        <Button
-          variant={activeTab === 'overview' ? 'secondary' : 'ghost'}
-          className={`i3d-tab shrink-0 justify-start transition-all md:w-full ${activeTab === 'overview' ? 'bg-cyan-600 text-white hover:bg-cyan-600' : 'hover:bg-cyan-100'}`}
-          onClick={() => onChangeTab('overview')}
-        >
-          <LayoutDashboard className="mr-2 h-4 w-4" /> Overview
-        </Button>
-        <Button
-          variant={activeTab === 'applications' ? 'secondary' : 'ghost'}
-          className={`i3d-tab shrink-0 justify-start transition-all md:w-full ${activeTab === 'applications' ? 'bg-cyan-600 text-white hover:bg-cyan-600' : 'hover:bg-cyan-100'}`}
-          onClick={() => onChangeTab('applications')}
-        >
-          <Clock className="mr-2 h-4 w-4" /> Rental Applications
-          {pendingApplicationsCount > 0 ? (
-            <span className={`ml-2 rounded-full px-2 py-0.5 text-[10px] font-bold ${activeTab === 'applications' ? 'bg-white/25 text-white' : 'bg-amber-100 text-amber-700'}`}>
-              {pendingApplicationsCount}
-            </span>
-          ) : null}
-        </Button>
-        <Button
-          variant={activeTab === 'inventory' ? 'secondary' : 'ghost'}
-          className={`i3d-tab shrink-0 justify-start transition-all md:w-full ${activeTab === 'inventory' ? 'bg-cyan-600 text-white hover:bg-cyan-600' : 'hover:bg-cyan-100'}`}
-          onClick={() => onChangeTab('inventory')}
-        >
-          <Camera className="mr-2 h-4 w-4" /> Inventory
-        </Button>
-        <Button
-          variant={activeTab === 'calendar' ? 'secondary' : 'ghost'}
-          className={`i3d-tab shrink-0 justify-start transition-all md:w-full ${activeTab === 'calendar' ? 'bg-cyan-600 text-white hover:bg-cyan-600' : 'hover:bg-cyan-100'}`}
-          onClick={() => onChangeTab('calendar')}
-        >
-          <CalendarIcon className="mr-2 h-4 w-4" /> Calendar
-        </Button>
-        <Button
-          variant={activeTab === 'customers' ? 'secondary' : 'ghost'}
-          className={`i3d-tab shrink-0 justify-start transition-all md:w-full ${activeTab === 'customers' ? 'bg-cyan-600 text-white hover:bg-cyan-600' : 'hover:bg-cyan-100'}`}
-          onClick={() => onChangeTab('customers')}
-        >
-          <Users className="mr-2 h-4 w-4" /> Customers
-        </Button>
-        <Button
-          variant={activeTab === 'transactions' ? 'secondary' : 'ghost'}
-          className={`i3d-tab shrink-0 justify-start transition-all md:w-full ${activeTab === 'transactions' ? 'bg-cyan-600 text-white hover:bg-cyan-600' : 'hover:bg-cyan-100'}`}
-          onClick={() => onChangeTab('transactions')}
-        >
-          <ReceiptText className="mr-2 h-4 w-4" /> Transactions
-        </Button>
-        <Button
-          variant={activeTab === 'form' ? 'secondary' : 'ghost'}
-          className={`i3d-tab shrink-0 justify-start transition-all md:w-full ${activeTab === 'form' ? 'bg-cyan-600 text-white hover:bg-cyan-600' : 'hover:bg-cyan-100'}`}
-          onClick={() => onChangeTab('form')}
-        >
-          <LayoutDashboard className="mr-2 h-4 w-4" /> Form Builder
-        </Button>
-        <Button
-          variant={activeTab === 'fraud' ? 'secondary' : 'ghost'}
-          className={`i3d-tab shrink-0 justify-start transition-all md:w-full ${activeTab === 'fraud' ? 'bg-cyan-600 text-white hover:bg-cyan-600' : 'hover:bg-cyan-100'}`}
-          onClick={() => onChangeTab('fraud')}
-        >
-          <ShieldAlert className="mr-2 h-4 w-4" /> Fraud List
-        </Button>
-        <Button
-          variant={activeTab === 'support' ? 'secondary' : 'ghost'}
-          className={`i3d-tab shrink-0 justify-start transition-all md:w-full ${activeTab === 'support' ? 'bg-cyan-600 text-white hover:bg-cyan-600' : 'hover:bg-cyan-100'}`}
-          onClick={() => onChangeTab('support')}
-        >
-          <MessageSquare className="mr-2 h-4 w-4" /> Support & Feedback
-        </Button>
-        <Button
-          variant={activeTab === 'vouchers' ? 'secondary' : 'ghost'}
-          className={`i3d-tab shrink-0 justify-start transition-all md:w-full ${activeTab === 'vouchers' ? 'bg-cyan-600 text-white hover:bg-cyan-600' : 'hover:bg-cyan-100'}`}
-          onClick={() => onChangeTab('vouchers')}
-        >
-          <TicketPercent className="mr-2 h-4 w-4" /> Vouchers
-        </Button>
+    <aside className="owner-sidebar">
+      <div className="owner-sidebar-brand">
+        <div className="owner-sidebar-mark">CR</div>
+        <div className="min-w-0">
+          <p className="truncate text-sm font-black text-[var(--tone-text)]">CamRent PH</p>
+          <p className="truncate text-[11px] font-semibold text-[var(--tone-text-muted)]">Owner Console</p>
+        </div>
       </div>
+
+      <nav className="owner-sidebar-nav" aria-label="Owner dashboard sections">
+        {ownerNavItems.map((item) => {
+          const Icon = item.icon;
+          const active = activeTab === item.tab;
+          const count = item.tab === 'applications' ? pendingApplicationsCount : 0;
+          return (
+            <button
+              key={item.tab}
+              type="button"
+              className={cn('owner-nav-button', active && 'owner-nav-button-active')}
+              onClick={() => onChangeTab(item.tab)}
+            >
+              <span className="owner-nav-icon">
+                <Icon className="h-4 w-4" />
+              </span>
+              <span className="min-w-0 flex-1 text-left">
+                <span className="block truncate text-sm font-bold">{item.label}</span>
+                <span className="hidden truncate text-[11px] font-medium opacity-70 md:block">{item.description}</span>
+              </span>
+              {count > 0 ? <span className="owner-nav-badge">{count}</span> : null}
+            </button>
+          );
+        })}
+      </nav>
     </aside>
   );
 }
