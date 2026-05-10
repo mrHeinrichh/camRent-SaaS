@@ -1,0 +1,24 @@
+{
+  "name": "camrent-ph-opener",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "studio": "remotion studio src/index.ts",
+    "still:desktop": "remotion still src/index.ts CamRentPHDesktopIntro out/stills/desktop-frame-150.png --frame=150",
+    "still:mobile": "remotion still src/index.ts CamRentPHMobileIntro out/stills/mobile-frame-150.png --frame=150",
+    "render:desktop": "remotion render src/index.ts CamRentPHDesktopIntro out/camrent-ph-desktop-opener.mp4",
+    "render:mobile": "remotion render src/index.ts CamRentPHMobileIntro out/camrent-ph-mobile-opener.mp4"
+  },
+  "dependencies": {
+    "lucide-react": "0.546.0",
+    "react": "19.2.6",
+    "react-dom": "19.2.6",
+    "remotion": "4.0.459"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.6",
+    "@types/react-dom": "19.2.3",
+    "typescript": "5.9.3"
+  }
+}
