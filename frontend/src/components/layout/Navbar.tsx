@@ -46,7 +46,7 @@ export function Navbar({ onNavigate }: NavbarProps) {
 
           <div className="flex items-center gap-2 sm:gap-4">
             {user?.role !== 'owner' && user?.role !== 'admin' && (
-              <Button variant="ghost" size="icon" onClick={() => onNavigate('cart')} className="relative">
+              <Button variant="ghost" size="icon" onClick={() => onNavigate('cart')} className="relative" aria-label="Open cart" data-cart-target="true">
                 <motion.span animate={{ scale: cartBump ? 1.15 : 1 }} transition={{ type: 'spring', stiffness: 500, damping: 18 }}>
                   <ShoppingCart className="h-5 w-5" />
                 </motion.span>

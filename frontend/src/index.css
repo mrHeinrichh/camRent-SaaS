@@ -298,6 +298,276 @@
     box-shadow: 0 0 0 4px color-mix(in srgb, var(--tone-accent) 18%, transparent);
   }
 
+  @media (max-width: 767px) {
+    .owner-dashboard-shell {
+      overflow-x: hidden;
+    }
+
+    .owner-dashboard-shell > main {
+      padding: 0.75rem !important;
+    }
+
+    .owner-sidebar {
+      top: 64px;
+      padding: 0.5rem 0.5rem 0.45rem;
+    }
+
+    .owner-sidebar-nav {
+      gap: 0.35rem;
+      padding-bottom: 0;
+      scrollbar-width: none;
+    }
+
+    .owner-sidebar-nav::-webkit-scrollbar {
+      display: none;
+    }
+
+    .owner-nav-button {
+      gap: 0.4rem;
+      padding: 0.45rem 0.55rem;
+      border-radius: 0.85rem;
+    }
+
+    .owner-nav-button span span:first-child {
+      font-size: 0.72rem;
+      line-height: 1;
+    }
+
+    .owner-nav-icon {
+      height: 1.65rem;
+      width: 1.65rem;
+    }
+
+    .owner-nav-icon svg {
+      height: 0.9rem;
+      width: 0.9rem;
+    }
+
+    .owner-nav-badge {
+      min-width: 1.1rem;
+      height: 1.1rem;
+      font-size: 0.58rem;
+    }
+
+    .owner-nav-button-active::before {
+      inset: auto 0.65rem -0.18rem 0.65rem;
+      height: 2px;
+    }
+
+    .owner-dashboard-shell .mx-auto.max-w-\[1500px\] {
+      max-width: 100%;
+    }
+
+    .owner-dashboard-shell .space-y-5 > :not(:last-child),
+    .owner-dashboard-shell .space-y-6 > :not(:last-child) {
+      margin-bottom: 0.75rem !important;
+    }
+
+    .owner-dashboard-shell .space-y-4 > :not(:last-child) {
+      margin-bottom: 0.65rem !important;
+    }
+
+    .owner-hero {
+      gap: 0.65rem;
+      border-radius: 1rem;
+      padding: 0.75rem;
+      box-shadow: 0 12px 28px rgba(47, 30, 18, 0.07);
+    }
+
+    .owner-hero p:first-child {
+      font-size: 0.62rem;
+      letter-spacing: 0.16em;
+    }
+
+    .owner-hero h1,
+    .owner-dashboard-shell h1 {
+      font-size: 1.2rem !important;
+      line-height: 1.18 !important;
+      letter-spacing: 0 !important;
+    }
+
+    .owner-dashboard-shell h2 {
+      font-size: 1rem !important;
+      line-height: 1.25 !important;
+      letter-spacing: 0 !important;
+    }
+
+    .owner-dashboard-shell h3 {
+      font-size: 0.9rem !important;
+      line-height: 1.25 !important;
+    }
+
+    .owner-hero > div:first-child > p:last-child {
+      display: -webkit-box;
+      max-height: 2.5rem;
+      overflow: hidden;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+      font-size: 0.75rem;
+      line-height: 1.25rem;
+    }
+
+    .owner-hero .grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.45rem;
+    }
+
+    .owner-hero-metric {
+      min-width: 0;
+      border-radius: 0.8rem;
+      padding: 0.5rem 0.35rem;
+    }
+
+    .owner-hero-metric span {
+      font-size: 1rem;
+    }
+
+    .owner-hero-metric p {
+      margin-top: 0.22rem;
+      font-size: 0.55rem;
+      letter-spacing: 0.04em;
+    }
+
+    .owner-content-panel {
+      border-radius: 1rem;
+      padding: 0.65rem;
+      box-shadow: 0 10px 26px rgba(47, 30, 18, 0.06);
+    }
+
+    .owner-dashboard-shell .i3d-card {
+      border-radius: 0.9rem;
+      box-shadow: 0 8px 20px rgba(47, 30, 18, 0.06);
+    }
+
+    .owner-dashboard-shell .i3d-card:hover {
+      transform: none;
+      box-shadow: 0 8px 20px rgba(47, 30, 18, 0.06);
+    }
+
+    .owner-dashboard-shell .p-6,
+    .owner-dashboard-shell .p-5 {
+      padding: 0.8rem !important;
+    }
+
+    .owner-dashboard-shell .p-4 {
+      padding: 0.7rem !important;
+    }
+
+    .owner-dashboard-shell .px-6 {
+      padding-left: 0.85rem !important;
+      padding-right: 0.85rem !important;
+    }
+
+    .owner-dashboard-shell .py-6 {
+      padding-top: 0.85rem !important;
+      padding-bottom: 0.85rem !important;
+    }
+
+    .owner-dashboard-shell .gap-8,
+    .owner-dashboard-shell .gap-6,
+    .owner-dashboard-shell .gap-5 {
+      gap: 0.75rem !important;
+    }
+
+    .owner-dashboard-shell .gap-4 {
+      gap: 0.65rem !important;
+    }
+
+    .owner-dashboard-shell .flex.items-center.justify-between {
+      flex-wrap: wrap;
+      align-items: flex-start;
+      gap: 0.65rem;
+    }
+
+    .owner-dashboard-shell .flex.items-center.justify-between > .flex {
+      flex-wrap: wrap;
+      justify-content: flex-start;
+    }
+
+    .owner-dashboard-shell .text-3xl,
+    .owner-dashboard-shell .text-2xl {
+      font-size: 1.2rem !important;
+      line-height: 1.2 !important;
+    }
+
+    .owner-dashboard-shell .text-xl {
+      font-size: 1rem !important;
+      line-height: 1.25 !important;
+    }
+
+    .owner-dashboard-shell .text-lg {
+      font-size: 0.95rem !important;
+      line-height: 1.3 !important;
+    }
+
+    .owner-dashboard-shell .text-base {
+      font-size: 0.9rem !important;
+      line-height: 1.35 !important;
+    }
+
+    .owner-dashboard-shell p,
+    .owner-dashboard-shell label,
+    .owner-dashboard-shell button,
+    .owner-dashboard-shell input,
+    .owner-dashboard-shell select,
+    .owner-dashboard-shell textarea {
+      font-size: 0.78rem;
+    }
+
+    .owner-dashboard-shell input,
+    .owner-dashboard-shell select {
+      min-height: 2.35rem;
+      height: 2.35rem;
+      border-radius: 0.75rem;
+      padding-left: 0.75rem;
+      padding-right: 0.75rem;
+    }
+
+    .owner-dashboard-shell textarea {
+      min-height: 4.75rem;
+      border-radius: 0.75rem;
+      padding: 0.65rem 0.75rem;
+    }
+
+    .owner-dashboard-shell .i3d-btn {
+      min-height: 2.2rem;
+      border-radius: 0.75rem;
+      padding-left: 0.75rem;
+      padding-right: 0.75rem;
+      font-size: 0.76rem;
+    }
+
+    .owner-dashboard-shell .owner-mobile-table-scroll {
+      scrollbar-width: thin;
+    }
+
+    .owner-dashboard-shell table {
+      min-width: 42rem;
+      white-space: nowrap;
+    }
+
+    .owner-dashboard-shell th,
+    .owner-dashboard-shell td {
+      padding: 0.55rem 0.65rem !important;
+      font-size: 0.72rem !important;
+      vertical-align: top;
+    }
+
+    .owner-dashboard-shell th {
+      letter-spacing: 0.04em;
+    }
+
+    .owner-dashboard-shell .grid-cols-\[4rem\,1fr\],
+    .owner-dashboard-shell .grid-cols-\[3\.5rem\,1fr\],
+    .owner-dashboard-shell .grid-cols-\[3\.2rem\,1fr\] {
+      grid-template-columns: 3rem minmax(0, 1fr) !important;
+    }
+
+    .owner-dashboard-shell img {
+      max-width: 100%;
+    }
+  }
+
   @media (min-width: 768px) {
     .owner-sidebar {
       top: 64px;

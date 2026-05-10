@@ -404,19 +404,19 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
   ];
 
   return (
-    <div className="container mx-auto max-w-4xl px-4 py-8 md:py-12">
-      <div className="mb-10 text-center">
-        <h2 className="text-3xl font-bold tracking-tight text-[var(--tone-text)]">Rental Agreement</h2>
-        <p className="mx-auto mt-2 max-w-md text-sm text-[var(--tone-text-muted)]">A clean and secure 3-step process to submit your rental application.</p>
+    <div className="container mx-auto max-w-4xl px-3 py-5 sm:px-4 md:py-10">
+      <div className="mb-6 text-center">
+        <h2 className="text-2xl font-bold tracking-tight text-[var(--tone-text)] sm:text-3xl">Rental Agreement</h2>
+        <p className="mx-auto mt-1 max-w-md text-xs text-[var(--tone-text-muted)] sm:text-sm">A secure 3-step process to submit your rental application.</p>
       </div>
 
-      <div className="mb-10 w-full max-w-2xl mx-auto px-4">
+      <div className="mx-auto mb-6 w-full max-w-2xl px-1 sm:px-4">
         <div className="relative flex justify-between">
           {/* Background Track */}
-          <div className="absolute left-6 right-6 top-6 -z-10 h-1 -translate-y-1/2 rounded-full bg-[var(--tone-border)]" />
+          <div className="absolute left-5 right-5 top-5 -z-10 h-1 -translate-y-1/2 rounded-full bg-[var(--tone-border)] sm:left-6 sm:right-6 sm:top-6" />
           {/* Active Track */}
           <div
-            className="absolute left-6 top-6 -z-10 h-1 -translate-y-1/2 rounded-full bg-[var(--tone-accent)] transition-all duration-500 ease-in-out"
+            className="absolute left-5 top-5 -z-10 h-1 -translate-y-1/2 rounded-full bg-[var(--tone-accent)] transition-all duration-500 ease-in-out sm:left-6 sm:top-6"
             style={{ width: `calc(${(currentStep - 1) * 50}%)`, maxWidth: 'calc(100% - 48px)' }}
           />
 
@@ -428,9 +428,9 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
             // Glassmorphic node container
             // The border matches the app background `--tone-bg` to mask the line behind the circle flawlessly
             return (
-              <div key={step.id} className="relative z-10 flex w-24 flex-col items-center gap-3">
+              <div key={step.id} className="relative z-10 flex w-20 flex-col items-center gap-2 sm:w-24 sm:gap-3">
                 <div
-                  className={`flex h-12 w-12 items-center justify-center rounded-full border-[6px] border-[var(--tone-bg)] shadow-sm transition-all duration-300 ${
+                  className={`flex h-10 w-10 items-center justify-center rounded-full border-4 border-[var(--tone-bg)] shadow-sm transition-all duration-300 sm:h-12 sm:w-12 sm:border-[6px] ${
                     isActive
                       ? 'bg-[var(--tone-accent)] text-[var(--tone-bg)] shadow-[var(--tone-accent)]/20'
                       : isCompleted
@@ -441,7 +441,7 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
                   <StepIcon className="h-[18px] w-[18px]" />
                 </div>
                 <span
-                  className={`text-center text-[10px] sm:text-xs font-bold uppercase tracking-wider ${
+                  className={`text-center text-[9px] font-bold uppercase leading-tight sm:text-xs ${
                     isActive ? 'text-[var(--tone-accent)]' : isCompleted ? 'text-[var(--color-primary)]' : 'text-[var(--tone-text-muted)]'
                   }`}
                 >
@@ -453,7 +453,7 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="relative mx-auto max-w-2xl min-h-[500px]">
+      <form onSubmit={handleSubmit} className="relative mx-auto min-h-[420px] max-w-2xl">
         <AnimatePresence mode="wait">
           {currentStep === 1 && (
             <motion.div
@@ -462,9 +462,9 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
               animate={{ x: 0, opacity: 1 }}
               exit={{ x: -20, opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="space-y-6"
+              className="space-y-4 sm:space-y-6"
             >
-              <div className="rounded-2xl border border-[var(--tone-accent)] bg-[var(--tone-surface)] px-4 py-3 text-sm text-[var(--tone-text)] shadow-sm">
+              <div className="rounded-2xl border border-[var(--tone-accent)] bg-[var(--tone-surface)] px-3 py-2.5 text-xs text-[var(--tone-text)] shadow-sm sm:px-4 sm:py-3 sm:text-sm">
                 {!user && onNavigate && (
                   <p>
                     <button type="button" className="font-semibold underline hover:text-[var(--tone-accent)]" onClick={() => onNavigate('login')}>Login</button> so your transaction perfectly saves in your account history.
@@ -473,11 +473,11 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
                 <p>All fields accurately matching your Valid IDs are required to pass store verification.</p>
               </div>
 
-              <Card className="rounded-3xl border border-white/60 bg-white/40 p-6 shadow-xl backdrop-blur-md sm:p-8">
-                <h2 className="mb-6 inline-flex items-center gap-2 text-lg font-bold text-[var(--tone-text)]">
+              <Card className="rounded-2xl border border-white/60 bg-white/50 p-4 shadow-lg backdrop-blur-md sm:p-6">
+                <h2 className="mb-4 inline-flex items-center gap-2 text-base font-bold text-[var(--tone-text)] sm:text-lg">
                   <User2 className="h-5 w-5 text-[var(--tone-accent)]" /> Applicant Information
                 </h2>
-                <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div className="space-y-2">
                     <Input label="Full Name" icon={<User2 className="h-4 w-4" />} required value={formData.fullName} onChange={(e) => { setFormData({ ...formData, fullName: e.target.value }); clearFieldError('fullName'); }} placeholder="John Doe" error={fieldErrors.fullName} />
                   </div>
@@ -492,17 +492,17 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
                   </div>
                 </div>
 
-                <div className="mt-5 space-y-2">
-                  <Input label="Email Address" icon={<Mail className="h-4 w-4" />} type="email" required value={formData.email} onChange={(e) => { setFormData({ ...formData, email: e.target.value }); clearFieldError('email'); }} disabled={Boolean(user?.email)} placeholder="you@example.com" error={fieldErrors.email} />
+                <div className="mt-4 space-y-2">
+                  <Input label="Email Address" icon={<Mail className="h-4 w-4" />} type="text" inputMode="email" autoComplete="email" required value={formData.email} onChange={(e) => { setFormData({ ...formData, email: e.target.value }); clearFieldError('email'); }} disabled={Boolean(user?.email)} placeholder="you@example.com" error={fieldErrors.email} />
                 </div>
 
-                <div className="mt-5 space-y-2">
+                <div className="mt-4 space-y-2">
                   <Input label="Present Address" icon={<MapPin className="h-4 w-4" />} required value={formData.presentAddress} onChange={(e) => { setFormData({ ...formData, presentAddress: e.target.value }); clearFieldError('presentAddress'); }} placeholder="123 Main St, City, Province" error={fieldErrors.presentAddress} />
                 </div>
               </Card>
 
               <div className="flex justify-end">
-                <Button type="button" className="h-11 px-8 rounded-full shadow-sm" onClick={handleNextStep}>
+                <Button type="button" className="h-11 w-full rounded-full px-6 shadow-sm sm:w-auto sm:px-8" onClick={handleNextStep}>
                   Next: Delivery & Logistics <ChevronRight className="ml-1 h-4 w-4" />
                 </Button>
               </div>
@@ -516,27 +516,27 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
               animate={{ x: 0, opacity: 1 }}
               exit={{ x: 20, opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="space-y-6"
+              className="space-y-4 sm:space-y-6"
             >
-              <Card className="rounded-3xl border border-white/60 bg-white/40 p-6 shadow-xl backdrop-blur-md sm:p-8">
-                <h2 className="mb-6 inline-flex items-center gap-2 text-lg font-bold text-[var(--tone-text)]">
+              <Card className="rounded-2xl border border-white/60 bg-white/50 p-4 shadow-lg backdrop-blur-md sm:p-6">
+                <h2 className="mb-4 inline-flex items-center gap-2 text-base font-bold text-[var(--tone-text)] sm:text-lg">
                   <MapPin className="h-5 w-5 text-[var(--tone-accent)]" /> Store & Logistics
                 </h2>
-                <div className="mb-6 space-y-2 rounded-2xl border border-[var(--tone-accent)] bg-[var(--tone-surface)] p-5 shadow-sm">
+                <div className="mb-4 space-y-1.5 rounded-2xl border border-[var(--tone-accent)] bg-[var(--tone-surface)] p-3 shadow-sm sm:p-4">
                   <p className="font-bold text-[var(--tone-text)]">{store.name}</p>
-                  <p className="text-sm text-[var(--tone-text-muted)]">{store.address}</p>
-                  <div className="mt-3 flex gap-3 text-[var(--tone-accent)]">
+                  <p className="line-clamp-2 text-xs text-[var(--tone-text-muted)] sm:text-sm">{store.address}</p>
+                  <div className="mt-2 flex gap-3 text-[var(--tone-accent)]">
                     {socialLinks.facebook && <a href={socialLinks.facebook} target="_blank" rel="noreferrer"><Facebook className="h-4 w-4 transition-colors hover:text-[var(--color-primary)]" /></a>}
                     {socialLinks.instagram && <a href={socialLinks.instagram} target="_blank" rel="noreferrer"><Instagram className="h-4 w-4 transition-colors hover:text-[var(--color-primary)]" /></a>}
                   </div>
                 </div>
 
-                <div className="grid gap-6">
+                <div className="grid gap-4">
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-[var(--tone-text)]">Select Store Branch</label>
                     <div className="relative">
                       <div className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[var(--tone-text-muted)]"><MapPin className="h-4 w-4" /></div>
-                      <select className="flex h-12 w-full appearance-none rounded-xl border border-[var(--tone-border)] bg-[var(--tone-surface-soft)] pl-11 pr-10 text-[var(--tone-text)] text-sm shadow-sm outline-none transition-all focus:border-[var(--tone-accent)] focus:bg-[var(--tone-surface)] focus:ring-4 focus:ring-[var(--tone-accent)]/20" value={formData.storeBranchId} onChange={(e) => setFormData({ ...formData, storeBranchId: e.target.value })} required>
+                      <select className="flex h-11 w-full appearance-none rounded-xl border border-[var(--tone-border)] bg-[var(--tone-surface-soft)] pl-11 pr-10 text-[var(--tone-text)] text-sm shadow-sm outline-none transition-all focus:border-[var(--tone-accent)] focus:bg-[var(--tone-surface)] focus:ring-4 focus:ring-[var(--tone-accent)]/20" value={formData.storeBranchId} onChange={(e) => setFormData({ ...formData, storeBranchId: e.target.value })} required>
                         {(store?.branches?.length ? store.branches : [{ _id: 'main', address: store?.address || 'Main Store' }]).map((branch) => (
                           <option key={String(branch._id || branch.address)} value={String(branch._id || 'main')}>
                             {branch.name ? `${branch.name} - ` : ''} {branch.address}
@@ -549,12 +549,12 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
 
                   {rentalFormSettings.show_branch_map && branchMapSrc && (
                     <div className="space-y-2">
-                      <iframe title="Map" src={branchMapSrc} className="h-56 w-full rounded-2xl border-[4px] border-white shadow-sm" loading="lazy" referrerPolicy="no-referrer-when-downgrade" />
+                      <iframe title="Map" src={branchMapSrc} className="h-44 w-full rounded-2xl border-[4px] border-white shadow-sm sm:h-56" loading="lazy" referrerPolicy="no-referrer-when-downgrade" />
                     </div>
                   )}
 
                   {rentalFormSettings.reference_text && (
-                    <div className="rounded-2xl border border-[var(--tone-border)] bg-[var(--tone-surface-soft)] p-5 text-sm text-[var(--tone-text)] shadow-sm">
+                    <div className="rounded-2xl border border-[var(--tone-border)] bg-[var(--tone-surface-soft)] p-3 text-xs text-[var(--tone-text)] shadow-sm sm:p-4 sm:text-sm">
                       <p className="mb-2 flex items-center gap-2 font-bold text-[var(--tone-text)]"><FileText className="h-4 w-4" /> Store Notes</p>
                       <p className="whitespace-pre-line leading-relaxed">{rentalFormSettings.reference_text}</p>
                     </div>
@@ -564,7 +564,7 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
                     <label className="text-xs font-bold text-[var(--tone-text)]">Preferred Delivery Mode</label>
                     <div className="relative">
                       <div className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[var(--tone-text-muted)]"><Truck className="h-4 w-4" /></div>
-                      <select className="flex h-12 w-full appearance-none rounded-xl border border-[var(--tone-border)] bg-[var(--tone-surface-soft)] pl-11 pr-10 text-[var(--tone-text)] text-sm shadow-sm outline-none transition-all focus:border-[var(--tone-accent)] focus:bg-[var(--tone-surface)] focus:ring-4 focus:ring-[var(--tone-accent)]/20" value={formData.deliveryMode} onChange={(e) => setFormData({ ...formData, deliveryMode: e.target.value })}>
+                      <select className="flex h-11 w-full appearance-none rounded-xl border border-[var(--tone-border)] bg-[var(--tone-surface-soft)] pl-11 pr-10 text-[var(--tone-text)] text-sm shadow-sm outline-none transition-all focus:border-[var(--tone-accent)] focus:bg-[var(--tone-surface)] focus:ring-4 focus:ring-[var(--tone-accent)]/20" value={formData.deliveryMode} onChange={(e) => setFormData({ ...formData, deliveryMode: e.target.value })}>
                         {(store?.delivery_modes?.length ? store.delivery_modes : ['Store Pickup']).map((mode) => (
                           <option key={mode} value={mode}>{mode}</option>
                         ))}
@@ -579,11 +579,11 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
                 </div>
               </Card>
 
-              <div className="flex justify-between px-2">
-                <Button type="button" variant="outline" className="h-12 rounded-full border-[var(--tone-border)] bg-white/60 px-6 font-bold text-[var(--tone-text)] shadow-sm backdrop-blur-sm transition-all hover:bg-white/80" onClick={prevStep}>
+              <div className="flex gap-3 px-1 sm:justify-between sm:px-2">
+                <Button type="button" variant="outline" className="h-11 flex-1 rounded-full border-[var(--tone-border)] bg-white/60 px-4 font-bold text-[var(--tone-text)] shadow-sm backdrop-blur-sm transition-all hover:bg-white/80 sm:flex-none sm:px-6" onClick={prevStep}>
                   <ChevronLeft className="mr-1 h-4 w-4" /> Back
                 </Button>
-                <Button type="button" className="h-12 rounded-full bg-[var(--tone-accent)] px-8 font-bold text-[var(--tone-bg)] shadow-md transition-all hover:bg-[var(--tone-accent)]/90" onClick={handleNextStep}>
+                <Button type="button" className="h-11 flex-1 rounded-full bg-[var(--tone-accent)] px-4 font-bold text-[var(--tone-bg)] shadow-md transition-all hover:bg-[var(--tone-accent)]/90 sm:flex-none sm:px-8" onClick={handleNextStep}>
                   Next: Payment <ChevronRight className="ml-1 h-4 w-4" />
                 </Button>
               </div>
@@ -597,38 +597,38 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
               animate={{ x: 0, opacity: 1 }}
               exit={{ x: 20, opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="space-y-6"
+              className="space-y-4 sm:space-y-6"
             >
-              <Card className="rounded-3xl border border-white/60 bg-white/40 p-6 shadow-xl backdrop-blur-md sm:p-8">
-                <h2 className="mb-6 inline-flex items-center gap-2 text-lg font-bold text-[var(--tone-text)]">
+              <Card className="rounded-2xl border border-white/60 bg-white/50 p-4 shadow-lg backdrop-blur-md sm:p-6">
+                <h2 className="mb-4 inline-flex items-center gap-2 text-base font-bold text-[var(--tone-text)] sm:text-lg">
                   <CreditCard className="h-5 w-5 text-[var(--tone-accent)]" /> Identity & Verification
                 </h2>
 
-                <div className="space-y-6">
-                  <div className="rounded-2xl border border-[var(--tone-accent)] bg-[var(--tone-surface)] p-5 shadow-sm">
+                <div className="space-y-4">
+                  <div className="rounded-2xl border border-[var(--tone-accent)] bg-[var(--tone-surface)] p-3 shadow-sm sm:p-4">
                     <p className="mb-2 text-sm font-bold text-[var(--tone-text)]">Required Identification Files</p>
-                    <p className="mb-5 text-sm leading-relaxed text-[var(--tone-text-muted)]">Please upload 2 valid IDs (Front and Back) and a clear selfie of you holding one of the IDs.</p>
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                      <FileUpload label="ID 1 Front" accept="image/*,.pdf" required file={documentFiles.id1_front} onChange={(files) => { setDocumentFiles((prev) => ({ ...prev, id1_front: files?.[0] ?? null })); clearFieldError('id1_front'); }} error={fieldErrors.id1_front} />
-                      <FileUpload label="ID 1 Back" accept="image/*,.pdf" required file={documentFiles.id1_back} onChange={(files) => { setDocumentFiles((prev) => ({ ...prev, id1_back: files?.[0] ?? null })); clearFieldError('id1_back'); }} error={fieldErrors.id1_back} />
-                      <FileUpload label="ID 2 Front" accept="image/*,.pdf" required file={documentFiles.id2_front} onChange={(files) => { setDocumentFiles((prev) => ({ ...prev, id2_front: files?.[0] ?? null })); clearFieldError('id2_front'); }} error={fieldErrors.id2_front} />
-                      <FileUpload label="ID 2 Back" accept="image/*,.pdf" required file={documentFiles.id2_back} onChange={(files) => { setDocumentFiles((prev) => ({ ...prev, id2_back: files?.[0] ?? null })); clearFieldError('id2_back'); }} error={fieldErrors.id2_back} />
+                    <p className="mb-4 text-xs leading-relaxed text-[var(--tone-text-muted)] sm:text-sm">Upload 2 valid IDs (front and back) and a selfie holding one ID.</p>
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <FileUpload compact label="ID 1 Front" accept="image/*,.pdf" required file={documentFiles.id1_front} onChange={(files) => { setDocumentFiles((prev) => ({ ...prev, id1_front: files?.[0] ?? null })); clearFieldError('id1_front'); }} error={fieldErrors.id1_front} />
+                      <FileUpload compact label="ID 1 Back" accept="image/*,.pdf" required file={documentFiles.id1_back} onChange={(files) => { setDocumentFiles((prev) => ({ ...prev, id1_back: files?.[0] ?? null })); clearFieldError('id1_back'); }} error={fieldErrors.id1_back} />
+                      <FileUpload compact label="ID 2 Front" accept="image/*,.pdf" required file={documentFiles.id2_front} onChange={(files) => { setDocumentFiles((prev) => ({ ...prev, id2_front: files?.[0] ?? null })); clearFieldError('id2_front'); }} error={fieldErrors.id2_front} />
+                      <FileUpload compact label="ID 2 Back" accept="image/*,.pdf" required file={documentFiles.id2_back} onChange={(files) => { setDocumentFiles((prev) => ({ ...prev, id2_back: files?.[0] ?? null })); clearFieldError('id2_back'); }} error={fieldErrors.id2_back} />
                       <div className="sm:col-span-2">
-                        <FileUpload label="Selfie with ID" accept="image/*,.pdf" required file={documentFiles.selfie_id} onChange={(files) => { setDocumentFiles((prev) => ({ ...prev, selfie_id: files?.[0] ?? null })); clearFieldError('selfie_id'); }} error={fieldErrors.selfie_id} />
+                        <FileUpload compact label="Selfie with ID" accept="image/*,.pdf" required file={documentFiles.selfie_id} onChange={(files) => { setDocumentFiles((prev) => ({ ...prev, selfie_id: files?.[0] ?? null })); clearFieldError('selfie_id'); }} error={fieldErrors.selfie_id} />
                       </div>
                     </div>
                   </div>
 
-                  <FileUpload label="Billing Address Document" accept="image/*,.pdf" required file={billingAddressFile} onChange={(files) => { setBillingAddressFile(files?.[0] ?? null); clearFieldError('billingAddressFile'); }} helperText="Upload a recent utility bill to verify your address." error={fieldErrors.billingAddressFile} />
+                  <FileUpload compact label="Billing Address Document" accept="image/*,.pdf" required file={billingAddressFile} onChange={(files) => { setBillingAddressFile(files?.[0] ?? null); clearFieldError('billingAddressFile'); }} helperText="Recent utility bill for address verification." error={fieldErrors.billingAddressFile} />
 
                   {store?.lease_agreement_file_url && (
-                    <FileUpload label="Completed Lease Agreement" accept=".pdf,.doc,.docx,.png,.jpg" required file={leaseAgreementSubmissionFile} onChange={(files) => { setLeaseAgreementSubmissionFile(files?.[0] ?? null); clearFieldError('leaseAgreementSubmissionFile'); }} helperText="Download the template from store, fill it, and upload here." error={fieldErrors.leaseAgreementSubmissionFile} />
+                    <FileUpload compact label="Completed Lease Agreement" accept=".pdf,.doc,.docx,.png,.jpg" required file={leaseAgreementSubmissionFile} onChange={(files) => { setLeaseAgreementSubmissionFile(files?.[0] ?? null); clearFieldError('leaseAgreementSubmissionFile'); }} helperText="Fill the store template, then upload it here." error={fieldErrors.leaseAgreementSubmissionFile} />
                   )}
                 </div>
               </Card>
 
               {customFields.length > 0 && (
-                <Card className="rounded-3xl border border-white/60 bg-white/40 p-6 shadow-xl backdrop-blur-md sm:p-8">
+                <Card className="rounded-2xl border border-white/60 bg-white/50 p-4 shadow-lg backdrop-blur-md sm:p-6">
                   <h3 className="mb-4 inline-flex items-center gap-2 font-bold text-[var(--tone-text)]">
                     <FileBadge2 className="h-5 w-5 text-[var(--tone-accent)]" /> Additional Store Requirements
                   </h3>
@@ -637,10 +637,10 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
                       <div key={field.id} className="space-y-2">
                         <label className="text-xs font-bold text-[var(--tone-text)]">{field.label}</label>
                         {field.type === 'textarea' ? (
-                          <textarea required={field.required} value={customAnswers[field.id] || ''} onChange={(e) => setCustomAnswers((prev) => ({ ...prev, [field.id]: e.target.value }))} placeholder={field.placeholder || ''} className="min-h-[80px] w-full rounded-xl border border-[var(--tone-border)] bg-[var(--tone-surface-soft)] px-4 py-3 text-[var(--tone-text)] text-sm shadow-sm transition-all focus-within:bg-[var(--tone-surface)] focus-within:ring-4 focus-within:ring-[var(--tone-accent)]/20 placeholder:text-[var(--tone-text-muted)] focus-visible:border-[var(--tone-accent)] focus-visible:outline-none" />
+                          <textarea required={field.required} value={customAnswers[field.id] || ''} onChange={(e) => setCustomAnswers((prev) => ({ ...prev, [field.id]: e.target.value }))} placeholder={field.placeholder || ''} className="min-h-[72px] w-full rounded-xl border border-[var(--tone-border)] bg-[var(--tone-surface-soft)] px-4 py-3 text-[var(--tone-text)] text-sm shadow-sm transition-all focus-within:bg-[var(--tone-surface)] focus-within:ring-4 focus-within:ring-[var(--tone-accent)]/20 placeholder:text-[var(--tone-text-muted)] focus-visible:border-[var(--tone-accent)] focus-visible:outline-none" />
                         ) : field.type === 'select' ? (
                           <div className="relative">
-                            <select required={field.required} value={customAnswers[field.id] || ''} onChange={(e) => setCustomAnswers((prev) => ({ ...prev, [field.id]: e.target.value }))} className="flex h-12 w-full appearance-none rounded-xl border border-[var(--tone-border)] bg-[var(--tone-surface-soft)] pl-4 pr-10 text-[var(--tone-text)] text-sm shadow-sm outline-none transition-all focus:border-[var(--tone-accent)] focus:bg-[var(--tone-surface)] focus:ring-4 focus:ring-[var(--tone-accent)]/20">
+                            <select required={field.required} value={customAnswers[field.id] || ''} onChange={(e) => setCustomAnswers((prev) => ({ ...prev, [field.id]: e.target.value }))} className="flex h-11 w-full appearance-none rounded-xl border border-[var(--tone-border)] bg-[var(--tone-surface-soft)] pl-4 pr-10 text-[var(--tone-text)] text-sm shadow-sm outline-none transition-all focus:border-[var(--tone-accent)] focus:bg-[var(--tone-surface)] focus:ring-4 focus:ring-[var(--tone-accent)]/20">
                               <option value="">Select option</option>
                               {(field.options || []).map((o) => (<option key={o} value={o}>{o}</option>))}
                             </select>
@@ -655,35 +655,36 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
                 </Card>
               )}
 
-              <Card className="rounded-3xl border border-white/60 bg-[var(--tone-surface-soft)] p-6 shadow-xl backdrop-blur-md sm:p-8">
-                <div className="mb-8 space-y-3">
+              <Card className="rounded-2xl border border-white/60 bg-[var(--tone-surface-soft)] p-4 shadow-lg backdrop-blur-md sm:p-6">
+                <div className="mb-5 space-y-2.5">
                   <label className="mb-4 block text-sm font-bold text-[var(--tone-text)]">Rented Items</label>
-                  <p className="rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-950">
+                  <p className="rounded-xl border border-blue-100 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-950 sm:text-sm">
                     This shop uses {getRentalBillingModeLabel(cartWithBillingMode[0]?.rentalBillingMode)} for rental billing.
                   </p>
                   {cartWithBillingMode.map((item) => (
-                    <div key={`${item.id}-${item.startDate}-${item.startTime || ''}-${item.endDate}-${item.endTime || ''}`} className="flex items-center gap-5 rounded-2xl border border-[var(--tone-border)] bg-white p-4 shadow-sm transition-shadow hover:shadow-md">
-                      <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-[var(--tone-bg)] shadow-inner">
+                    <div key={`${item.id}-${item.startDate}-${item.startTime || ''}-${item.endDate}-${item.endTime || ''}`} className="flex items-center gap-3 rounded-2xl border border-[var(--tone-border)] bg-white p-3 shadow-sm transition-shadow hover:shadow-md">
+                      <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-[var(--tone-bg)] shadow-inner sm:h-16 sm:w-16">
                         {item.image_url ? (
                           <img src={item.image_url} alt={item.name} className="h-full w-full object-cover" />
                         ) : (
-                          <div className="flex h-full w-full items-center justify-center text-[var(--tone-text-muted)]"><ClipboardList className="h-8 w-8 opacity-50" /></div>
+                          <div className="flex h-full w-full items-center justify-center text-[var(--tone-text-muted)]"><ClipboardList className="h-6 w-6 opacity-50" /></div>
                         )}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-base font-bold text-[var(--tone-text)]">{item.name}</p>
-                        <p className="mt-0.5 text-xs font-semibold text-[var(--tone-text-muted)] opacity-80">{new Date(item.startDate).toLocaleDateString()} {item.startTime || '09:00'} &mdash; {new Date(item.endDate).toLocaleDateString()} {item.endTime || '18:00'}</p>
-                        <p className="mt-2 font-black text-[var(--tone-accent)]">{formatPHP(getCartItemRentalTotal(item))} <span className="text-xs font-normal text-[var(--tone-text-muted)]">({formatPHP(item.daily_price)} x {getRentalDayCount(item)} billing day{getRentalDayCount(item) === 1 ? '' : 's'} by {getRentalBillingModeLabel(item.rentalBillingMode)} x {Math.max(1, item.quantity || 1)} qty)</span></p>
+                        <p className="truncate text-sm font-bold text-[var(--tone-text)] sm:text-base">{item.name}</p>
+                        <p className="mt-0.5 truncate text-[10px] font-semibold text-[var(--tone-text-muted)] opacity-80 sm:text-xs">{new Date(item.startDate).toLocaleDateString()} {item.startTime || '09:00'} &mdash; {new Date(item.endDate).toLocaleDateString()} {item.endTime || '18:00'}</p>
+                        <p className="mt-1 text-sm font-black text-[var(--tone-accent)] sm:text-base">{formatPHP(getCartItemRentalTotal(item))}</p>
+                        <p className="text-[10px] text-[var(--tone-text-muted)] sm:text-xs">{formatPHP(item.daily_price)} x {getRentalDayCount(item)} billing day{getRentalDayCount(item) === 1 ? '' : 's'} x {Math.max(1, item.quantity || 1)} qty</p>
                       </div>
                     </div>
                   ))}
                 </div>
 
-                <div className="mb-6">
+                <div className="mb-4">
                   <label className="mb-3 block text-sm font-bold text-[var(--tone-text)]">Payment Mode</label>
                   <div className="relative">
                     <div className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[var(--tone-text-muted)]"><CreditCard className="h-4 w-4" /></div>
-                    <select className="flex h-12 w-full appearance-none rounded-xl border border-[var(--tone-border)] bg-[var(--tone-surface-soft)] pl-11 pr-10 text-[var(--tone-text)] text-sm font-medium shadow-sm outline-none transition-all focus:border-[var(--tone-accent)] focus:bg-[var(--tone-surface)] focus:ring-4 focus:ring-[var(--tone-accent)]/20" value={formData.paymentMode} onChange={(e) => setFormData({ ...formData, paymentMode: e.target.value })}>
+                    <select className="flex h-11 w-full appearance-none rounded-xl border border-[var(--tone-border)] bg-[var(--tone-surface-soft)] pl-11 pr-10 text-[var(--tone-text)] text-sm font-medium shadow-sm outline-none transition-all focus:border-[var(--tone-accent)] focus:bg-[var(--tone-surface)] focus:ring-4 focus:ring-[var(--tone-accent)]/20" value={formData.paymentMode} onChange={(e) => setFormData({ ...formData, paymentMode: e.target.value })}>
                       <option value="cash">Cash on Pickup</option>
                       <option value="bank_transfer">Bank Transfer</option>
                       <option value="gcash">GCash</option>
@@ -693,7 +694,7 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
                   </div>
                 </div>
 
-                <div className="space-y-4 rounded-3xl border border-[var(--tone-accent)] bg-white p-6 shadow-sm">
+                <div className="space-y-3 rounded-2xl border border-[var(--tone-accent)] bg-white p-4 shadow-sm">
                   <div className="flex items-center justify-between text-sm font-bold text-[var(--tone-text-muted)]">
                     <span className="flex items-center gap-2"><ShieldCheck className="h-4 w-4" /> Security Deposit</span>
                     <span className="text-[var(--tone-text)]">{formatPHP(finalSecurityDeposit)}</span>
@@ -709,14 +710,14 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
                     </div>
                   )}
                   <div className="my-1 h-[2px] w-full bg-[var(--tone-bg)] rounded-full" />
-                  <div className="flex items-end justify-between">
+                  <div className="flex items-end justify-between gap-3">
                     <span className="text-sm font-black uppercase tracking-widest text-[var(--tone-text-muted)] opacity-60">Total Due</span>
-                    <span className="text-3xl font-black tracking-tight text-[var(--tone-text)]">{formatPHP(totalAmount)}</span>
+                    <span className="text-2xl font-black tracking-tight text-[var(--tone-text)] sm:text-3xl">{formatPHP(totalAmount)}</span>
                   </div>
                 </div>
 
-                  <div className="mt-8">
-                    <div className="flex items-start gap-4 rounded-3xl border border-[var(--tone-border)] bg-white p-5 shadow-sm">
+                  <div className="mt-5">
+                    <div className="flex items-start gap-3 rounded-2xl border border-[var(--tone-border)] bg-white p-3 shadow-sm sm:p-4">
                       <button type="button" className={`relative mt-0.5 inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${formData.agree ? 'bg-emerald-500' : 'bg-[var(--tone-border)]'}`} onClick={() => { setFormData({ ...formData, agree: !formData.agree }); clearFieldError('agree'); }}>
                         <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${formData.agree ? 'translate-x-6' : 'translate-x-1'}`} />
                       </button>
@@ -729,11 +730,11 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
                   </div>
               </Card>
 
-              <div className="flex items-center justify-between px-2">
-                <Button type="button" variant="outline" className="h-12 rounded-full border-[var(--tone-border)] bg-white/60 px-6 font-bold text-[var(--tone-text)] shadow-sm backdrop-blur-sm transition-all hover:bg-white/80" onClick={prevStep}>
+              <div className="flex items-center gap-3 px-1 sm:justify-between sm:px-2">
+                <Button type="button" variant="outline" className="h-11 flex-1 rounded-full border-[var(--tone-border)] bg-white/60 px-4 font-bold text-[var(--tone-text)] shadow-sm backdrop-blur-sm transition-all hover:bg-white/80 sm:flex-none sm:px-6" onClick={prevStep}>
                   <ChevronLeft className="mr-1 h-4 w-4" /> Back
                 </Button>
-                <Button type="submit" className="h-12 rounded-full bg-[var(--tone-accent)] px-8 font-bold text-[var(--tone-bg)] shadow-md transition-all hover:bg-[var(--tone-accent)]/90" disabled={submittingApplication || !formData.agree}>
+                <Button type="submit" className="h-11 flex-1 rounded-full bg-[var(--tone-accent)] px-4 font-bold text-[var(--tone-bg)] shadow-md transition-all hover:bg-[var(--tone-accent)]/90 sm:flex-none sm:px-8" disabled={submittingApplication || !formData.agree}>
                   {submittingApplication ? 'Submitting...' : 'Submit Form'}
                 </Button>
               </div>

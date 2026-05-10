@@ -107,6 +107,12 @@ interface OwnerTabsProps {
   clearValidationError: (field: string) => void;
 }
 
+const getExternalHref = (url: string) => {
+  const trimmed = url.trim();
+  if (!trimmed) return '#';
+  return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+};
+
 export function OwnerTabs({
   activeTab,
   data,
@@ -350,6 +356,38 @@ export function OwnerTabs({
   const topRentersOfMonth = useMemo(() => {
     return (data.ownerAnalytics?.topRentersOfMonth || []).slice(0, 6);
   }, [data.ownerAnalytics?.topRentersOfMonth]);
+  const ownerSocialLinks = useMemo(() => {
+    const custom = (storeProfileForm.custom_social_links || [])
+      .map((url, index) => ({
+        label: `Link ${index + 1}`,
+        url: String(url || '').trim(),
+        icon: Globe,
+        iconClassName: 'text-slate-600',
+      }))
+      .filter((entry) => entry.url);
+
+    return [
+      {
+        label: 'Facebook',
+        url: storeProfileForm.facebook_url.trim(),
+        icon: Facebook,
+        iconClassName: 'text-blue-600',
+      },
+      {
+        label: 'Instagram',
+        url: storeProfileForm.instagram_url.trim(),
+        icon: Instagram,
+        iconClassName: 'text-pink-600',
+      },
+      {
+        label: 'TikTok',
+        url: storeProfileForm.tiktok_url.trim(),
+        icon: Music2,
+        iconClassName: 'text-slate-900',
+      },
+      ...custom,
+    ].filter((entry) => entry.url);
+  }, [storeProfileForm.custom_social_links, storeProfileForm.facebook_url, storeProfileForm.instagram_url, storeProfileForm.tiktok_url]);
   const gearImageByName = useMemo(() => {
     const map = new Map<string, string>();
     inventory.forEach((item) => {
@@ -513,18 +551,18 @@ export function OwnerTabs({
   return (
     <>
       {activeTab === 'overview' && (
-        <div className="space-y-8">
+        <div className="space-y-4 sm:space-y-6">
           <div className="flex items-center justify-between">
             <h1 className="text-3xl font-bold">Store Overview</h1>
             <Button variant="outline" onClick={onExportOverview}>
               <Download className="mr-2 h-4 w-4" /> Export Excel
             </Button>
           </div>
-          <Card className="i3d-card space-y-5 p-6">
-            <div className="flex items-start justify-between gap-6">
-              <div>
+          <Card className="i3d-card overflow-hidden p-0">
+            <div className="flex items-start justify-between gap-3 p-4 sm:p-5">
+              <div className="min-w-0">
                 <p className="text-sm text-muted-foreground">Registered Store</p>
-                <h2 className="text-2xl font-bold">{data.store?.name || 'Unnamed Store'}</h2>
+                <h2 className="truncate text-2xl font-bold">{data.store?.name || 'Unnamed Store'}</h2>
               </div>
               <div className="flex items-center gap-2">
                 <Button variant="outline" size="icon" onClick={() => setProfileEditMode((prev) => !prev)} title={profileEditMode ? 'Close edit mode' : 'Edit store profile'}>
@@ -541,8 +579,8 @@ export function OwnerTabs({
               </div>
             </div>
 
-            <div className="relative overflow-hidden rounded-2xl border bg-muted/30">
-              <div className="relative h-48 w-full">
+            <div className="relative overflow-hidden border-y bg-muted/30">
+              <div className="relative h-36 w-full sm:h-48">
                 <img src={bannerImageFile ? URL.createObjectURL(bannerImageFile) : storeProfileForm.banner_url || 'https://picsum.photos/seed/store-cover/1200/500'} alt="Store cover" className="h-full w-full object-cover" />
                 {profileEditMode ? (
                   <>
@@ -553,9 +591,9 @@ export function OwnerTabs({
                   </>
                 ) : null}
               </div>
-              <div className="flex flex-wrap items-end gap-4 px-4 pb-4">
-                <div className="-mt-12">
-                  <div className="relative h-28 w-28 overflow-hidden rounded-full border-4 border-white bg-muted shadow">
+              <div className="flex flex-wrap items-end gap-3 px-4 pb-4 sm:gap-4 sm:px-5">
+                <div className="-mt-10 sm:-mt-12">
+                  <div className="relative h-20 w-20 overflow-hidden rounded-full border-4 border-white bg-muted shadow sm:h-28 sm:w-28">
                     <img src={logoImageFile ? URL.createObjectURL(logoImageFile) : storeProfileForm.logo_url || 'https://picsum.photos/seed/store-logo/400/400'} alt="Store logo" className="h-full w-full object-cover" />
                     {profileEditMode ? (
                       <>
@@ -567,15 +605,15 @@ export function OwnerTabs({
                     ) : null}
                   </div>
                 </div>
-                <div className="pb-1">
-                  <p className="text-lg font-bold">{storeProfileForm.name || 'Unnamed Store'}</p>
-                  <p className="text-sm text-muted-foreground">{storeProfileForm.address || 'No address yet'}</p>
+                <div className="min-w-0 flex-1 pb-1">
+                  <p className="truncate text-lg font-bold">{storeProfileForm.name || 'Unnamed Store'}</p>
+                  <p className="line-clamp-2 text-sm text-muted-foreground">{storeProfileForm.address || 'No address yet'}</p>
                 </div>
               </div>
             </div>
 
             {profileEditMode ? (
-              <div className="space-y-4 rounded-lg border border-dashed p-4">
+              <div className="m-4 space-y-4 rounded-lg border border-dashed p-4 sm:m-5">
                 <p className="text-sm font-semibold">Edit Store Profile</p>
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                   <label className="space-y-1 text-sm">
@@ -926,62 +964,98 @@ export function OwnerTabs({
                 </div>
               </div>
             ) : (
-              <div className="grid grid-cols-1 gap-2 text-sm md:grid-cols-2">
-                <p><span className="font-semibold">Name:</span> {storeProfileForm.name || '-'}</p>
-                <p><span className="font-semibold">Address:</span> {storeProfileForm.address || '-'}</p>
-                {storeProfileForm.facebook_url ? (
-                  <p className="inline-flex items-center gap-1">
-                    <Facebook className="h-4 w-4 text-blue-600" /> <span className="font-semibold">Facebook:</span> {storeProfileForm.facebook_url}
-                  </p>
-                ) : null}
-                {storeProfileForm.instagram_url ? (
-                  <p className="inline-flex items-center gap-1">
-                    <Instagram className="h-4 w-4 text-pink-600" /> <span className="font-semibold">Instagram:</span> {storeProfileForm.instagram_url}
-                  </p>
-                ) : null}
-                {storeProfileForm.tiktok_url ? (
-                  <p className="inline-flex items-center gap-1">
-                    <Music2 className="h-4 w-4 text-slate-900" /> <span className="font-semibold">TikTok:</span> {storeProfileForm.tiktok_url}
-                  </p>
-                ) : null}
-                {(storeProfileForm.custom_social_links || []).filter(Boolean).map((link, index) => (
-                  <p key={`owner-custom-social-display-${index}`} className="inline-flex items-center gap-1">
-                    <Globe className="h-4 w-4 text-slate-600" /> <span className="font-semibold">Custom:</span> {link}
-                  </p>
-                ))}
-                <p><span className="font-semibold">Location:</span> {storeProfileForm.location_lat || '-'}, {storeProfileForm.location_lng || '-'}</p>
-                <p><span className="font-semibold">Payment Details:</span> {storeProfileForm.payment_details || '-'}</p>
-                <div className="space-y-2 rounded-lg border border-blue-100 bg-blue-50 p-3 md:col-span-2">
-                  <div>
-                    <p className="text-sm font-semibold text-blue-950">Rental Billing Preference</p>
-                    <p className="text-xs text-blue-900">
-                      Choose how your current shop charges rental dates. This affects customer totals, checkout, calendars, and owner reports.
-                    </p>
+              <div className="space-y-4 p-4 sm:p-5">
+                <div className="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(17rem,0.85fr)]">
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                      <div className="rounded-2xl border border-slate-200 bg-white p-3">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Address</p>
+                        <p className="mt-1 line-clamp-2 text-sm font-semibold text-slate-900">{storeProfileForm.address || 'No address yet'}</p>
+                      </div>
+                      <div className="rounded-2xl border border-slate-200 bg-white p-3">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Store Pin</p>
+                        <p className="mt-1 flex items-center gap-1 text-sm font-semibold text-slate-900">
+                          <MapPin className="h-3.5 w-3.5 text-blue-600" />
+                          <span className="truncate">{storeProfileForm.location_lat || '-'}, {storeProfileForm.location_lng || '-'}</span>
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="rounded-2xl border border-slate-200 bg-white p-3">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Social Links</p>
+                      {ownerSocialLinks.length ? (
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {ownerSocialLinks.map((link, index) => {
+                            const Icon = link.icon;
+                            return (
+                              <a
+                                key={`${link.label}-${link.url}-${index}`}
+                                href={getExternalHref(link.url)}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-800 transition-colors hover:bg-slate-100"
+                              >
+                                <Icon className={cn('h-3.5 w-3.5 shrink-0', link.iconClassName)} />
+                                <span className="truncate">{link.label}</span>
+                                <ExternalLink className="h-3 w-3 shrink-0 text-slate-400" />
+                              </a>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <p className="mt-2 text-sm text-muted-foreground">No social links added.</p>
+                      )}
+                    </div>
+
+                    <div className="rounded-2xl border border-slate-200 bg-white p-3">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">About Store</p>
+                      <p className="mt-1 max-h-24 overflow-auto whitespace-pre-wrap break-words text-sm text-slate-700">{storeProfileForm.description || 'No description yet.'}</p>
+                    </div>
                   </div>
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                    <select
-                      className="h-10 rounded-md border border-blue-200 bg-white px-3 py-2 text-sm text-blue-950 sm:w-72"
-                      value={storeProfileForm.rental_billing_mode}
-                      onChange={(event) => setStoreProfileForm((prev) => ({ ...prev, rental_billing_mode: event.target.value as RentalBillingMode }))}
-                    >
-                      <option value="twenty_four_hour">24-hour periods</option>
-                      <option value="calendar_day">Calendar days</option>
-                    </select>
-                    <Button type="button" size="sm" onClick={saveRentalBillingMode} disabled={billingModeSaving}>
-                      {billingModeSaving ? 'Saving...' : 'Save Billing Mode'}
-                    </Button>
+
+                  <div className="space-y-3">
+                    <div className="rounded-2xl border border-blue-100 bg-blue-50 p-3">
+                      <div className="flex items-start gap-2">
+                        <CreditCard className="mt-0.5 h-4 w-4 shrink-0 text-blue-700" />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-bold text-blue-950">Billing Mode</p>
+                          <p className="text-xs text-blue-900">This controls customer totals and reports.</p>
+                        </div>
+                      </div>
+                      <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
+                        <select
+                          className="h-10 min-w-0 rounded-xl border border-blue-200 bg-white px-3 py-2 text-sm text-blue-950"
+                          value={storeProfileForm.rental_billing_mode}
+                          onChange={(event) => setStoreProfileForm((prev) => ({ ...prev, rental_billing_mode: event.target.value as RentalBillingMode }))}
+                        >
+                          <option value="twenty_four_hour">24-hour periods</option>
+                          <option value="calendar_day">Calendar days</option>
+                        </select>
+                        <Button type="button" size="sm" onClick={saveRentalBillingMode} disabled={billingModeSaving}>
+                          {billingModeSaving ? 'Saving...' : 'Save'}
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="rounded-2xl border border-slate-200 bg-white p-3">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Payment Details</p>
+                      <p className="mt-1 max-h-28 overflow-auto whitespace-pre-wrap break-words text-sm text-slate-700">{storeProfileForm.payment_details || 'No payment details yet.'}</p>
+                    </div>
                   </div>
                 </div>
-                <p className="md:col-span-2"><span className="font-semibold">Description:</span> {storeProfileForm.description || '-'}</p>
-                <div className="md:col-span-2 grid gap-4 md:grid-cols-2">
-                  <div className="rounded-lg border border-slate-200 bg-white p-3">
-                    <p className="font-semibold">Payment QR / Reference Images</p>
+
+                <div className="grid gap-3 md:grid-cols-2">
+                  <div className="rounded-2xl border border-slate-200 bg-white p-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="font-bold">Payment QR / References</p>
+                      <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600">{paymentDetailImageUrls.length}</span>
+                    </div>
                     {paymentDetailImageUrls.length ? (
-                      <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                      <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-3">
                         {paymentDetailImageUrls.map((url, index) => (
-                          <a key={`${url}-${index}`} href={url} target="_blank" rel="noreferrer" className="block overflow-hidden rounded border bg-muted/20 p-2">
-                            <div className="flex h-28 items-center justify-center overflow-hidden rounded bg-background">
-                              <img src={url} alt={`Payment reference ${index + 1}`} className="h-full w-full object-contain" />
+                          <a key={`${url}-${index}`} href={url} target="_blank" rel="noreferrer" className="group block overflow-hidden rounded-xl border bg-slate-50 p-1">
+                            <div className="flex aspect-square items-center justify-center overflow-hidden rounded-lg bg-white">
+                              <img src={url} alt={`Payment reference ${index + 1}`} className="h-full w-full object-contain transition-transform group-hover:scale-105" />
                             </div>
                           </a>
                         ))}
@@ -990,33 +1064,31 @@ export function OwnerTabs({
                       <p className="mt-2 text-sm text-muted-foreground">No payment images uploaded.</p>
                     )}
                   </div>
-                  <div className="rounded-lg border border-slate-200 bg-white p-3">
-                    <p className="font-semibold">Store QR Code</p>
+
+                  <div className="rounded-2xl border border-slate-200 bg-white p-3">
+                    <p className="font-bold">Store QR & Link</p>
                     {storeQrUrl ? (
-                      <div className="mt-3 flex flex-col items-start gap-3 sm:flex-row sm:items-center">
-                        <img src={storeQrUrl} alt="Store QR code" className="h-32 w-32 rounded border bg-white p-2" />
-                        <div className="text-sm text-muted-foreground">
+                      <div className="mt-3 flex items-start gap-3">
+                        <img src={storeQrUrl} alt="Store QR code" className="h-24 w-24 shrink-0 rounded-xl border bg-white p-2 sm:h-28 sm:w-28" />
+                        <div className="min-w-0 flex-1 text-sm text-muted-foreground">
                           <p>Scan to open your store page.</p>
                           {storePublicLink ? (
-                            <div className="mt-2 space-y-1">
-                              <p className="text-xs font-semibold text-slate-700">Store Link</p>
-                              <div className="flex flex-wrap items-center gap-2">
-                                <code className="max-w-[18rem] truncate rounded bg-slate-100 px-2 py-1 text-xs text-slate-700">{storePublicLink}</code>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={async () => {
-                                    try {
-                                      await navigator.clipboard.writeText(storePublicLink);
-                                      alert('Store link copied.');
-                                    } catch {
-                                      alert('Unable to copy. Please copy manually.');
-                                    }
-                                  }}
-                                >
-                                  Copy Link
-                                </Button>
-                              </div>
+                            <div className="mt-2 space-y-2">
+                              <code className="block max-w-full truncate rounded-lg bg-slate-100 px-2 py-1 text-xs text-slate-700">{storePublicLink}</code>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={async () => {
+                                  try {
+                                    await navigator.clipboard.writeText(storePublicLink);
+                                    alert('Store link copied.');
+                                  } catch {
+                                    alert('Unable to copy. Please copy manually.');
+                                  }
+                                }}
+                              >
+                                Copy Link
+                              </Button>
                             </div>
                           ) : null}
                           <a href={storeQrUrl} download={`store-${data.store?.id || 'qr'}.png`} className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-slate-900 underline">
@@ -1029,100 +1101,120 @@ export function OwnerTabs({
                     )}
                   </div>
                 </div>
-                <div className="md:col-span-2">
-                  <p className="font-semibold">Branches:</p>
+
+                <div className="rounded-2xl border border-slate-200 bg-white p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="font-bold">Branches</p>
+                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600">{storeBranches.length}</span>
+                  </div>
                   {storeBranches.length ? (
-                    <ul className="mt-1 space-y-1 text-muted-foreground">
+                    <div className="mt-3 grid gap-2 sm:grid-cols-2">
                       {storeBranches.map((branch, index) => (
-                        <li key={`branch-display-${index}`}>
-                          {(branch.name || `Branch ${index + 1}`)}: {branch.address || '-'} ({branch.location_lat || '-'}, {branch.location_lng || '-'})
-                        </li>
+                        <div key={`branch-display-${index}`} className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                          <p className="text-sm font-bold text-slate-900">{branch.name || `Branch ${index + 1}`}</p>
+                          <p className="mt-1 line-clamp-2 text-xs text-slate-600">{branch.address || '-'}</p>
+                          <p className="mt-2 flex items-center gap-1 text-[10px] font-semibold text-slate-500">
+                            <MapPin className="h-3 w-3" /> {branch.location_lat || '-'}, {branch.location_lng || '-'}
+                          </p>
+                        </div>
                       ))}
-                    </ul>
+                    </div>
                   ) : (
-                    <p className="text-muted-foreground">No branches configured.</p>
+                    <p className="mt-2 text-sm text-muted-foreground">No branches configured.</p>
                   )}
                 </div>
-                {displayApprovedDate ? <p><span className="font-semibold">Approved Date:</span> {format(parseISO(displayApprovedDate), 'MMM dd, yyyy')}</p> : null}
-                {data.store?.payment_due_date ? <p><span className="font-semibold">Due Date:</span> {format(parseISO(data.store.payment_due_date), 'MMM dd, yyyy')}</p> : null}
+
+                {(displayApprovedDate || data.store?.payment_due_date) ? (
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {displayApprovedDate ? (
+                      <div className="rounded-2xl border border-slate-200 bg-white p-3">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Approved Date</p>
+                        <p className="mt-1 text-sm font-bold">{format(parseISO(displayApprovedDate), 'MMM dd, yyyy')}</p>
+                      </div>
+                    ) : null}
+                    {data.store?.payment_due_date ? (
+                      <div className="rounded-2xl border border-slate-200 bg-white p-3">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Due Date</p>
+                        <p className="mt-1 text-sm font-bold">{format(parseISO(data.store.payment_due_date), 'MMM dd, yyyy')}</p>
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
               </div>
             )}
             {data.store?.status === 'approved' ? (
-              <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+              <p className="mx-4 mb-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900 sm:mx-5">
                 Your approved date is your due date. Monthly advance payment is recommended to avoid account inactivity.
               </p>
             ) : null}
             {data.store?.status === 'pending' ? (
-              <p className="rounded-md border border-yellow-300 bg-yellow-50 px-3 py-2 text-xs text-yellow-900">
+              <p className="mx-4 rounded-md border border-yellow-300 bg-yellow-50 px-3 py-2 text-xs text-yellow-900 sm:mx-5">
                 Pending stores are still being reviewed, Once approved you will receive an email notification, and your store will be visible on the platform. In the meantime, you can prepare your inventory and get ready for rentals!
               </p>
             ) : null}
             {data.store?.status === 'pending' ? (
-              <p className="rounded-md border border-yellow-300 bg-yellow-50 px-3 py-2 text-xs text-yellow-900">
+              <p className="mx-4 mb-4 rounded-md border border-yellow-300 bg-yellow-50 px-3 py-2 text-xs text-yellow-900 sm:mx-5">
                 We are still currently working on automations of payment, However manual payment via Gcash or Bank will work as of the moment, Please message the owner of this website have your account approved or email him at mrheinrichhh@gmail.com or contact him at his number 09569749935 with your payment and your store details, thank you for your patience.
               </p>
             ) : null}
           </Card>
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-            <Card className="i3d-card p-6">
-              <p className="mb-1 text-sm text-muted-foreground">Total Rentals</p>
-              <p className="text-3xl font-bold">{data.stats?.total_rentals || 0}</p>
-            </Card>
-            <Card className="i3d-card p-6">
-              <p className="mb-1 text-sm text-muted-foreground">Total Revenue</p>
-              <p className="text-3xl font-bold">{formatPHP(data.stats?.total_revenue || 0)}</p>
-            </Card>
-            <Card className="i3d-card p-6">
-              <p className="mb-1 text-sm text-muted-foreground">Pending Approval</p>
-              <p className="text-3xl font-bold text-yellow-600">{applications.filter((app) => app.status === 'PENDING_REVIEW').length}</p>
-            </Card>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6">
+            {[
+              { label: 'Rentals', value: data.stats?.total_rentals || 0, tone: 'bg-blue-50 text-blue-700' },
+              { label: 'Revenue', value: formatPHP(data.stats?.total_revenue || 0), tone: 'bg-emerald-50 text-emerald-700' },
+              { label: 'Pending', value: applications.filter((app) => app.status === 'PENDING_REVIEW').length, tone: 'bg-amber-50 text-amber-700' },
+              { label: 'Customers', value: data.ownerAnalytics?.totalCustomers || 0, tone: 'bg-slate-100 text-slate-700' },
+              { label: 'Successful', value: data.ownerAnalytics?.totalCustomersRented || 0, tone: 'bg-sky-50 text-sky-700' },
+              { label: 'Profit', value: formatPHP(data.ownerAnalytics?.totalProfit || 0), tone: 'bg-indigo-50 text-indigo-700' },
+            ].map((metric) => (
+              <Card key={metric.label} className="i3d-card p-3 sm:p-4">
+                <span className={cn('inline-flex rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-widest', metric.tone)}>{metric.label}</span>
+                <p className="mt-2 truncate text-lg font-black text-slate-950 sm:text-xl">{metric.value}</p>
+              </Card>
+            ))}
           </div>
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-            <Card className="i3d-card p-6">
-              <p className="mb-1 text-sm text-muted-foreground">Total Customers</p>
-              <p className="text-3xl font-bold">{data.ownerAnalytics?.totalCustomers || 0}</p>
-            </Card>
-            <Card className="i3d-card p-6">
-              <p className="mb-1 text-sm text-muted-foreground">Total Successful Rentals</p>
-              <p className="text-3xl font-bold">{data.ownerAnalytics?.totalCustomersRented || 0}</p>
-            </Card>
-            <Card className="i3d-card p-6">
-              <p className="mb-1 text-sm text-muted-foreground">Profit (Successful Rentals)</p>
-              <p className="text-3xl font-bold">{formatPHP(data.ownerAnalytics?.totalProfit || 0)}</p>
-            </Card>
-          </div>
-          <div className="grid grid-cols-1 xl:grid-cols-2">
-            <Card className="i3d-card p-6">
-              <h3 className="mb-4 text-lg font-bold">Status Distribution (Pie)</h3>
-              <div className="flex flex-col items-center gap-4 md:flex-row">
-                <svg viewBox="0 0 200 200" className="h-90 w-full">
+
+          <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+            <Card className="i3d-card p-4 sm:p-5">
+              <div className="mb-3 flex items-center justify-between gap-2">
+                <h3 className="text-base font-black">Status Distribution</h3>
+                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-500">Live mix</span>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-[10rem,minmax(0,1fr)] sm:items-center">
+                <svg viewBox="0 0 200 200" className="mx-auto aspect-square w-36 max-w-full sm:w-40">
                   {pieSlices.length ? pieSlices.map((slice) => <path key={slice.label} d={slice.path} fill={slice.color} />) : <circle cx="100" cy="100" r="80" fill="#e5e7eb" />}
                   <circle cx="100" cy="100" r="38" fill="white" />
                 </svg>
-                <div className="space-y-2 text-sm">
+                <div className="grid gap-2 text-sm">
                   {pieSlices.map((slice) => (
-                    <div key={slice.label} className="flex items-center gap-2">
-                      <span className="h-3 w-3 rounded-sm" style={{ backgroundColor: slice.color }} />
-                      <span>{slice.label}</span>
-                      <span className="font-semibold">{slice.value}</span>
+                    <div key={slice.label} className="flex items-center justify-between gap-2 rounded-xl bg-slate-50 px-3 py-2">
+                      <span className="flex min-w-0 items-center gap-2">
+                        <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: slice.color }} />
+                        <span className="truncate">{slice.label}</span>
+                      </span>
+                      <span className="font-black">{slice.value}</span>
                     </div>
                   ))}
                   {!pieSlices.length && <p className="text-muted-foreground">No status data yet.</p>}
                 </div>
               </div>
             </Card>
-            <Card className="i3d-card p-6">
-              <h3 className="mb-4 text-lg font-bold">Peak Rental Dates (Bar)</h3>
-              <div className="space-y-3">
+
+            <Card className="i3d-card p-4 sm:p-5">
+              <div className="mb-3 flex items-center justify-between gap-2">
+                <h3 className="text-base font-black">Peak Rental Dates</h3>
+                <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">Top 7</span>
+              </div>
+              <div className="space-y-2">
                 {(data.ownerAnalytics?.peakRentalDates || []).slice(0, 7).map((entry) => (
-                  <div key={entry.date}>
-                    <div className="mb-1 flex items-center justify-between text-xs">
-                      <span>{entry.date}</span>
-                      <span>{entry.count}</span>
+                  <div key={entry.date} className="rounded-xl bg-slate-50 p-2">
+                    <div className="mb-1 flex items-center justify-between gap-2 text-xs">
+                      <span className="truncate font-bold text-slate-700">{entry.date}</span>
+                      <span className="shrink-0 font-black text-slate-900">{entry.count}</span>
                     </div>
-                    <div className="h-3 rounded bg-muted">
+                    <div className="h-2 overflow-hidden rounded-full bg-slate-200">
                       <div
-                        className="h-3 rounded bg-emerald-500"
+                        className="h-2 rounded-full bg-emerald-500"
                         style={{ width: `${Math.min(100, (entry.count / Math.max(1, (data.ownerAnalytics?.peakRentalDates || [])[0]?.count || 1)) * 100)}%` }}
                       />
                     </div>
@@ -1132,41 +1224,51 @@ export function OwnerTabs({
               </div>
             </Card>
           </div>
-          <Card className="i3d-card p-6">
-            <h3 className="mb-4 text-lg font-bold">Most Rented Camera (Bar)</h3>
-            <div className="space-y-3">
-              {mostRentedCamera.map((entry) => (
-                <div key={entry.name}>
-                  <div className="mb-1 flex items-center justify-between text-xs">
-                    <span>{entry.name}</span>
-                    <span>{entry.count}</span>
+
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+            <Card className="i3d-card p-4 sm:p-5">
+              <div className="mb-3 flex items-center justify-between gap-2">
+                <h3 className="text-base font-black">Most Rented Camera</h3>
+                <Camera className="h-4 w-4 text-sky-600" />
+              </div>
+              <div className="space-y-2">
+                {mostRentedCamera.map((entry) => (
+                  <div key={entry.name} className="rounded-xl bg-slate-50 p-2">
+                    <div className="mb-1 flex items-center justify-between gap-2 text-xs">
+                      <span className="truncate font-bold text-slate-700">{entry.name}</span>
+                      <span className="shrink-0 font-black text-slate-900">{entry.count}</span>
+                    </div>
+                    <div className="h-2 overflow-hidden rounded-full bg-slate-200">
+                      <div className="h-2 rounded-full bg-sky-500" style={{ width: `${Math.min(100, (entry.count / Math.max(1, mostRentedCamera[0]?.count || 1)) * 100)}%` }} />
+                    </div>
                   </div>
-                  <div className="h-3 rounded bg-muted">
-                    <div className="h-3 rounded bg-sky-500" style={{ width: `${Math.min(100, (entry.count / Math.max(1, mostRentedCamera[0]?.count || 1)) * 100)}%` }} />
+                ))}
+                {!mostRentedCamera.length && <p className="text-sm text-muted-foreground">No approved camera transactions yet.</p>}
+              </div>
+            </Card>
+
+            <Card className="i3d-card p-4 sm:p-5">
+              <div className="mb-3 flex items-center justify-between gap-2">
+                <h3 className="text-base font-black">Top Renter of the Month</h3>
+                <User className="h-4 w-4 text-indigo-600" />
+              </div>
+              <div className="space-y-2">
+                {topRentersOfMonth.map((entry) => (
+                  <div key={`${entry.renter_email || entry.renter_name}`} className="rounded-xl bg-slate-50 p-2">
+                    <div className="mb-1 flex items-center justify-between gap-2 text-xs">
+                      <span className="truncate font-bold text-slate-700">{entry.renter_name}</span>
+                      <span className="shrink-0 font-black text-slate-900">{entry.rentals} rentals</span>
+                    </div>
+                    <div className="h-2 overflow-hidden rounded-full bg-slate-200">
+                      <div className="h-2 rounded-full bg-indigo-500" style={{ width: `${Math.min(100, (entry.rentals / Math.max(1, topRentersOfMonth[0]?.rentals || 1)) * 100)}%` }} />
+                    </div>
+                    <p className="mt-1 truncate text-xs text-muted-foreground">{entry.renter_email || '-'} • {formatPHP(entry.amount || 0)}</p>
                   </div>
-                </div>
-              ))}
-              {!mostRentedCamera.length && <p className="text-sm text-muted-foreground">No approved camera transactions yet.</p>}
-            </div>
-          </Card>
-          <Card className="i3d-card p-6">
-            <h3 className="mb-4 text-lg font-bold">Top Renter of the Month</h3>
-            <div className="space-y-3">
-              {topRentersOfMonth.map((entry) => (
-                <div key={`${entry.renter_email || entry.renter_name}`}>
-                  <div className="mb-1 flex items-center justify-between text-xs">
-                    <span className="truncate">{entry.renter_name}</span>
-                    <span>{entry.rentals} rentals</span>
-                  </div>
-                  <div className="h-3 rounded bg-muted">
-                    <div className="h-3 rounded bg-indigo-500" style={{ width: `${Math.min(100, (entry.rentals / Math.max(1, topRentersOfMonth[0]?.rentals || 1)) * 100)}%` }} />
-                  </div>
-                  <p className="mt-1 truncate text-xs text-muted-foreground">{entry.renter_email || '-'} • {formatPHP(entry.amount || 0)}</p>
-                </div>
-              ))}
-              {!topRentersOfMonth.length && <p className="text-sm text-muted-foreground">No top renter data this month yet.</p>}
-            </div>
-          </Card>
+                ))}
+                {!topRentersOfMonth.length && <p className="text-sm text-muted-foreground">No top renter data this month yet.</p>}
+              </div>
+            </Card>
+          </div>
           <Card className="i3d-card p-6">
             <h3 className="mb-4 text-lg font-bold">Latest Store Ratings</h3>
             <div className="space-y-3">
@@ -1644,64 +1746,66 @@ export function OwnerTabs({
           </div>
 
           <Card className="i3d-card overflow-hidden">
-            <table className="w-full border-collapse text-left">
-              <thead className="bg-muted/50">
-                <tr>
-                  <th className="p-4 text-sm font-semibold">Item</th>
-                  <th className="p-4 text-sm font-semibold">Category</th>
-                  <th className="p-4 text-sm font-semibold">Brand</th>
-                  <th className="p-4 text-sm font-semibold">Price</th>
-                  <th className="p-4 text-sm font-semibold">Stock</th>
-                  <th className="p-4 text-sm font-semibold">Status</th>
-                  <th className="p-4 text-right text-sm font-semibold">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredInventory.map((item) => (
-                  <tr key={item.id} className="border-t transition-colors hover:bg-muted/30">
-                    <td className="p-4">
-                      <div className="flex items-center gap-3">
-                        <div className="h-12 w-12 overflow-hidden rounded border bg-muted">
-                          <img src={item.image_url || `https://picsum.photos/seed/item-${item.id}/100/100`} alt="" className="h-full w-full object-cover" />
-                        </div>
-                        <div>
-                          <p className="font-medium">{item.name}</p>
-                          <p className="line-clamp-1 text-xs text-muted-foreground">{item.description}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="p-4">{item.category}</td>
-                    <td className="p-4">{item.brand || 'Others'}</td>
-                    <td className="p-4">{formatPHP(item.daily_price)}</td>
-                    <td className="p-4">{Math.max(0, item.stock || 0)}</td>
-                    <td className="p-4">
-                      <button
-                        type="button"
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${item.is_available !== false ? 'bg-emerald-500' : 'bg-slate-300'}`}
-                        onClick={() => onToggleItemAvailability(item.id, !(item.is_available !== false))}
-                        aria-label={`Toggle ${item.name} availability`}
-                      >
-                        <span
-                          className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${item.is_available !== false ? 'translate-x-5' : 'translate-x-0.5'}`}
-                        />
-                      </button>
-                      <p className="mt-1 text-xs text-muted-foreground">{item.is_available !== false}</p>
-                    </td>
-                    <td className="space-x-2 p-4 text-right">
-                      <Button variant="ghost" size="sm" onClick={() => onOpenBlockModal(item)}>
-                        Block Dates
-                      </Button>
-                      <Button variant="ghost" size="sm" onClick={() => onOpenEditEditor(item)}>
-                        Edit
-                      </Button>
-                      <Button variant="ghost" size="sm" className="text-destructive" onClick={() => onDeleteItem(item)}>
-                        Delete
-                      </Button>
-                    </td>
+            <div className="owner-mobile-table-scroll overflow-x-auto">
+              <table className="w-full min-w-[42rem] border-collapse text-left">
+                <thead className="bg-muted/50">
+                  <tr>
+                    <th className="p-4 text-sm font-semibold">Item</th>
+                    <th className="p-4 text-sm font-semibold">Category</th>
+                    <th className="p-4 text-sm font-semibold">Brand</th>
+                    <th className="p-4 text-sm font-semibold">Price</th>
+                    <th className="p-4 text-sm font-semibold">Stock</th>
+                    <th className="p-4 text-sm font-semibold">Status</th>
+                    <th className="p-4 text-right text-sm font-semibold">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {filteredInventory.map((item) => (
+                    <tr key={item.id} className="border-t transition-colors hover:bg-muted/30">
+                      <td className="p-4">
+                        <div className="flex items-center gap-3">
+                          <div className="h-12 w-12 overflow-hidden rounded border bg-muted">
+                            <img src={item.image_url || `https://picsum.photos/seed/item-${item.id}/100/100`} alt="" className="h-full w-full object-cover" />
+                          </div>
+                          <div>
+                            <p className="font-medium">{item.name}</p>
+                            <p className="line-clamp-1 text-xs text-muted-foreground">{item.description}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="p-4">{item.category}</td>
+                      <td className="p-4">{item.brand || 'Others'}</td>
+                      <td className="p-4">{formatPHP(item.daily_price)}</td>
+                      <td className="p-4">{Math.max(0, item.stock || 0)}</td>
+                      <td className="p-4">
+                        <button
+                          type="button"
+                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${item.is_available !== false ? 'bg-emerald-500' : 'bg-slate-300'}`}
+                          onClick={() => onToggleItemAvailability(item.id, !(item.is_available !== false))}
+                          aria-label={`Toggle ${item.name} availability`}
+                        >
+                          <span
+                            className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${item.is_available !== false ? 'translate-x-5' : 'translate-x-0.5'}`}
+                          />
+                        </button>
+                        <p className="mt-1 text-xs text-muted-foreground">{item.is_available !== false}</p>
+                      </td>
+                      <td className="space-x-2 p-4 text-right">
+                        <Button variant="ghost" size="sm" onClick={() => onOpenBlockModal(item)}>
+                          Block Dates
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => onOpenEditEditor(item)}>
+                          Edit
+                        </Button>
+                        <Button variant="ghost" size="sm" className="text-destructive" onClick={() => onDeleteItem(item)}>
+                          Delete
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </Card>
           {!filteredInventory.length ? (
             <EmptyState title="No Inventory Data" message="Inventory data is not available as of the moment. Please try again later." />
@@ -1932,97 +2036,99 @@ export function OwnerTabs({
             </Card>
           )}
           <Card className="i3d-card overflow-hidden">
-            <table className="w-full border-collapse text-left">
-              <thead className="bg-muted/50">
-                <tr>
-                  <th className="p-4 text-sm font-semibold">Reported Person</th>
-                  <th className="p-4 text-sm font-semibold">Contact Info</th>
-                  <th className="p-4 text-sm font-semibold">Reason</th>
-                  <th className="p-4 text-sm font-semibold">Scope</th>
-                  <th className="p-4 text-sm font-semibold">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pagedFraudEntries.map((entry) => (
-                  <tr key={entry.id} className="border-t transition-colors hover:bg-muted/30">
-                    <td className="p-4">
-                      <p className="font-medium">{entry.full_name}</p>
-                    </td>
-                    <td className="p-4">
-                      <p className="text-sm">{entry.email}</p>
-                      <p className="text-xs text-muted-foreground">{entry.contact_number}</p>
-                    </td>
-                    <td className="p-4">
-                      <p className="text-sm">{entry.reason}</p>
-                      {entry.evidence_image_url ? (
-                        <div className="mt-2">
-                          <p className="mb-1 text-xs font-semibold text-muted-foreground">Evidence</p>
-                          <button type="button" className="h-24 w-24 overflow-hidden rounded border" onClick={() => window.open(entry.evidence_image_url || '', '_blank', 'noopener,noreferrer')}>
-                            <img src={entry.evidence_image_url} alt="Evidence" className="h-full w-full object-cover" />
-                          </button>
-                        </div>
-                      ) : null}
-                      {(entry.requirement_files || []).length ? (
-                        <div className="mt-2 grid grid-cols-2 gap-2">
-                          {(entry.requirement_files || []).map((file, index) => (
-                            /\.(png|jpg|jpeg|webp|gif)$/i.test(file.url) ? (
-                              <button
-                                key={`${entry.id}-req-${index}`}
-                                type="button"
-                                className="overflow-hidden rounded border bg-white"
-                                onClick={() => window.open(file.url, '_blank', 'noopener,noreferrer')}
-                              >
-                                <img src={file.url} alt={file.type || `Requirement ${index + 1}`} className="h-20 w-full object-cover" />
-                                <p className="truncate px-1 py-1 text-[10px] font-semibold">{file.type || `Requirement ${index + 1}`}</p>
-                              </button>
-                            ) : (
-                              <div key={`${entry.id}-req-${index}`} className="rounded border bg-white p-2">
-                                <div className="mb-2 flex items-center gap-1 text-[10px] font-semibold">
-                                  <FileText className="h-3 w-3" /> {file.type || `Requirement ${index + 1}`}
-                                </div>
-                                <div className="grid grid-cols-2 gap-1">
-                                  <button
-                                    type="button"
-                                    className="inline-flex items-center justify-center gap-1 rounded border px-1 py-1 text-[10px] font-semibold"
-                                    onClick={async () => {
-                                      try {
-                                        const access = await resolveFileAccess(file.url);
-                                        window.open(access.view_url, '_blank', 'noopener,noreferrer');
+            <div className="owner-mobile-table-scroll overflow-x-auto">
+              <table className="w-full min-w-[42rem] border-collapse text-left">
+                <thead className="bg-muted/50">
+                  <tr>
+                    <th className="p-4 text-sm font-semibold">Reported Person</th>
+                    <th className="p-4 text-sm font-semibold">Contact Info</th>
+                    <th className="p-4 text-sm font-semibold">Reason</th>
+                    <th className="p-4 text-sm font-semibold">Scope</th>
+                    <th className="p-4 text-sm font-semibold">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pagedFraudEntries.map((entry) => (
+                    <tr key={entry.id} className="border-t transition-colors hover:bg-muted/30">
+                      <td className="p-4">
+                        <p className="font-medium">{entry.full_name}</p>
+                      </td>
+                      <td className="p-4">
+                        <p className="text-sm">{entry.email}</p>
+                        <p className="text-xs text-muted-foreground">{entry.contact_number}</p>
+                      </td>
+                      <td className="p-4">
+                        <p className="text-sm">{entry.reason}</p>
+                        {entry.evidence_image_url ? (
+                          <div className="mt-2">
+                            <p className="mb-1 text-xs font-semibold text-muted-foreground">Evidence</p>
+                            <button type="button" className="h-24 w-24 overflow-hidden rounded border" onClick={() => window.open(entry.evidence_image_url || '', '_blank', 'noopener,noreferrer')}>
+                              <img src={entry.evidence_image_url} alt="Evidence" className="h-full w-full object-cover" />
+                            </button>
+                          </div>
+                        ) : null}
+                        {(entry.requirement_files || []).length ? (
+                          <div className="mt-2 grid grid-cols-2 gap-2">
+                            {(entry.requirement_files || []).map((file, index) => (
+                              /\.(png|jpg|jpeg|webp|gif)$/i.test(file.url) ? (
+                                <button
+                                  key={`${entry.id}-req-${index}`}
+                                  type="button"
+                                  className="overflow-hidden rounded border bg-white"
+                                  onClick={() => window.open(file.url, '_blank', 'noopener,noreferrer')}
+                                >
+                                  <img src={file.url} alt={file.type || `Requirement ${index + 1}`} className="h-20 w-full object-cover" />
+                                  <p className="truncate px-1 py-1 text-[10px] font-semibold">{file.type || `Requirement ${index + 1}`}</p>
+                                </button>
+                              ) : (
+                                <div key={`${entry.id}-req-${index}`} className="rounded border bg-white p-2">
+                                  <div className="mb-2 flex items-center gap-1 text-[10px] font-semibold">
+                                    <FileText className="h-3 w-3" /> {file.type || `Requirement ${index + 1}`}
+                                  </div>
+                                  <div className="grid grid-cols-2 gap-1">
+                                    <button
+                                      type="button"
+                                      className="inline-flex items-center justify-center gap-1 rounded border px-1 py-1 text-[10px] font-semibold"
+                                      onClick={async () => {
+                                        try {
+                                          const access = await resolveFileAccess(file.url);
+                                          window.open(access.view_url, '_blank', 'noopener,noreferrer');
                                         } catch (error: any) {
                                           setOwnerNotice({ type: 'error', message: error?.message || 'Failed to preview file' });
                                         }
-                                    }}
-                                  >
-                                    <ExternalLink className="h-3 w-3" /> View
-                                  </button>
-                                  <button
-                                    type="button"
-                                    className="inline-flex items-center justify-center gap-1 rounded border px-1 py-1 text-[10px] font-semibold"
-                                    onClick={() => downloadFile(file.url, `${file.type || `requirement-${index + 1}`}.pdf`)}
-                                  >
-                                    <Download className="h-3 w-3" /> Save
-                                  </button>
+                                      }}
+                                    >
+                                      <ExternalLink className="h-3 w-3" /> View
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="inline-flex items-center justify-center gap-1 rounded border px-1 py-1 text-[10px] font-semibold"
+                                      onClick={() => downloadFile(file.url, `${file.type || `requirement-${index + 1}`}.pdf`)}
+                                    >
+                                      <Download className="h-3 w-3" /> Save
+                                    </button>
+                                  </div>
                                 </div>
-                              </div>
-                            )
-                          ))}
-                        </div>
-                      ) : null}
-                    </td>
-                    <td className="p-4">
-                      {entry.scope === 'global' ? (
-                        <span className="flex w-fit items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold uppercase text-red-700">
-                          <Globe className="h-2 w-2" /> Global
-                        </span>
-                      ) : (
-                        <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-bold uppercase text-blue-700">Internal</span>
-                      )}
-                    </td>
-                    <td className="p-4 text-sm">{entry.status || 'approved'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                              )
+                            ))}
+                          </div>
+                        ) : null}
+                      </td>
+                      <td className="p-4">
+                        {entry.scope === 'global' ? (
+                          <span className="flex w-fit items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold uppercase text-red-700">
+                            <Globe className="h-2 w-2" /> Global
+                          </span>
+                        ) : (
+                          <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-bold uppercase text-blue-700">Internal</span>
+                        )}
+                      </td>
+                      <td className="p-4 text-sm">{entry.status || 'approved'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
             <PaginationControls page={fraudPage} totalPages={fraudTotalPages} totalItems={ownerFraudEntries.length} pageSize={ownerPageSize} onPageChange={setFraudPage} />
           </Card>
         </div>
