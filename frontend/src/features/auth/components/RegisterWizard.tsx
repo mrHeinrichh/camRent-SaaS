@@ -9,16 +9,17 @@ import type { RentalBillingMode } from '@/src/types/domain';
 
 interface RegisterWizardProps {
   submitting: boolean;
+  initialEmail?: string;
   onSubmit: (state: RegisterFormState) => Promise<void>;
   onOpenPolicies: () => void;
 }
 
 const defaultBranches: StoreBranchInput[] = [{ name: 'Main Branch', address: '', location_lat: '', location_lng: '' }];
 
-export function RegisterWizard({ submitting, onSubmit, onOpenPolicies }: RegisterWizardProps) {
+export function RegisterWizard({ submitting, initialEmail = '', onSubmit, onOpenPolicies }: RegisterWizardProps) {
   const [step, setStep] = useState(1);
   const [fullName, setFullName] = useState('');
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(initialEmail);
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState<'renter' | 'owner'>('renter');

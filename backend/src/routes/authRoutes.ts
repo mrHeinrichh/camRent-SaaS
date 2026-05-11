@@ -1,5 +1,4 @@
 import { Router } from 'express';
-import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import { OAuth2Client } from 'google-auth-library';
 import jwt from 'jsonwebtoken';
@@ -304,21 +303,17 @@ authRoutes.post('/google', async (req, res) => {
       return res.status(400).json({ error: 'Google account has no email' });
     }
 
-    let user = await User.findOne({ email });
+    const user = await User.findOne({ email });
     if (!user) {
-      const randomPassword = await bcrypt.hash(crypto.randomUUID(), 10);
-      user = await User.create({
+      console.warn('[auth] google login missing account', { email });
+      return res.status(404).json({
+        error: 'No account exists for this Google email. Please register an account first.',
+        code: 'GOOGLE_ACCOUNT_NOT_FOUND',
         email,
-        password: randomPassword,
-        role: 'renter',
-        full_name: fullName || email,
-        avatar_url: avatarUrl || DEFAULT_USER_AVATAR_URL,
-        phone: '',
       });
-      console.log('[auth] google signup', { userId: user._id.toString(), email });
-    } else {
-      console.log('[auth] google login', { userId: user._id.toString(), email });
     }
+
+    console.log('[auth] google login', { userId: user._id.toString(), email });
 
     if (user.is_active === false) {
       return res.status(403).json({ error: 'Your account is disabled. Please contact support.' });

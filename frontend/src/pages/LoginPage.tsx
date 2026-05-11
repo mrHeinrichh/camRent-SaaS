@@ -3,7 +3,7 @@ import { api } from '@/src/lib/api';
 import { useAppStore } from '@/src/store';
 import type { AppPage } from '@/src/types/app';
 import type { User } from '@/src/types/domain';
-import { Card } from '@/src/components/ui';
+import { Button, Card } from '@/src/components/ui';
 import { AppFooter } from '@/src/components/layout/AppFooter';
 import { siteTheme } from '@/src/config/siteTheme';
 import { LoginForm } from '@/src/features/auth/components/LoginForm';
@@ -32,6 +32,8 @@ export function LoginPage({ onNavigate, content }: LoginPageProps) {
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({});
   const [activeWallpaper, setActiveWallpaper] = useState(0);
+  const [missingGoogleAccount, setMissingGoogleAccount] = useState<{ email?: string } | null>(null);
+  const [registerInitialEmail, setRegisterInitialEmail] = useState('');
   const { setSession } = useAppStore();
   const googleButtonRef = useRef<HTMLDivElement>(null);
   const googleInitializedRef = useRef(false);
@@ -109,16 +111,29 @@ export function LoginPage({ onNavigate, content }: LoginPageProps) {
   const handleGoogleCredential = async (credential: string) => {
     if (submitting) return;
     setError('');
+    setMissingGoogleAccount(null);
     setSubmitting(true);
     try {
       const data = await api.post<AuthResponse>('/api/auth/google', { credential });
       setSession(data.user, data.token);
       onNavigate(data.user.role === 'owner' ? 'owner' : 'home');
     } catch (err: any) {
+      if (err?.code === 'GOOGLE_ACCOUNT_NOT_FOUND' || err?.status === 404) {
+        setMissingGoogleAccount({ email: err?.details?.email });
+        return;
+      }
       setError(err.message || 'Google authentication failed');
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const openRegisterForMissingGoogleAccount = () => {
+    setRegisterInitialEmail(missingGoogleAccount?.email || '');
+    setMissingGoogleAccount(null);
+    setError('');
+    setFieldErrors({});
+    setIsRegister(true);
   };
 
   const handleRegister = async (state: RegisterFormState) => {
@@ -245,7 +260,13 @@ export function LoginPage({ onNavigate, content }: LoginPageProps) {
 
               {isRegister ? (
                 <Card className="border border-[var(--tone-border)] bg-[var(--tone-surface-soft)] p-5 shadow-none">
-                  <RegisterWizard submitting={submitting} onSubmit={handleRegister} onOpenPolicies={() => onNavigate('policies')} />
+                  <RegisterWizard
+                    key={registerInitialEmail || 'register'}
+                    submitting={submitting}
+                    initialEmail={registerInitialEmail}
+                    onSubmit={handleRegister}
+                    onOpenPolicies={() => onNavigate('policies')}
+                  />
                 </Card>
               ) : (
                 <LoginForm
@@ -264,7 +285,15 @@ export function LoginPage({ onNavigate, content }: LoginPageProps) {
 
               <p className="mt-6 text-center text-sm text-[var(--tone-text-muted)]">
                 {isRegister ? 'Already have an account?' : "Don't have an account?"}{' '}
-                <button type="button" className="font-medium text-[var(--tone-text)] hover:underline" onClick={() => setIsRegister((value) => !value)}>
+                <button
+                  type="button"
+                  className="font-medium text-[var(--tone-text)] hover:underline"
+                  onClick={() => {
+                    setRegisterInitialEmail('');
+                    setMissingGoogleAccount(null);
+                    setIsRegister((value) => !value);
+                  }}
+                >
                   {isRegister ? 'Login' : 'Sign Up'}
                 </button>
               </p>
@@ -286,6 +315,27 @@ export function LoginPage({ onNavigate, content }: LoginPageProps) {
       </div>
 
       <AppFooter onNavigate={onNavigate} content={content} />
+
+      {missingGoogleAccount && (
+        <div className="fixed inset-0 z-[130] flex items-center justify-center bg-slate-950/60 px-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="missing-google-account-title">
+          <div className="w-full max-w-sm rounded-lg border border-[var(--tone-border)] bg-[var(--tone-surface)] p-6 text-center shadow-2xl">
+            <h2 id="missing-google-account-title" className="text-xl font-semibold text-[var(--tone-text)]">
+              Account does not exist
+            </h2>
+            <p className="mt-3 text-sm leading-6 text-[var(--tone-text-muted)]">
+              {missingGoogleAccount.email ? `${missingGoogleAccount.email} is not registered yet.` : 'This Google account is not registered yet.'}
+            </p>
+            <div className="mt-6 flex flex-col gap-3">
+              <Button type="button" className="w-full" onClick={openRegisterForMissingGoogleAccount}>
+                Register Account
+              </Button>
+              <Button type="button" variant="outline" className="w-full" onClick={() => setMissingGoogleAccount(null)}>
+                Close
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

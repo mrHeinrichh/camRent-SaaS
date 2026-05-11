@@ -61,7 +61,13 @@ async function request<T>(input: string, init?: RequestInit): Promise<T> {
         error: data?.error,
         bodyPreview: rawText.slice(0, 300),
       });
-      throw new Error(data?.error || `Request failed (${response.status})`);
+      const error = new Error(data?.error || `Request failed (${response.status})`);
+      Object.assign(error, {
+        status: response.status,
+        code: data?.code,
+        details: data,
+      });
+      throw error;
     }
 
     return data as T;
