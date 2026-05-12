@@ -48,6 +48,17 @@ authRoutes.post('/register', async (req, res) => {
     security_deposit,
     rental_billing_mode,
   } = req.body;
+  let ownerRegistrationNotification:
+    | {
+        ownerName: string;
+        ownerEmail: string;
+        ownerPhone: string;
+        storeName: string;
+        storeAddress: string;
+        storeId: string;
+        userId: string;
+      }
+    | null = null;
   try {
     const normalizedEmail = String(email || '').trim().toLowerCase();
     const normalizedRole = role || 'renter';
@@ -135,24 +146,15 @@ authRoutes.post('/register', async (req, res) => {
         storeId: createdStore._id.toString(),
         storeName: createdStore.name,
       });
-      try {
-        await sendOwnerRegistrationNotification({
-          ownerName: String(full_name || '').trim(),
-          ownerEmail: user.email,
-          ownerPhone: String(phone || '').trim(),
-          storeName: String(createdStore.name || '').trim(),
-          storeAddress: String(createdStore.address || '').trim(),
-          storeId: createdStore._id.toString(),
-        });
-      } catch (notificationError: any) {
-        console.error('[auth] owner registration notification failed', {
-          userId: user._id.toString(),
-          email: user.email,
-          storeId: createdStore._id.toString(),
-          message: notificationError?.message,
-          details: notificationError?.details,
-        });
-      }
+      ownerRegistrationNotification = {
+        ownerName: String(full_name || '').trim(),
+        ownerEmail: user.email,
+        ownerPhone: String(phone || '').trim(),
+        storeName: String(createdStore.name || '').trim(),
+        storeAddress: String(createdStore.address || '').trim(),
+        storeId: createdStore._id.toString(),
+        userId: user._id.toString(),
+      };
     } else {
       console.log('[auth] renter registered', {
         userId: user._id.toString(),
@@ -163,7 +165,24 @@ authRoutes.post('/register', async (req, res) => {
     const token = jwt.sign({ id: user._id.toString(), role: user.role, email: user.email }, env.jwtSecret);
     res.json({ token, user: serialize(user) });
 
-    await EmailOtp.deleteMany({ email: normalizedEmail });
+    if (ownerRegistrationNotification) {
+      sendOwnerRegistrationNotification(ownerRegistrationNotification).catch((notificationError: any) => {
+        console.error('[auth] owner registration notification failed', {
+          userId: ownerRegistrationNotification?.userId,
+          email: ownerRegistrationNotification?.ownerEmail,
+          storeId: ownerRegistrationNotification?.storeId,
+          message: notificationError?.message,
+          details: notificationError?.details,
+        });
+      });
+    }
+
+    EmailOtp.deleteMany({ email: normalizedEmail }).catch((otpCleanupError: any) => {
+      console.error('[auth] otp cleanup failed after registration', {
+        email: normalizedEmail,
+        message: otpCleanupError?.message,
+      });
+    });
   } catch (error: any) {
     console.error('[auth] register failed', {
       email,

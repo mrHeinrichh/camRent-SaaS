@@ -259,15 +259,22 @@ export function LoginPage({ onNavigate, content }: LoginPageProps) {
               <p className="mb-8 text-sm text-[var(--tone-text-muted)]">{isRegister ? siteTheme.login.subtitleRegister : siteTheme.login.subtitleLogin}</p>
 
               {isRegister ? (
-                <Card className="border border-[var(--tone-border)] bg-[var(--tone-surface-soft)] p-5 shadow-none">
-                  <RegisterWizard
-                    key={registerInitialEmail || 'register'}
-                    submitting={submitting}
-                    initialEmail={registerInitialEmail}
-                    onSubmit={handleRegister}
-                    onOpenPolicies={() => onNavigate('policies')}
-                  />
-                </Card>
+                <div className="space-y-4">
+                  {error ? (
+                    <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm font-medium text-red-700">
+                      {error}
+                    </div>
+                  ) : null}
+                  <Card className="border border-[var(--tone-border)] bg-[var(--tone-surface-soft)] p-5 shadow-none">
+                    <RegisterWizard
+                      key={registerInitialEmail || 'register'}
+                      submitting={submitting}
+                      initialEmail={registerInitialEmail}
+                      onSubmit={handleRegister}
+                      onOpenPolicies={() => onNavigate('policies')}
+                    />
+                  </Card>
+                </div>
               ) : (
                 <LoginForm
                   email={email}
