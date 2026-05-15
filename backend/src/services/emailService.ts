@@ -90,7 +90,7 @@ async function sendWithGmailApi(input: { to: string; subject: string; text: stri
     throw new EmailServiceError('Gmail API access token unavailable', 'Email service is not configured on the server.', 503);
   }
 
-  const from = env.gmailFrom || env.smtpFrom || env.smtpUser;
+  const from = env.gmailFrom || env.smtpFrom || env.gmailUser || env.smtpUser;
   if (!from) {
     throw new EmailServiceError('Gmail API sender is not configured', 'Email service is not configured on the server.', 503);
   }
@@ -154,7 +154,7 @@ export async function sendEmail(input: { to: string; subject: string; text: stri
 export async function sendOtpEmail(input: { to: string; code: string; expiresMinutes: number }) {
   await sendEmail({
     to: input.to,
-    subject: 'CamRent PH Owner Verification Code',
+    subject: 'CamRent PH Verification Code',
     text: `Your CamRent PH verification code is ${input.code}. It expires in ${input.expiresMinutes} minutes.`,
     html: `<p>Your CamRent PH verification code is <strong>${input.code}</strong>.</p><p>This code expires in ${input.expiresMinutes} minutes.</p>`,
   });
