@@ -5,6 +5,7 @@ import { env } from '../config/env';
 let transporter: nodemailer.Transporter | null = null;
 let gmailClient: OAuth2Client | null = null;
 const SMTP_TIMEOUT_MS = 15_000;
+const PLACEHOLDER_PATTERN = /(^your_|^paste_|^real_|placeholder|new_token|new_client|replace_me|example|\bhere\b)/i;
 
 export class EmailServiceError extends Error {
   constructor(
@@ -18,9 +19,50 @@ export class EmailServiceError extends Error {
   }
 }
 
+function safeFingerprint(value?: string | null) {
+  if (!value) return null;
+  const trimmed = value.trim();
+  if (trimmed.length <= 10) {
+    return `${trimmed.slice(0, 2)}...(${trimmed.length})`;
+  }
+  return `${trimmed.slice(0, 6)}...${trimmed.slice(-4)} (${trimmed.length})`;
+}
+
+function looksLikePlaceholder(value?: string | null) {
+  return Boolean(value && PLACEHOLDER_PATTERN.test(value.trim()));
+}
+
+function emailConfigSnapshot() {
+  return {
+    gmailClientId: safeFingerprint(env.gmailClientId),
+    gmailClientSecret: safeFingerprint(env.gmailClientSecret),
+    gmailClientSecretLooksPlaceholder: looksLikePlaceholder(env.gmailClientSecret),
+    gmailRefreshToken: safeFingerprint(env.gmailRefreshToken),
+    gmailRefreshTokenLooksPlaceholder: looksLikePlaceholder(env.gmailRefreshToken),
+    gmailUser: env.gmailUser ? safeFingerprint(env.gmailUser) : null,
+    gmailFromConfigured: Boolean(env.gmailFrom),
+    smtpHost: env.smtpHost,
+    smtpPort: env.smtpPort,
+    smtpUser: env.smtpUser ? safeFingerprint(env.smtpUser) : null,
+    smtpPassConfigured: Boolean(env.smtpPass),
+    smtpFromConfigured: Boolean(env.smtpFrom),
+  };
+}
+
+function getGmailAuthorizationMessage(errorCode?: string) {
+  if (errorCode === 'invalid_client') {
+    return 'Gmail OAuth client ID or client secret is invalid. Check GMAIL_CLIENT_ID and GMAIL_CLIENT_SECRET.';
+  }
+  if (errorCode === 'invalid_grant') {
+    return 'Gmail refresh token is invalid or expired. Regenerate GMAIL_REFRESH_TOKEN with the same Gmail OAuth client.';
+  }
+  return 'Gmail API authorization failed. Regenerate and update the Gmail refresh token in Render.';
+}
+
 function getTransporter() {
   if (transporter) return transporter;
   if (!env.smtpUser || !env.smtpPass) {
+    console.warn('[email] SMTP config incomplete', emailConfigSnapshot());
     return null;
   }
   transporter = nodemailer.createTransport({
@@ -42,6 +84,7 @@ function getTransporter() {
 function getGmailClient() {
   if (gmailClient) return gmailClient;
   if (!env.gmailClientId || !env.gmailClientSecret || !env.gmailRefreshToken) {
+    console.warn('[email] Gmail API config incomplete, falling back to SMTP', emailConfigSnapshot());
     return null;
   }
   gmailClient = new OAuth2Client(env.gmailClientId, env.gmailClientSecret);
@@ -84,28 +127,57 @@ async function sendWithGmailApi(input: { to: string; subject: string; text: stri
   if (!client) {
     return false;
   }
+  const configSnapshot = emailConfigSnapshot();
+  if (configSnapshot.gmailClientSecretLooksPlaceholder || configSnapshot.gmailRefreshTokenLooksPlaceholder) {
+    console.error('[email] Gmail API credentials look like placeholders', configSnapshot);
+    throw new EmailServiceError(
+      'Gmail API credentials look like placeholders',
+      'Gmail API credentials are placeholders. Replace GMAIL_CLIENT_SECRET and GMAIL_REFRESH_TOKEN with real Google values.',
+      503,
+      configSnapshot,
+    );
+  }
 
   let accessToken: { token?: string | null };
   try {
+    console.info('[email] Gmail API token request start', configSnapshot);
     accessToken = await client.getAccessToken();
   } catch (error: any) {
-    throw new EmailServiceError('Gmail API access token request failed', 'Gmail API authorization failed. Regenerate and update the Gmail refresh token in Render.', 502, {
+    const responseData = error?.response?.data;
+    const googleErrorCode = typeof responseData?.error === 'string' ? responseData.error : undefined;
+    console.error('[email] Gmail API token request failed', {
       code: error?.code,
       status: error?.status,
       responseStatus: error?.response?.status,
-      responseData: error?.response?.data,
+      responseData,
       message: error?.message,
+      config: configSnapshot,
+    });
+    throw new EmailServiceError('Gmail API access token request failed', getGmailAuthorizationMessage(googleErrorCode), 502, {
+      code: error?.code,
+      status: error?.status,
+      responseStatus: error?.response?.status,
+      responseData,
+      message: error?.message,
+      config: configSnapshot,
     });
   }
   if (!accessToken.token) {
+    console.error('[email] Gmail API did not return an access token', configSnapshot);
     throw new EmailServiceError('Gmail API access token unavailable', 'Gmail API did not return an access token. Regenerate the Gmail refresh token in Render.', 503);
   }
 
   const from = env.gmailFrom || env.smtpFrom || env.gmailUser || env.smtpUser;
   if (!from) {
+    console.error('[email] Gmail API sender is not configured', configSnapshot);
     throw new EmailServiceError('Gmail API sender is not configured', 'Email service is not configured on the server.', 503);
   }
 
+  console.info('[email] Gmail API send request start', {
+    to: safeFingerprint(input.to),
+    fromConfigured: Boolean(from),
+    subject: input.subject,
+  });
   const response = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
     method: 'POST',
     headers: {
@@ -124,12 +196,18 @@ async function sendWithGmailApi(input: { to: string; subject: string; text: stri
     } catch {
       details = await response.text();
     }
-    throw new EmailServiceError('Gmail API send failed', 'Gmail API rejected the verification email. Check Gmail API settings.', 502, {
+    console.error('[email] Gmail API send failed', {
       status: response.status,
       details,
     });
+    throw new EmailServiceError('Gmail API send failed', 'Gmail API rejected the verification email. Check Gmail API settings.', 502, {
+      status: response.status,
+      details,
+      config: configSnapshot,
+    });
   }
 
+  console.info('[email] Gmail API send succeeded', { to: safeFingerprint(input.to), subject: input.subject });
   return true;
 }
 
@@ -145,6 +223,13 @@ export async function sendEmail(input: { to: string; subject: string; text: stri
 
   const from = env.smtpFrom || env.smtpUser;
   try {
+    console.info('[email] SMTP send request start', {
+      to: safeFingerprint(input.to),
+      fromConfigured: Boolean(from),
+      smtpHost: env.smtpHost,
+      smtpPort: env.smtpPort,
+      subject: input.subject,
+    });
     await mailer.sendMail({
       from,
       to: input.to,
@@ -152,12 +237,21 @@ export async function sendEmail(input: { to: string; subject: string; text: stri
       text: input.text,
       html: input.html,
     });
+    console.info('[email] SMTP send succeeded', { to: safeFingerprint(input.to), subject: input.subject });
   } catch (error: any) {
+    console.error('[email] SMTP send failed', {
+      code: error?.code,
+      command: error?.command,
+      responseCode: error?.responseCode,
+      response: error?.response,
+      config: emailConfigSnapshot(),
+    });
     throw new EmailServiceError('SMTP send failed', 'Email provider rejected the verification email. Check SMTP settings.', 502, {
       code: error?.code,
       command: error?.command,
       responseCode: error?.responseCode,
       response: error?.response,
+      config: emailConfigSnapshot(),
     });
   }
 }
