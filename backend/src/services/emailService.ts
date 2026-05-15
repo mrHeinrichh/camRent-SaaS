@@ -85,9 +85,20 @@ async function sendWithGmailApi(input: { to: string; subject: string; text: stri
     return false;
   }
 
-  const accessToken = await client.getAccessToken();
+  let accessToken: { token?: string | null };
+  try {
+    accessToken = await client.getAccessToken();
+  } catch (error: any) {
+    throw new EmailServiceError('Gmail API access token request failed', 'Gmail API authorization failed. Regenerate and update the Gmail refresh token in Render.', 502, {
+      code: error?.code,
+      status: error?.status,
+      responseStatus: error?.response?.status,
+      responseData: error?.response?.data,
+      message: error?.message,
+    });
+  }
   if (!accessToken.token) {
-    throw new EmailServiceError('Gmail API access token unavailable', 'Email service is not configured on the server.', 503);
+    throw new EmailServiceError('Gmail API access token unavailable', 'Gmail API did not return an access token. Regenerate the Gmail refresh token in Render.', 503);
   }
 
   const from = env.gmailFrom || env.smtpFrom || env.gmailUser || env.smtpUser;
