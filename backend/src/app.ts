@@ -29,7 +29,11 @@ export async function startServer() {
   app.locals.io = io;
   app.use((req, res, next) => {
     const origin = req.headers.origin || '';
-    const allowedOrigins = new Set(['http://localhost:5173', 'http://127.0.0.1:5173']);
+    const allowedOrigins = new Set([
+      'http://localhost:5173',
+      'http://127.0.0.1:5173',
+      'https://camrentph.vercel.app',
+    ]);
     const rawCorsOrigins = env.corsOrigins
       .split(',')
       .map((entry) => entry.trim())
