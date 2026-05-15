@@ -45,6 +45,7 @@ function emailConfigSnapshot() {
     smtpPort: env.smtpPort,
     smtpUser: env.smtpUser ? safeFingerprint(env.smtpUser) : null,
     smtpPassConfigured: Boolean(env.smtpPass),
+    smtpPassLooksPlaceholder: looksLikePlaceholder(env.smtpPass),
     smtpFromConfigured: Boolean(env.smtpFrom),
   };
 }
@@ -64,6 +65,15 @@ function getTransporter() {
   if (!env.smtpUser || !env.smtpPass) {
     console.warn('[email] SMTP config incomplete', emailConfigSnapshot());
     return null;
+  }
+  if (looksLikePlaceholder(env.smtpPass)) {
+    console.error('[email] SMTP password looks like a placeholder', emailConfigSnapshot());
+    throw new EmailServiceError(
+      'SMTP password looks like a placeholder',
+      'SMTP_PASS is a placeholder. Replace it with your real Gmail app password.',
+      503,
+      emailConfigSnapshot(),
+    );
   }
   transporter = nodemailer.createTransport({
     host: env.smtpHost,
@@ -212,12 +222,30 @@ async function sendWithGmailApi(input: { to: string; subject: string; text: stri
 }
 
 export async function sendEmail(input: { to: string; subject: string; text: string; html: string }) {
-  if (await sendWithGmailApi(input)) {
-    return;
+  let gmailApiFailure: EmailServiceError | null = null;
+  try {
+    if (await sendWithGmailApi(input)) {
+      return;
+    }
+  } catch (error) {
+    if (error instanceof EmailServiceError) {
+      gmailApiFailure = error;
+      console.warn('[email] Gmail API delivery unavailable, trying SMTP fallback', {
+        message: error.message,
+        publicMessage: error.publicMessage,
+        statusCode: error.statusCode,
+        smtpConfigured: Boolean(env.smtpUser && env.smtpPass),
+      });
+    } else {
+      throw error;
+    }
   }
 
   const mailer = getTransporter();
   if (!mailer) {
+    if (gmailApiFailure) {
+      throw gmailApiFailure;
+    }
     throw new EmailServiceError('SMTP is not configured', 'Email service is not configured on the server.', 503);
   }
 
