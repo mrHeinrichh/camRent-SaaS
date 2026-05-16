@@ -97,6 +97,7 @@ export function StorePage({ storeId, onNavigateItem }: StorePageProps) {
   const [rateReason, setRateReason] = useState('');
   const [reviewForm, setReviewForm] = useState({ rating: 5, description: '' });
   const [selectedCategory, setSelectedCategory] = useState<string>('All Gear');
+  const [storeGearSearch, setStoreGearSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [reportOpen, setReportOpen] = useState(false);
   const [reportSending, setReportSending] = useState(false);
@@ -188,7 +189,13 @@ export function StorePage({ storeId, onNavigateItem }: StorePageProps) {
       .filter(Boolean),
   };
   const availableCategories = ['All Gear', ...Array.from(new Set(store.items.map((item) => item.category).filter(Boolean)))];
-  const visibleItems = selectedCategory === 'All Gear' ? store.items : store.items.filter((item) => item.category === selectedCategory);
+  const normalizedStoreGearSearch = storeGearSearch.trim().toLowerCase();
+  const visibleItems = (selectedCategory === 'All Gear' ? store.items : store.items.filter((item) => item.category === selectedCategory)).filter((item) => {
+    if (!normalizedStoreGearSearch) return true;
+    return `${item.name} ${item.description || ''} ${item.category || ''} ${item.brand || 'Others'} ${formatPHP(item.daily_price)}`
+      .toLowerCase()
+      .includes(normalizedStoreGearSearch);
+  });
   const rentalBillingMode = store.rental_billing_mode === 'calendar_day' ? 'calendar_day' : 'twenty_four_hour';
   const rentalBillingModeLabel = getRentalBillingModeLabel(rentalBillingMode);
   const paymentImages = store.payment_detail_images || [];
@@ -735,22 +742,23 @@ export function StorePage({ storeId, onNavigateItem }: StorePageProps) {
 
           <main className="min-w-0 flex-1">
             <div className="mb-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm md:mb-4 md:p-4">
-              <div className="flex items-center justify-between gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_minmax(16rem,22rem)] sm:items-center">
                 <div className="min-w-0">
                   <h2 className="text-base font-black text-slate-900 sm:text-xl">Available Equipment</h2>
                   <div className="mt-1 flex min-w-0 items-center gap-1 text-xs text-slate-500 sm:text-sm">
                     <MapPin className="h-3 w-3 shrink-0" />
                     <span className="truncate">{store.address}</span>
                   </div>
+                  <p className="mt-1 text-xs font-semibold text-slate-500">{visibleItems.length} item{visibleItems.length === 1 ? '' : 's'} shown</p>
                 </div>
-                <div className="relative hidden w-full max-w-xs sm:block">
+                <div className="relative w-full">
                   <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input className="h-10 rounded-full pl-9" placeholder="Search gear..." />
+                  <Input className="h-10 rounded-full pl-9" placeholder="Search this store..." value={storeGearSearch} onChange={(event) => setStoreGearSearch(event.target.value)} />
                 </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4">
+            <div className="grid grid-cols-1 gap-3 min-[430px]:grid-cols-2 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4">
               {visibleItems.map((item) => (
                 <Card key={item.id} className="group i3d-card cursor-pointer overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm" onClick={() => onNavigateItem(item.id)}>
                   <div className="relative aspect-square overflow-hidden bg-slate-100">

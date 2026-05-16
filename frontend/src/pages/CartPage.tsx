@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Calendar as CalendarIcon, ReceiptText, ShoppingCart, TicketPercent, Trash2 } from 'lucide-react';
+import { Calendar as CalendarIcon, Minus, Plus, ReceiptText, ShoppingCart, TicketPercent, Trash2 } from 'lucide-react';
 import { api } from '@/src/lib/api';
 import { formatPHP } from '@/src/lib/currency';
 import { getCartItemRentalTotal, getRentalBillingModeLabel, getRentalDayCount } from '@/src/lib/rentalPricing';
@@ -21,6 +21,12 @@ export function CartPage({ onCheckout }: CartPageProps) {
   const rentalSubtotal = cart.reduce((sum, item) => sum + getCartItemRentalTotal(item), 0);
   const voucherDiscount = appliedVoucher && appliedVoucher.store_id === cart[0]?.store_id ? Math.max(0, Number(appliedVoucher.discount_amount || 0)) : 0;
   const finalTotal = Math.max(0, rentalSubtotal - voucherDiscount);
+  const handleCheckout = () => {
+    if (checkoutBusy) return;
+    setCheckoutBusy(true);
+    onCheckout();
+    setTimeout(() => setCheckoutBusy(false), 600);
+  };
 
   if (user?.role === 'owner') return null;
 
@@ -36,85 +42,93 @@ export function CartPage({ onCheckout }: CartPageProps) {
   }
 
   return (
-    <div className="container mx-auto px-4 py-10">
-      <div className="mb-8 text-center">
-        <p className="text-xs uppercase tracking-[0.3em] text-slate-400">CamRent PH</p>
-        <h1 className="mt-2 text-3xl font-semibold text-slate-900 sm:text-4xl">Your Rental Cart</h1>
-        <p className="mt-2 text-sm text-slate-500">Review your items and confirm your rental dates.</p>
+    <div className="container mx-auto px-3 py-5 sm:px-4 sm:py-10 lg:pb-10">
+      <div className="mb-4 text-left sm:mb-8 sm:text-center">
+        <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-slate-400 sm:text-xs sm:tracking-[0.3em]">CamRent PH</p>
+        <h1 className="mt-1 text-xl font-black text-slate-900 sm:mt-2 sm:text-4xl">Rental Cart</h1>
+        <p className="mt-1 text-xs text-slate-500 sm:mt-2 sm:text-sm">Review dates, quantity, voucher, and checkout.</p>
       </div>
-      <div className="mb-5 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-950">
+      <div className="mb-4 rounded-2xl border border-blue-100 bg-blue-50 px-3 py-2.5 text-xs font-semibold text-blue-950 sm:mb-5 sm:px-4 sm:py-3 sm:text-sm">
         This shop uses {getRentalBillingModeLabel(cart[0]?.rentalBillingMode)} for rental billing.
       </div>
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-        <div className="no-3d space-y-4 lg:col-span-2">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-8">
+        <div className="no-3d space-y-3 lg:col-span-2">
           {cart.map((item, index) => (
             <Card
               key={`${item.id}-${item.startDate}-${item.startTime || ''}-${item.endDate}-${item.endTime || ''}-${index}`}
-              className="i3d-card flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center"
+              className="i3d-card rounded-2xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4"
             >
-              <div className="h-24 w-24 flex-shrink-0 overflow-hidden rounded-xl border bg-slate-50">
-                <img src={item.image_url || `https://picsum.photos/seed/item-${item.id}/200/200`} alt="" className="h-full w-full object-cover" referrerPolicy="no-referrer" />
-              </div>
-
-              <div className="flex-1">
-                <div className="mb-1 flex items-start justify-between gap-3">
-                  <h3 className="font-semibold text-slate-900">{item.name}</h3>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      removeFromCartAtIndex(index);
-                    }}
-                    className="pointer-events-auto h-8 gap-1 rounded-full border-slate-200 text-xs text-destructive hover:text-destructive"
-                  >
-                    <Trash2 className="h-3 w-3" /> Remove
-                  </Button>
+              <div className="flex gap-3 sm:gap-4">
+                <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-xl border bg-slate-50 sm:h-24 sm:w-24">
+                  <img src={item.image_url || `https://picsum.photos/seed/item-${item.id}/200/200`} alt="" className="h-full w-full object-cover" referrerPolicy="no-referrer" />
                 </div>
 
-                <div className="mb-2 flex flex-wrap items-center gap-4 text-xs text-slate-500">
-                  <span className="flex items-center gap-1">
-                    <CalendarIcon className="h-3 w-3" /> {item.startDate} {item.startTime || '09:00'} to {item.endDate} {item.endTime || '18:00'}
-                  </span>
-                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-start gap-2">
+                    <h3 className="line-clamp-2 min-h-[2.25rem] flex-1 text-sm font-semibold leading-snug text-slate-900 sm:min-h-0 sm:text-base">{item.name}</h3>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label="Remove item"
+                      title="Remove item"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        removeFromCartAtIndex(index);
+                      }}
+                      className="pointer-events-auto h-8 w-8 shrink-0 rounded-full text-destructive hover:bg-red-50 hover:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
 
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <span className="text-sm font-semibold text-slate-900">
-                    {formatPHP(item.daily_price)} x {getRentalDayCount(item)} billing day{getRentalDayCount(item) === 1 ? '' : 's'} ({getRentalBillingModeLabel(item.rentalBillingMode)}) = {formatPHP(getCartItemRentalTotal(item))}
-                  </span>
-                  <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-2 py-1">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        updateCartQuantity(item.id, item.startDate, item.endDate, Math.max(1, (item.quantity || 1) - 1), item.startTime, item.endTime);
-                      }}
-                      className="h-8 w-8 rounded-full p-0"
-                    >
-                      -
-                    </Button>
-                    <span className="text-sm font-semibold text-slate-900">{Math.max(1, item.quantity || 1)}</span>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        updateCartQuantity(
-                          item.id,
-                          item.startDate,
-                          item.endDate,
-                          Math.min(Math.max(1, item.stock || 1), Math.max(1, (item.quantity || 1) + 1)),
-                          item.startTime,
-                          item.endTime,
-                        );
-                      }}
-                      className="h-8 w-8 rounded-full p-0"
-                    >
-                      +
-                    </Button>
+                  <div className="mt-1 flex min-w-0 items-center gap-1 text-[10px] text-slate-500 sm:text-xs">
+                    <CalendarIcon className="h-3 w-3 shrink-0" />
+                    <span className="truncate">{item.startDate} {item.startTime || '09:00'} to {item.endDate} {item.endTime || '18:00'}</span>
+                  </div>
+
+                  <div className="mt-2 flex items-end justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-black text-slate-900 sm:text-base">{formatPHP(getCartItemRentalTotal(item))}</p>
+                      <p className="truncate text-[10px] font-medium text-slate-500 sm:text-xs">
+                        {getRentalDayCount(item)} billing day{getRentalDayCount(item) === 1 ? '' : 's'} | {getRentalBillingModeLabel(item.rentalBillingMode)}
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 items-center rounded-full border border-slate-200 bg-slate-50 p-0.5 shadow-inner">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        aria-label="Decrease quantity"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          updateCartQuantity(item.id, item.startDate, item.endDate, Math.max(1, (item.quantity || 1) - 1), item.startTime, item.endTime);
+                        }}
+                        className="h-7 w-7 rounded-full bg-white p-0 shadow-sm hover:bg-slate-100"
+                      >
+                        <Minus className="h-3.5 w-3.5" />
+                      </Button>
+                      <span className="min-w-6 text-center text-sm font-black text-slate-900">{Math.max(1, item.quantity || 1)}</span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        aria-label="Increase quantity"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          updateCartQuantity(
+                            item.id,
+                            item.startDate,
+                            item.endDate,
+                            Math.min(Math.max(1, item.stock || 1), Math.max(1, (item.quantity || 1) + 1)),
+                            item.startTime,
+                            item.endTime,
+                          );
+                        }}
+                        className="h-7 w-7 rounded-full bg-white p-0 shadow-sm hover:bg-slate-100"
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -122,8 +136,8 @@ export function CartPage({ onCheckout }: CartPageProps) {
           ))}
         </div>
 
-        <div className="space-y-6">
-          <Card className="i3d-card rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="space-y-4 sm:space-y-6">
+          <Card className="i3d-card rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6 lg:sticky lg:top-24">
             <h3 className="mb-4 inline-flex items-center gap-2 text-lg font-semibold text-slate-900">
               <ReceiptText className="h-4 w-4" /> Order Summary
             </h3>
@@ -206,12 +220,7 @@ export function CartPage({ onCheckout }: CartPageProps) {
             </div>
             <Button
               className="h-12 w-full rounded-full"
-              onClick={() => {
-                if (checkoutBusy) return;
-                setCheckoutBusy(true);
-                onCheckout();
-                setTimeout(() => setCheckoutBusy(false), 600);
-              }}
+              onClick={handleCheckout}
               disabled={checkoutBusy}
             >
               {checkoutBusy ? 'Opening Checkout...' : 'Proceed to Checkout'}

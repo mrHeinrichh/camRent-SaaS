@@ -240,7 +240,9 @@ export function ItemPage({ itemId }: ItemPageProps) {
           <div>
             <h1 className="mb-1 text-2xl font-black leading-tight text-[var(--tone-text)] sm:text-4xl">{item.name}</h1>
             <p className="line-clamp-2 text-sm text-muted-foreground sm:text-base">{item.description}</p>
-            <p className="mt-1 text-xs text-muted-foreground">Brand: {item.brand || 'Others'}</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Brand: {item.brand || 'Others'} {item.category ? `| Category: ${item.category}` : ''}
+            </p>
           </div>
 
           <div className="space-y-4 rounded-2xl border bg-card p-3 shadow-sm sm:p-5">
@@ -401,8 +403,8 @@ export function ItemPage({ itemId }: ItemPageProps) {
               </div>
 
               <div className="grid grid-cols-7 gap-1 text-center text-[10px] sm:text-xs">
-                {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day) => (
-                  <div key={day} className="p-1 font-bold">
+                {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, index) => (
+                  <div key={`${day}-${index}`} className="p-1 font-bold">
                     {day}
                   </div>
                 ))}

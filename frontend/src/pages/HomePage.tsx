@@ -215,7 +215,15 @@ export function HomePage({ onNavigate, content }: HomePageProps) {
         <HomeFilterBar
           viewMode={viewMode}
           onViewModeChange={setViewMode}
-          onClearSearch={() => setHomeSearchQuery('')}
+          searchQuery={homeSearchQuery}
+          onClearSearch={() => {
+            setHomeSearchQuery('');
+            setSelectedCategory('All Gear');
+            setSelectedBrand('All Brands');
+            setMinRating('0');
+            setSortMode('default');
+            setNearMeOnly(false);
+          }}
           selectedCategory={selectedCategory}
           availableCategories={availableCategories}
           onCategoryChange={setSelectedCategory}
@@ -236,13 +244,13 @@ export function HomePage({ onNavigate, content }: HomePageProps) {
         </div>
 
         {viewMode === 'gears' ? (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 lg:gap-6 animate-fade-up items-stretch">
+          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-4 xl:grid-cols-4 xl:gap-6 animate-fade-up items-stretch">
             {pagedGears.map((gear) => (
               <GearCard key={gear.id} gear={gear} onOpenStore={onNavigate} onOpenItem={openItem} />
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 lg:gap-6 animate-fade-up items-stretch">
+          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-4 xl:grid-cols-4 xl:gap-6 animate-fade-up items-stretch">
             {pagedStores.map((store) => (
               <StoreCard key={store.id} store={store} onOpenStore={onNavigate} />
             ))}

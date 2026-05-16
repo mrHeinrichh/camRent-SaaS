@@ -201,6 +201,8 @@ export function OwnerTabs({
   const [voucherForm, setVoucherForm] = useState<{ code: string; discount_amount: string }>({ code: '', discount_amount: '' });
   const [editingVoucherId, setEditingVoucherId] = useState<string | null>(null);
   const [editingVoucherForm, setEditingVoucherForm] = useState<{ code: string; discount_amount: string }>({ code: '', discount_amount: '' });
+  const [inventorySearch, setInventorySearch] = useState('');
+  const [fraudSearch, setFraudSearch] = useState('');
   const [customerPage, setCustomerPage] = useState(1);
   const [transactionPage, setTransactionPage] = useState(1);
   const [applicationPage, setApplicationPage] = useState(1);
@@ -307,14 +309,45 @@ export function OwnerTabs({
   const transactions = data.recentTransactions || [];
   const ownerFraudEntries = fraudEntries || [];
   const applicationItems = applications || [];
+  const normalizedInventorySearch = inventorySearch.trim().toLowerCase();
+  const normalizedFraudSearch = fraudSearch.trim().toLowerCase();
+  const visibleInventory = useMemo(
+    () =>
+      filteredInventory.filter((item) => {
+        if (!normalizedInventorySearch) return true;
+        return `${item.name} ${item.description || ''} ${item.category || ''} ${item.brand || 'Others'} ${formatPHP(item.daily_price)}`
+          .toLowerCase()
+          .includes(normalizedInventorySearch);
+      }),
+    [filteredInventory, normalizedInventorySearch],
+  );
+  const inventoryStats = useMemo(() => {
+    const available = visibleInventory.filter((item) => item.is_available !== false && Math.max(0, item.stock || 0) > 0).length;
+    const lowStock = visibleInventory.filter((item) => {
+      const stock = Math.max(0, item.stock || 0);
+      return stock > 0 && stock <= 2;
+    }).length;
+    const hidden = visibleInventory.filter((item) => item.is_available === false || Math.max(0, item.stock || 0) <= 0).length;
+    return { available, lowStock, hidden };
+  }, [visibleInventory]);
+  const filteredFraudEntries = useMemo(
+    () =>
+      ownerFraudEntries.filter((entry) => {
+        if (!normalizedFraudSearch) return true;
+        return `${entry.full_name} ${entry.email} ${entry.contact_number} ${entry.reason} ${entry.scope || 'internal'} ${entry.status || 'approved'}`
+          .toLowerCase()
+          .includes(normalizedFraudSearch);
+      }),
+    [normalizedFraudSearch, ownerFraudEntries],
+  );
   const customerTotalPages = Math.max(1, Math.ceil(customers.length / ownerPageSize));
   const transactionTotalPages = Math.max(1, Math.ceil(transactions.length / ownerPageSize));
   const applicationTotalPages = Math.max(1, Math.ceil(applicationItems.length / ownerPageSize));
-  const fraudTotalPages = Math.max(1, Math.ceil(ownerFraudEntries.length / ownerPageSize));
+  const fraudTotalPages = Math.max(1, Math.ceil(filteredFraudEntries.length / ownerPageSize));
   const pagedCustomers = useMemo(() => customers.slice((customerPage - 1) * ownerPageSize, customerPage * ownerPageSize), [customers, customerPage]);
   const pagedTransactions = useMemo(() => transactions.slice((transactionPage - 1) * ownerPageSize, transactionPage * ownerPageSize), [transactions, transactionPage]);
   const pagedApplications = useMemo(() => applicationItems.slice((applicationPage - 1) * ownerPageSize, applicationPage * ownerPageSize), [applicationItems, applicationPage]);
-  const pagedFraudEntries = useMemo(() => ownerFraudEntries.slice((fraudPage - 1) * ownerPageSize, fraudPage * ownerPageSize), [ownerFraudEntries, fraudPage]);
+  const pagedFraudEntries = useMemo(() => filteredFraudEntries.slice((fraudPage - 1) * ownerPageSize, fraudPage * ownerPageSize), [filteredFraudEntries, fraudPage]);
 
   useEffect(() => {
     setCustomerPage(1);
@@ -328,6 +361,9 @@ export function OwnerTabs({
   useEffect(() => {
     setFraudPage(1);
   }, [ownerFraudEntries.length]);
+  useEffect(() => {
+    setFraudPage(1);
+  }, [fraudSearch]);
   useEffect(() => {
     if (customerPage > customerTotalPages) setCustomerPage(customerTotalPages);
   }, [customerPage, customerTotalPages]);
@@ -1289,38 +1325,41 @@ export function OwnerTabs({
 
       {activeTab === 'customers' && (
         <div className="space-y-6">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <h1 className="text-3xl font-bold">Customers</h1>
-            <Button variant="outline" onClick={onExportCustomers}>
+            <Button variant="outline" className="w-full sm:w-auto" onClick={onExportCustomers}>
               <Download className="mr-2 h-4 w-4" /> Export Excel
             </Button>
           </div>
-          <div className="space-y-4">
+          <div className="space-y-3">
             {pagedCustomers.map((customer) => (
-              <Card key={customer.renter_email} className="i3d-card space-y-4 p-5">
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_auto] md:items-start">
-                  <div className="space-y-1.5">
-                    <h3 className="text-lg font-bold">{customer.renter_name}</h3>
-                    <p className="flex items-center gap-1 text-sm text-muted-foreground">
-                      <Mail className="h-3 w-3" /> {customer.renter_email}
+              <Card key={customer.renter_email} className="i3d-card space-y-3 rounded-2xl p-3 sm:p-4">
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_auto] md:items-start">
+                  <div className="min-w-0 space-y-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="line-clamp-1 text-base font-black text-slate-900 sm:text-lg">{customer.renter_name}</h3>
+                      <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-black uppercase text-muted-foreground">{customer.transaction_count} txns</span>
+                    </div>
+                    <p className="flex min-w-0 items-center gap-1 text-xs text-muted-foreground sm:text-sm">
+                      <Mail className="h-3 w-3 shrink-0" /> <span className="truncate">{customer.renter_email}</span>
                     </p>
-                    <p className="flex items-center gap-1 text-sm text-muted-foreground">
+                    <p className="flex items-center gap-1 text-xs text-muted-foreground sm:text-sm">
                       <Phone className="h-3 w-3" /> {customer.renter_phone}
                     </p>
                     {customer.renter_address ? (
-                      <p className="flex items-center gap-1 text-sm text-muted-foreground">
-                        <MapPin className="h-3 w-3" /> {customer.renter_address}
+                      <p className="flex items-start gap-1 text-xs text-muted-foreground sm:text-sm">
+                        <MapPin className="mt-0.5 h-3 w-3 shrink-0" /> <span className="line-clamp-1">{customer.renter_address}</span>
                       </p>
                     ) : null}
                   </div>
-                  <div className="flex flex-col items-start gap-2 md:items-end">
-                    <span className="rounded-full bg-muted px-3 py-1 text-xs font-semibold">{customer.transaction_count} transaction(s)</span>
-                    <Button variant="outline" size="sm" onClick={() => setExpandedCustomerEmail((prev) => (prev === customer.renter_email ? null : customer.renter_email))}>
-                      {expandedCustomerEmail === customer.renter_email ? 'Hide Rentals & Transactions' : 'Show Rentals & Transactions'}
+                  <div className="grid grid-cols-2 gap-2 md:flex md:flex-col md:items-end">
+                    <Button variant="outline" size="sm" className="h-8 rounded-xl px-2" onClick={() => setExpandedCustomerEmail((prev) => (prev === customer.renter_email ? null : customer.renter_email))}>
+                      {expandedCustomerEmail === customer.renter_email ? 'Hide Rentals' : 'View Rentals'}
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
+                      className="h-8 rounded-xl px-2 text-red-600 hover:text-red-700"
                       disabled={data.store?.status !== 'approved'}
                       onClick={() =>
                         onSelectReportCustomer({
@@ -1331,31 +1370,42 @@ export function OwnerTabs({
                         })
                       }
                     >
-                      Flag as Fraud
+                      Flag
                     </Button>
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Submitted Requirements</p>
-                  {(customer.requirements || []).length ? (
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                      {(customer.requirements || []).map((requirement) => {
+                <div className="flex flex-wrap gap-1.5">
+                  {(customer.mostly_rented_gears || []).slice(0, 4).map((gear) => (
+                    <span key={`${customer.renter_email}-${gear.name}`} className="inline-flex items-center gap-1 rounded-full border bg-white px-2 py-1 text-[10px] font-bold text-slate-700">
+                      <Camera className="h-3 w-3 text-sky-600" /> {gear.name} ({gear.count})
+                    </span>
+                  ))}
+                  {!customer.mostly_rented_gears.length ? <span className="text-xs text-muted-foreground">No rental patterns yet</span> : null}
+                </div>
+                <details className="rounded-xl border bg-muted/20">
+                  <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2 text-xs font-black uppercase text-muted-foreground [&::-webkit-details-marker]:hidden">
+                    Submitted Requirements
+                    <span className="rounded-full bg-white px-2 py-0.5">{(customer.requirements || []).length} file(s)</span>
+                  </summary>
+                  <div className="grid grid-cols-2 gap-2 border-t p-2 sm:grid-cols-3 lg:grid-cols-4">
+                    {(customer.requirements || []).length ? (
+                      (customer.requirements || []).map((requirement) => {
                         const isImage = /\.(png|jpg|jpeg|webp|gif)$/i.test(requirement.url);
                         return (
-                          <div key={`${customer.renter_email}-${requirement.type}`} className="rounded-xl border bg-muted/20 p-3">
-                            <p className="mb-2 line-clamp-1 text-xs font-semibold text-muted-foreground">{requirement.type}</p>
+                          <div key={`${customer.renter_email}-${requirement.type}`} className="rounded-xl border bg-white p-2">
+                            <p className="mb-1 line-clamp-1 text-[10px] font-bold text-muted-foreground">{requirement.type}</p>
                             {isImage ? (
-                              <button type="button" className="h-90 w-full overflow-hidden rounded-lg border" onClick={() => window.open(requirement.url, '_blank', 'noopener,noreferrer')}>
+                              <button type="button" className="h-20 w-full overflow-hidden rounded-lg border sm:h-24" onClick={() => window.open(requirement.url, '_blank', 'noopener,noreferrer')}>
                                 <img src={requirement.url} alt={requirement.type} className="h-full w-full object-cover" />
                               </button>
                             ) : (
-                              <div className="flex h-32 flex-col items-center justify-center rounded-lg border bg-white text-center">
-                                <FileText className="mb-1 h-5 w-5 text-slate-600" />
-                                <span className="px-1 text-xs font-semibold text-slate-700">{requirement.type}</span>
+                              <div className="flex h-20 flex-col items-center justify-center rounded-lg border bg-slate-50 text-center">
+                                <FileText className="mb-1 h-4 w-4 text-slate-600" />
+                                <span className="px-1 text-[10px] font-semibold text-slate-700">{requirement.type}</span>
                               </div>
                             )}
                             {!isImage && (
-                              <div className="mt-2 grid grid-cols-2 gap-2">
+                              <div className="mt-2 grid grid-cols-2 gap-1">
                                 <button
                                   type="button"
                                   onClick={async () => {
@@ -1369,41 +1419,25 @@ export function OwnerTabs({
                                       setFileLoading(false);
                                     }
                                   }}
-                                  className="flex items-center justify-center rounded border px-2 py-1.5 text-xs font-semibold"
+                                  className="flex items-center justify-center rounded border px-1 py-1 text-[10px] font-semibold"
                                 >
                                   <ExternalLink className="mr-1 h-3 w-3" /> View
                                 </button>
-                                <button type="button" onClick={() => downloadFile(requirement.url, `${requirement.type}.pdf`)} className="flex items-center justify-center rounded border px-2 py-1.5 text-xs font-semibold">
-                                  <Download className="mr-1 h-3 w-3" /> Download
+                                <button type="button" onClick={() => downloadFile(requirement.url, `${requirement.type}.pdf`)} className="flex items-center justify-center rounded border px-1 py-1 text-[10px] font-semibold">
+                                  <Download className="mr-1 h-3 w-3" /> Save
                                 </button>
                               </div>
                             )}
                           </div>
                         );
-                      })}
-                    </div>
-                  ) : (
-                    <p className="text-xs text-muted-foreground">No requirements uploaded yet.</p>
-                  )}
-                </div>
-                <div className="rounded-xl border bg-muted/20 p-4 text-sm">
-                  <p className="mb-2 inline-flex items-center gap-2 font-semibold">
-                    <Package className="h-4 w-4 text-slate-600" /> Mostly rented gears
-                  </p>
-                  {customer.mostly_rented_gears.length ? (
-                    <div className="flex flex-wrap gap-2">
-                      {customer.mostly_rented_gears.map((gear) => (
-                        <span key={`${customer.renter_email}-${gear.name}`} className="inline-flex items-center gap-1 rounded-full border bg-white px-3 py-1 text-xs font-semibold">
-                          <Camera className="h-3 w-3 text-sky-600" /> {gear.name} ({gear.count})
-                        </span>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-muted-foreground">No rentals yet</p>
-                  )}
-                </div>
+                      })
+                    ) : (
+                      <p className="col-span-full p-2 text-xs text-muted-foreground">No requirements uploaded yet.</p>
+                    )}
+                  </div>
+                </details>
                 {expandedCustomerEmail === customer.renter_email && (
-                  <div className="space-y-4 rounded-xl border border-dashed p-4">
+                  <div className="space-y-3 rounded-xl border border-dashed p-3">
                     <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                       <CalendarRange className="h-3 w-3" /> All Rentals & Transactions
                     </p>
@@ -1486,69 +1520,68 @@ export function OwnerTabs({
 
       {activeTab === 'transactions' && (
         <div className="space-y-6">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <h1 className="text-3xl font-bold">Recent Transactions</h1>
-            <Button variant="outline" onClick={onExportTransactions}>
+            <Button variant="outline" className="w-full sm:w-auto" onClick={onExportTransactions}>
               <Download className="mr-2 h-4 w-4" /> Export Excel
             </Button>
           </div>
-          <div className="space-y-4">
+          <div className="space-y-3">
             {pagedTransactions.map((transaction) => {
               const docs = (transaction.documents || []).filter((doc) => doc.url);
               return (
-                <Card key={transaction.id} className="i3d-card space-y-4 p-5">
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_auto] md:items-start">
-                    <div className="space-y-1.5">
-                      <h3 className="text-lg font-bold">{transaction.renter_name}</h3>
-                      <p className="flex items-center gap-1 text-sm text-muted-foreground">
-                        <Mail className="h-3 w-3" /> {transaction.renter_email}
+                <Card key={transaction.id} className="i3d-card space-y-3 rounded-2xl p-3 sm:p-4">
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_auto] md:items-start">
+                    <div className="min-w-0 space-y-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="line-clamp-1 text-base font-black text-slate-900 sm:text-lg">{transaction.renter_name}</h3>
+                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-black uppercase ${getStatusBadgeClass(transaction.status)}`}>{transaction.status.replace(/_/g, ' ')}</span>
+                      </div>
+                      <p className="flex min-w-0 items-center gap-1 text-xs text-muted-foreground sm:text-sm">
+                        <Mail className="h-3 w-3 shrink-0" /> <span className="truncate">{transaction.renter_email}</span>
                       </p>
-                      <p className="flex items-center gap-1 text-sm text-muted-foreground">
+                      <p className="flex items-center gap-1 text-xs text-muted-foreground sm:text-sm">
                         <Phone className="h-3 w-3" /> {transaction.renter_phone || '-'}
                       </p>
-                      <p className="text-sm text-muted-foreground">Present Address: {transaction.renter_address || '-'}</p>
-                      <p className="text-sm text-muted-foreground">
-                        Emergency Contact: {transaction.renter_emergency_contact_name || '-'} {transaction.renter_emergency_contact ? `(${transaction.renter_emergency_contact})` : ''}
-                      </p>
+                      <p className="line-clamp-1 text-xs text-muted-foreground">Address: {transaction.renter_address || '-'}</p>
                     </div>
                     <div className="flex flex-col items-start gap-2 md:items-end">
-                      <p className="text-xl font-bold">{formatPHP(transaction.total_amount)}</p>
-                      <span className="rounded-full bg-muted px-2 py-1 text-xs font-semibold">{transaction.status.replace(/_/g, ' ')}</span>
+                      <p className="text-lg font-black text-slate-900 sm:text-xl">{formatPHP(transaction.total_amount)}</p>
+                      <p className="font-mono text-[10px] text-muted-foreground">#{transaction.id.slice(0, 8)}</p>
                     </div>
                   </div>
-                  <div className="grid grid-cols-1 gap-3 text-sm md:grid-cols-3">
-                    <div className="rounded-lg bg-muted/40 p-3">
-                      <p className="mb-1 inline-flex items-center gap-1 font-semibold"><MapPin className="h-3 w-3" /> Branch</p>
-                      <p>{transaction.store_branch_name || '-'}</p>
-                      <p className="text-xs text-muted-foreground">{transaction.store_branch_address || '-'}</p>
+                  <div className="grid grid-cols-2 gap-2 text-xs md:grid-cols-4">
+                    <div className="rounded-xl bg-muted/40 p-2">
+                      <p className="mb-1 inline-flex items-center gap-1 font-black text-slate-700"><MapPin className="h-3 w-3" /> Branch</p>
+                      <p className="line-clamp-1">{transaction.store_branch_name || '-'}</p>
                     </div>
-                    <div className="rounded-lg bg-muted/40 p-3">
-                      <p className="mb-1 inline-flex items-center gap-1 font-semibold"><Truck className="h-3 w-3" /> Delivery</p>
+                    <div className="rounded-xl bg-muted/40 p-2">
+                      <p className="mb-1 inline-flex items-center gap-1 font-black text-slate-700"><Truck className="h-3 w-3" /> Delivery</p>
                       <p className="capitalize">{transaction.delivery_mode || '-'}</p>
-                      <p className="text-xs text-muted-foreground">Address: {transaction.delivery_address || '-'}</p>
-                      <p className="text-xs text-muted-foreground">{format(parseISO(transaction.created_at), 'MMM dd, yyyy hh:mm a')}</p>
                     </div>
-                    <div className="rounded-lg bg-muted/40 p-3">
-                      <p className="mb-1 inline-flex items-center gap-1 font-semibold"><CreditCard className="h-3 w-3" /> Payment</p>
+                    <div className="rounded-xl bg-muted/40 p-2">
+                      <p className="mb-1 inline-flex items-center gap-1 font-black text-slate-700"><CreditCard className="h-3 w-3" /> Payment</p>
                       <p className="capitalize">{transaction.payment_mode || '-'}</p>
-                      <p className="text-xs text-muted-foreground">
-                        Rent Period: {transaction.start_date ? format(parseISO(transaction.start_date), 'MMM dd, yyyy') : '-'} to {transaction.end_date ? format(parseISO(transaction.end_date), 'MMM dd, yyyy') : '-'}
-                      </p>
+                    </div>
+                    <div className="rounded-xl bg-muted/40 p-2">
+                      <p className="mb-1 inline-flex items-center gap-1 font-black text-slate-700"><Clock3 className="h-3 w-3" /> Created</p>
+                      <p>{format(parseISO(transaction.created_at), 'MMM dd')}</p>
                     </div>
                   </div>
-                  <div className="space-y-5">
-                    <div className="space-y-3">
-                      <p className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                        <CalendarRange className="h-3 w-3" /> Rented Gears
-                      </p>
+                  <div className="grid gap-2">
+                    <details className="rounded-xl border bg-white">
+                      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2 text-xs font-black uppercase text-muted-foreground [&::-webkit-details-marker]:hidden">
+                        <span className="inline-flex items-center gap-1"><CalendarRange className="h-3 w-3" /> Rented Gears</span>
+                        <span className="rounded-full bg-muted px-2 py-0.5">{(transaction.items || []).length}</span>
+                      </summary>
                       {(transaction.items || []).length ? (
-                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                        <div className="grid grid-cols-1 gap-2 border-t p-2 sm:grid-cols-2 xl:grid-cols-3">
                           {(transaction.items || []).map((item, index) => {
                             const gearImage = getGearImage(item.name);
                             return (
-                              <div key={`${transaction.id}-${item.name}-${index}`} className="rounded-xl border bg-white p-3">
-                                <div className="grid grid-cols-[3.5rem,1fr] gap-3">
-                                <div className="h-90 w-80 overflow-hidden rounded-md border bg-slate-100">
+                              <div key={`${transaction.id}-${item.name}-${index}`} className="rounded-xl border bg-slate-50 p-2">
+                                <div className="grid grid-cols-[3rem,1fr] gap-2">
+                                <div className="h-12 w-12 overflow-hidden rounded-md border bg-slate-100">
                                   {gearImage ? (
                                     <img src={gearImage} alt={item.name} className="h-full w-full object-cover" />
                                   ) : (
@@ -1559,7 +1592,7 @@ export function OwnerTabs({
                                 </div>
                                 <div className="min-w-0 space-y-1">
                                   <p className="truncate text-sm font-semibold text-slate-900">{item.name}</p>
-                                  {item.description ? <p className="line-clamp-2 text-[11px] text-muted-foreground">{item.description}</p> : null}
+                                  {item.description ? <p className="line-clamp-1 text-[11px] text-muted-foreground">{item.description}</p> : null}
                                   <div className="grid grid-cols-1 gap-1 text-[11px] text-muted-foreground">
                                     <p className="inline-flex items-center gap-1">
                                       <Package className="h-3.5 w-3.5" /> Quantity: {item.quantity || 1}
@@ -1578,42 +1611,43 @@ export function OwnerTabs({
                           })}
                         </div>
                       ) : (
-                        <p className="text-sm text-muted-foreground">No item details.</p>
+                        <p className="border-t p-3 text-xs text-muted-foreground">No item details.</p>
                       )}
-                    </div>
-                    <div className="space-y-3">
-                      <p className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                        <FileText className="h-3 w-3" /> Requirements (including billing address)
-                      </p>
+                    </details>
+                    <details className="rounded-xl border bg-white">
+                      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2 text-xs font-black uppercase text-muted-foreground [&::-webkit-details-marker]:hidden">
+                        <span className="inline-flex items-center gap-1"><FileText className="h-3 w-3" /> Requirements</span>
+                        <span className="rounded-full bg-muted px-2 py-0.5">{docs.length} file(s)</span>
+                      </summary>
                       {docs.length ? (
-                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                        <div className="grid grid-cols-2 gap-2 border-t p-2 sm:grid-cols-3 lg:grid-cols-4">
                         {docs.map((doc, index) => {
                           const isImage = /\.(png|jpg|jpeg|webp|gif)$/i.test(doc.url);
                           return (
-                            <div key={`${transaction.id}-${doc.type}-${index}`} className="rounded-xl border bg-muted/20 p-3">
-                              <p className="mb-2 line-clamp-1 text-[11px] font-semibold text-muted-foreground">{doc.type}</p>
+                            <div key={`${transaction.id}-${doc.type}-${index}`} className="rounded-xl border bg-muted/20 p-2">
+                              <p className="mb-1 line-clamp-1 text-[10px] font-semibold text-muted-foreground">{doc.type}</p>
                               {isImage ? (
                                 <div className="space-y-2">
-                                  <button type="button" className="h-100 w-full overflow-hidden rounded-lg border" onClick={() => window.open(doc.url, '_blank', 'noopener,noreferrer')}>
+                                  <button type="button" className="h-20 w-full overflow-hidden rounded-lg border sm:h-24" onClick={() => window.open(doc.url, '_blank', 'noopener,noreferrer')}>
                                     <img src={doc.url} alt={doc.type} className="h-full w-full object-cover" />
                                   </button>
-                                  <div className="grid grid-cols-2 gap-2">
-                                    <a href={doc.url} target="_blank" rel="noreferrer" className="flex items-center justify-center rounded border px-2 py-1.5 text-[10px] font-semibold">
+                                  <div className="grid grid-cols-2 gap-1">
+                                    <a href={doc.url} target="_blank" rel="noreferrer" className="flex items-center justify-center rounded border px-1 py-1 text-[10px] font-semibold">
                                       <ExternalLink className="mr-1 h-3 w-3" /> View
                                     </a>
-                                    <button type="button" onClick={() => downloadFile(doc.url, `${doc.type}.jpg`)} className="flex items-center justify-center rounded border px-2 py-1.5 text-[10px] font-semibold">
-                                      <Download className="mr-1 h-3 w-3" /> Download
+                                    <button type="button" onClick={() => downloadFile(doc.url, `${doc.type}.jpg`)} className="flex items-center justify-center rounded border px-1 py-1 text-[10px] font-semibold">
+                                      <Download className="mr-1 h-3 w-3" /> Save
                                     </button>
                                   </div>
                                 </div>
                               ) : (
-                                <div className="flex h-24 flex-col items-center justify-center rounded-lg border bg-white text-center">
+                                <div className="flex h-20 flex-col items-center justify-center rounded-lg border bg-white text-center">
                                   <FileText className="mb-1 h-4 w-4 text-slate-600" />
                                   <span className="px-1 text-[10px] font-semibold text-slate-700">{doc.type}</span>
                                 </div>
                               )}
                               {!isImage && (
-                                <div className="mt-2 grid grid-cols-2 gap-2">
+                                <div className="mt-2 grid grid-cols-2 gap-1">
                                   <button
                                     type="button"
                                     onClick={async () => {
@@ -1627,12 +1661,12 @@ export function OwnerTabs({
                                         setFileLoading(false);
                                       }
                                   }}
-                                    className="flex items-center justify-center rounded border px-2 py-1.5 text-[10px] font-semibold"
+                                    className="flex items-center justify-center rounded border px-1 py-1 text-[10px] font-semibold"
                                   >
                                     <ExternalLink className="mr-1 h-3 w-3" /> View
                                   </button>
-                                  <button type="button" onClick={() => downloadFile(doc.url, `${doc.type}.pdf`)} className="flex items-center justify-center rounded border px-2 py-1.5 text-[10px] font-semibold">
-                                    <Download className="mr-1 h-3 w-3" /> Download
+                                  <button type="button" onClick={() => downloadFile(doc.url, `${doc.type}.pdf`)} className="flex items-center justify-center rounded border px-1 py-1 text-[10px] font-semibold">
+                                    <Download className="mr-1 h-3 w-3" /> Save
                                   </button>
                                 </div>
                               )}
@@ -1641,9 +1675,18 @@ export function OwnerTabs({
                         })}
                         </div>
                       ) : (
-                        <p className="text-sm text-muted-foreground">No requirement files.</p>
+                        <p className="border-t p-3 text-xs text-muted-foreground">No requirement files.</p>
                       )}
-                    </div>
+                    </details>
+                    <details className="rounded-xl border bg-white">
+                      <summary className="cursor-pointer list-none px-3 py-2 text-xs font-black uppercase text-muted-foreground [&::-webkit-details-marker]:hidden">Contact & Delivery Details</summary>
+                      <div className="grid gap-2 border-t p-3 text-xs text-muted-foreground sm:grid-cols-2">
+                        <p><span className="font-bold text-slate-700">Emergency:</span> {transaction.renter_emergency_contact_name || '-'} {transaction.renter_emergency_contact ? `(${transaction.renter_emergency_contact})` : ''}</p>
+                        <p><span className="font-bold text-slate-700">Delivery address:</span> {transaction.delivery_address || '-'}</p>
+                        <p><span className="font-bold text-slate-700">Branch address:</span> {transaction.store_branch_address || '-'}</p>
+                        <p><span className="font-bold text-slate-700">Rent period:</span> {transaction.start_date ? format(parseISO(transaction.start_date), 'MMM dd, yyyy') : '-'} to {transaction.end_date ? format(parseISO(transaction.end_date), 'MMM dd, yyyy') : '-'}</p>
+                      </div>
+                    </details>
                   </div>
                 </Card>
               );
@@ -1725,90 +1768,130 @@ export function OwnerTabs({
 
       {activeTab === 'inventory' && (
         <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <h1 className="text-3xl font-bold">Inventory</h1>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={onExportInventory}>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h1 className="text-3xl font-bold">Inventory</h1>
+              <p className="text-sm text-muted-foreground">Search, update availability, and manage gear without side-scrolling.</p>
+            </div>
+            <div className="grid grid-cols-2 gap-2 sm:flex">
+              <Button variant="outline" className="w-full sm:w-auto" onClick={onExportInventory}>
                 <Download className="mr-2 h-4 w-4" /> Export Excel
               </Button>
-              <Button onClick={onOpenCreateEditor} className="h-10 rounded-full px-5">
+              <Button onClick={onOpenCreateEditor} className="h-10 w-full rounded-full px-5 sm:w-auto">
                 Add New Gear
               </Button>
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-2">
+          <div className="grid grid-cols-1 gap-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+            <Input
+              value={inventorySearch}
+              onChange={(event) => setInventorySearch(event.target.value)}
+              placeholder="Search by gear, category, brand, or price..."
+              className="h-11 rounded-xl bg-slate-50"
+            />
+            <div className="grid grid-cols-3 gap-2 text-center text-xs">
+              <div className="rounded-xl bg-emerald-50 px-3 py-2 text-emerald-700">
+                <p className="font-black">{inventoryStats.available}</p>
+                <p className="font-semibold">Ready</p>
+              </div>
+              <div className="rounded-xl bg-amber-50 px-3 py-2 text-amber-700">
+                <p className="font-black">{inventoryStats.lowStock}</p>
+                <p className="font-semibold">Low Stock</p>
+              </div>
+              <div className="rounded-xl bg-slate-100 px-3 py-2 text-slate-700">
+                <p className="font-black">{inventoryStats.hidden}</p>
+                <p className="font-semibold">Hidden</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {categories.map((category) => (
-              <Button key={category} size="sm" variant={categoryFilter === category ? 'secondary' : 'outline'} onClick={() => onChangeCategoryFilter(category)}>
+              <Button key={category} size="sm" className="shrink-0 rounded-full" variant={categoryFilter === category ? 'secondary' : 'outline'} onClick={() => onChangeCategoryFilter(category)}>
                 {category === 'all' ? 'All Gear' : category}
               </Button>
             ))}
           </div>
 
-          <Card className="i3d-card overflow-hidden">
-            <div className="owner-mobile-table-scroll overflow-x-auto">
-              <table className="w-full min-w-[42rem] border-collapse text-left">
-                <thead className="bg-muted/50">
-                  <tr>
-                    <th className="p-4 text-sm font-semibold">Item</th>
-                    <th className="p-4 text-sm font-semibold">Category</th>
-                    <th className="p-4 text-sm font-semibold">Brand</th>
-                    <th className="p-4 text-sm font-semibold">Price</th>
-                    <th className="p-4 text-sm font-semibold">Stock</th>
-                    <th className="p-4 text-sm font-semibold">Status</th>
-                    <th className="p-4 text-right text-sm font-semibold">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredInventory.map((item) => (
-                    <tr key={item.id} className="border-t transition-colors hover:bg-muted/30">
-                      <td className="p-4">
-                        <div className="flex items-center gap-3">
-                          <div className="h-12 w-12 overflow-hidden rounded border bg-muted">
-                            <img src={item.image_url || `https://picsum.photos/seed/item-${item.id}/100/100`} alt="" className="h-full w-full object-cover" />
-                          </div>
-                          <div>
-                            <p className="font-medium">{item.name}</p>
-                            <p className="line-clamp-1 text-xs text-muted-foreground">{item.description}</p>
-                          </div>
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-2 xl:grid-cols-3">
+            {visibleInventory.map((item) => {
+              const stock = Math.max(0, item.stock || 0);
+              const published = item.is_available !== false;
+              const statusLabel = !published ? 'Hidden' : stock <= 0 ? 'No stock' : stock <= 2 ? 'Low stock' : 'Ready';
+              const statusClass = !published
+                ? 'bg-slate-100 text-slate-700'
+                : stock <= 0
+                  ? 'bg-rose-100 text-rose-700'
+                  : stock <= 2
+                    ? 'bg-amber-100 text-amber-700'
+                    : 'bg-emerald-100 text-emerald-700';
+              return (
+                <Card key={item.id} className="i3d-card overflow-hidden rounded-2xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
+                  <div className="grid grid-cols-[4.5rem,1fr] gap-3 sm:grid-cols-[5.25rem,1fr]">
+                    <div className="h-[4.5rem] w-[4.5rem] overflow-hidden rounded-xl border bg-muted sm:h-[5.25rem] sm:w-[5.25rem]">
+                      <img src={item.image_url || `https://picsum.photos/seed/item-${item.id}/160/160`} alt={item.name} className="h-full w-full object-cover" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="line-clamp-1 font-black text-slate-900">{item.name}</p>
+                          <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{item.description || 'No description provided.'}</p>
                         </div>
-                      </td>
-                      <td className="p-4">{item.category}</td>
-                      <td className="p-4">{item.brand || 'Others'}</td>
-                      <td className="p-4">{formatPHP(item.daily_price)}</td>
-                      <td className="p-4">{Math.max(0, item.stock || 0)}</td>
-                      <td className="p-4">
-                        <button
-                          type="button"
-                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${item.is_available !== false ? 'bg-emerald-500' : 'bg-slate-300'}`}
-                          onClick={() => onToggleItemAvailability(item.id, !(item.is_available !== false))}
-                          aria-label={`Toggle ${item.name} availability`}
-                        >
-                          <span
-                            className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${item.is_available !== false ? 'translate-x-5' : 'translate-x-0.5'}`}
-                          />
-                        </button>
-                        <p className="mt-1 text-xs text-muted-foreground">{item.is_available !== false}</p>
-                      </td>
-                      <td className="space-x-2 p-4 text-right">
-                        <Button variant="ghost" size="sm" onClick={() => onOpenBlockModal(item)}>
-                          Block Dates
-                        </Button>
-                        <Button variant="ghost" size="sm" onClick={() => onOpenEditEditor(item)}>
-                          Edit
-                        </Button>
-                        <Button variant="ghost" size="sm" className="text-destructive" onClick={() => onDeleteItem(item)}>
-                          Delete
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </Card>
-          {!filteredInventory.length ? (
-            <EmptyState title="No Inventory Data" message="Inventory data is not available as of the moment. Please try again later." />
+                        <span className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-black uppercase ${statusClass}`}>{statusLabel}</span>
+                      </div>
+                      <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
+                        <div className="rounded-lg bg-slate-50 p-2">
+                          <p className="font-black text-slate-900">{formatPHP(item.daily_price)}</p>
+                          <p className="text-[10px] font-semibold text-muted-foreground">Daily</p>
+                        </div>
+                        <div className="rounded-lg bg-slate-50 p-2">
+                          <p className="font-black text-slate-900">{stock}</p>
+                          <p className="text-[10px] font-semibold text-muted-foreground">Stock</p>
+                        </div>
+                        <div className="rounded-lg bg-slate-50 p-2">
+                          <p className="truncate font-black text-slate-900">{item.brand || 'Others'}</p>
+                          <p className="text-[10px] font-semibold text-muted-foreground">Brand</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                    <div className="min-w-0">
+                      <p className="text-xs font-black text-slate-900">{item.category || 'Uncategorized'}</p>
+                      <p className="text-[10px] font-semibold text-muted-foreground">{published ? 'Visible to customers' : 'Hidden from customers'}</p>
+                    </div>
+                    <button
+                      type="button"
+                      className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors ${published ? 'bg-emerald-500' : 'bg-slate-300'}`}
+                      onClick={() => onToggleItemAvailability(item.id, !published)}
+                      aria-label={`Toggle ${item.name} availability`}
+                    >
+                      <span className={`inline-block h-6 w-6 transform rounded-full bg-white shadow transition-transform ${published ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                    </button>
+                  </div>
+
+                  <div className="mt-3 grid grid-cols-3 gap-2">
+                    <Button variant="outline" size="sm" className="h-9 rounded-xl px-2" onClick={() => onOpenBlockModal(item)}>
+                      <CalendarRange className="mr-1 h-3.5 w-3.5" /> Block
+                    </Button>
+                    <Button variant="outline" size="sm" className="h-9 rounded-xl px-2" onClick={() => onOpenEditEditor(item)}>
+                      <Pencil className="mr-1 h-3.5 w-3.5" /> Edit
+                    </Button>
+                    <Button variant="outline" size="sm" className="h-9 rounded-xl px-2 text-destructive hover:text-destructive" onClick={() => onDeleteItem(item)}>
+                      <Trash2 className="mr-1 h-3.5 w-3.5" /> Delete
+                    </Button>
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+          {!visibleInventory.length ? (
+            <EmptyState
+              title={filteredInventory.length ? 'No Matching Gear' : 'No Inventory Data'}
+              message={filteredInventory.length ? 'Try another search term or switch category filters.' : 'Inventory data is not available as of the moment. Please try again later.'}
+            />
           ) : null}
         </div>
       )}
@@ -2035,102 +2118,121 @@ export function OwnerTabs({
               </div>
             </Card>
           )}
-          <Card className="i3d-card overflow-hidden">
-            <div className="owner-mobile-table-scroll overflow-x-auto">
-              <table className="w-full min-w-[42rem] border-collapse text-left">
-                <thead className="bg-muted/50">
-                  <tr>
-                    <th className="p-4 text-sm font-semibold">Reported Person</th>
-                    <th className="p-4 text-sm font-semibold">Contact Info</th>
-                    <th className="p-4 text-sm font-semibold">Reason</th>
-                    <th className="p-4 text-sm font-semibold">Scope</th>
-                    <th className="p-4 text-sm font-semibold">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {pagedFraudEntries.map((entry) => (
-                    <tr key={entry.id} className="border-t transition-colors hover:bg-muted/30">
-                      <td className="p-4">
-                        <p className="font-medium">{entry.full_name}</p>
-                      </td>
-                      <td className="p-4">
-                        <p className="text-sm">{entry.email}</p>
-                        <p className="text-xs text-muted-foreground">{entry.contact_number}</p>
-                      </td>
-                      <td className="p-4">
-                        <p className="text-sm">{entry.reason}</p>
-                        {entry.evidence_image_url ? (
-                          <div className="mt-2">
-                            <p className="mb-1 text-xs font-semibold text-muted-foreground">Evidence</p>
-                            <button type="button" className="h-24 w-24 overflow-hidden rounded border" onClick={() => window.open(entry.evidence_image_url || '', '_blank', 'noopener,noreferrer')}>
-                              <img src={entry.evidence_image_url} alt="Evidence" className="h-full w-full object-cover" />
-                            </button>
-                          </div>
-                        ) : null}
-                        {(entry.requirement_files || []).length ? (
-                          <div className="mt-2 grid grid-cols-2 gap-2">
-                            {(entry.requirement_files || []).map((file, index) => (
-                              /\.(png|jpg|jpeg|webp|gif)$/i.test(file.url) ? (
-                                <button
-                                  key={`${entry.id}-req-${index}`}
-                                  type="button"
-                                  className="overflow-hidden rounded border bg-white"
-                                  onClick={() => window.open(file.url, '_blank', 'noopener,noreferrer')}
-                                >
-                                  <img src={file.url} alt={file.type || `Requirement ${index + 1}`} className="h-20 w-full object-cover" />
-                                  <p className="truncate px-1 py-1 text-[10px] font-semibold">{file.type || `Requirement ${index + 1}`}</p>
-                                </button>
-                              ) : (
-                                <div key={`${entry.id}-req-${index}`} className="rounded border bg-white p-2">
-                                  <div className="mb-2 flex items-center gap-1 text-[10px] font-semibold">
-                                    <FileText className="h-3 w-3" /> {file.type || `Requirement ${index + 1}`}
-                                  </div>
-                                  <div className="grid grid-cols-2 gap-1">
-                                    <button
-                                      type="button"
-                                      className="inline-flex items-center justify-center gap-1 rounded border px-1 py-1 text-[10px] font-semibold"
-                                      onClick={async () => {
-                                        try {
-                                          const access = await resolveFileAccess(file.url);
-                                          window.open(access.view_url, '_blank', 'noopener,noreferrer');
-                                        } catch (error: any) {
-                                          setOwnerNotice({ type: 'error', message: error?.message || 'Failed to preview file' });
-                                        }
-                                      }}
-                                    >
-                                      <ExternalLink className="h-3 w-3" /> View
-                                    </button>
-                                    <button
-                                      type="button"
-                                      className="inline-flex items-center justify-center gap-1 rounded border px-1 py-1 text-[10px] font-semibold"
-                                      onClick={() => downloadFile(file.url, `${file.type || `requirement-${index + 1}`}.pdf`)}
-                                    >
-                                      <Download className="h-3 w-3" /> Save
-                                    </button>
-                                  </div>
-                                </div>
-                              )
-                            ))}
-                          </div>
-                        ) : null}
-                      </td>
-                      <td className="p-4">
-                        {entry.scope === 'global' ? (
-                          <span className="flex w-fit items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold uppercase text-red-700">
-                            <Globe className="h-2 w-2" /> Global
-                          </span>
-                        ) : (
-                          <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-bold uppercase text-blue-700">Internal</span>
-                        )}
-                      </td>
-                      <td className="p-4 text-sm">{entry.status || 'approved'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          <div className="grid grid-cols-1 gap-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
+            <Input
+              value={fraudSearch}
+              onChange={(event) => setFraudSearch(event.target.value)}
+              placeholder="Search by name, email, phone, reason, or status..."
+              className="h-11 rounded-xl bg-slate-50"
+            />
+            <div className="rounded-xl bg-slate-100 px-3 py-2 text-center text-xs font-bold text-slate-700">
+              {filteredFraudEntries.length} record{filteredFraudEntries.length === 1 ? '' : 's'}
             </div>
-            <PaginationControls page={fraudPage} totalPages={fraudTotalPages} totalItems={ownerFraudEntries.length} pageSize={ownerPageSize} onPageChange={setFraudPage} />
-          </Card>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+            {pagedFraudEntries.map((entry) => {
+              const global = entry.scope === 'global';
+              const pending = entry.status === 'pending';
+              return (
+                <article key={entry.id} className="i3d-card rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="line-clamp-1 text-lg font-black text-slate-900">{entry.full_name}</p>
+                      <div className="mt-1 flex flex-wrap gap-2">
+                        <span className={cn('inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-black uppercase', global ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700')}>
+                          {global ? <Globe className="h-3 w-3" /> : <ShieldAlert className="h-3 w-3" />}
+                          {global ? 'Global' : 'Internal'}
+                        </span>
+                        <span className={cn('rounded-full px-2 py-1 text-[10px] font-black uppercase', pending ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700')}>
+                          {entry.status || 'approved'}
+                        </span>
+                      </div>
+                    </div>
+                    <Ban className="h-5 w-5 shrink-0 text-rose-500" />
+                  </div>
+
+                  <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    <div className="rounded-xl bg-slate-50 p-3">
+                      <p className="text-[10px] font-black uppercase text-muted-foreground">Email</p>
+                      <p className="mt-1 break-words text-sm font-semibold text-slate-900">{entry.email || '-'}</p>
+                    </div>
+                    <div className="rounded-xl bg-slate-50 p-3">
+                      <p className="text-[10px] font-black uppercase text-muted-foreground">Phone</p>
+                      <p className="mt-1 text-sm font-semibold text-slate-900">{entry.contact_number || '-'}</p>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                    <p className="text-[10px] font-black uppercase text-muted-foreground">Reason</p>
+                    <p className="mt-1 text-sm leading-relaxed text-slate-800">{entry.reason || 'No reason provided.'}</p>
+                  </div>
+
+                  {entry.evidence_image_url || (entry.requirement_files || []).length ? (
+                    <div className="mt-3 space-y-2">
+                      <p className="text-[10px] font-black uppercase text-muted-foreground">Evidence</p>
+                      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                        {entry.evidence_image_url ? (
+                          <button type="button" className="overflow-hidden rounded-xl border bg-white text-left" onClick={() => window.open(entry.evidence_image_url || '', '_blank', 'noopener,noreferrer')}>
+                            <img src={entry.evidence_image_url} alt="Evidence" className="h-24 w-full object-cover" />
+                            <p className="truncate px-2 py-1.5 text-[10px] font-bold text-slate-700">Photo evidence</p>
+                          </button>
+                        ) : null}
+                        {(entry.requirement_files || []).map((file, index) =>
+                          /\.(png|jpg|jpeg|webp|gif)$/i.test(file.url) ? (
+                            <button
+                              key={`${entry.id}-req-${index}`}
+                              type="button"
+                              className="overflow-hidden rounded-xl border bg-white text-left"
+                              onClick={() => window.open(file.url, '_blank', 'noopener,noreferrer')}
+                            >
+                              <img src={file.url} alt={file.type || `Requirement ${index + 1}`} className="h-24 w-full object-cover" />
+                              <p className="truncate px-2 py-1.5 text-[10px] font-bold text-slate-700">{file.type || `Requirement ${index + 1}`}</p>
+                            </button>
+                          ) : (
+                            <div key={`${entry.id}-req-${index}`} className="rounded-xl border bg-white p-2">
+                              <div className="mb-2 flex items-center gap-1 text-[10px] font-bold text-slate-700">
+                                <FileText className="h-3 w-3" /> <span className="truncate">{file.type || `Requirement ${index + 1}`}</span>
+                              </div>
+                              <div className="grid grid-cols-2 gap-1">
+                                <button
+                                  type="button"
+                                  className="inline-flex items-center justify-center gap-1 rounded-lg border px-1 py-1.5 text-[10px] font-bold"
+                                  onClick={async () => {
+                                    try {
+                                      const access = await resolveFileAccess(file.url);
+                                      window.open(access.view_url, '_blank', 'noopener,noreferrer');
+                                    } catch (error: any) {
+                                      setOwnerNotice({ type: 'error', message: error?.message || 'Failed to preview file' });
+                                    }
+                                  }}
+                                >
+                                  <ExternalLink className="h-3 w-3" /> View
+                                </button>
+                                <button
+                                  type="button"
+                                  className="inline-flex items-center justify-center gap-1 rounded-lg border px-1 py-1.5 text-[10px] font-bold"
+                                  onClick={() => downloadFile(file.url, `${file.type || `requirement-${index + 1}`}.pdf`)}
+                                >
+                                  <Download className="h-3 w-3" /> Save
+                                </button>
+                              </div>
+                            </div>
+                          ),
+                        )}
+                      </div>
+                    </div>
+                  ) : null}
+                </article>
+              );
+            })}
+          </div>
+          {!filteredFraudEntries.length ? (
+            <EmptyState title="No Fraud Records" message="No fraud records match the current search." />
+          ) : null}
+          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <PaginationControls page={fraudPage} totalPages={fraudTotalPages} totalItems={filteredFraudEntries.length} pageSize={ownerPageSize} onPageChange={setFraudPage} />
+          </div>
         </div>
       )}
 

@@ -144,18 +144,18 @@ export function AccountPage({ onNavigate }: AccountPageProps) {
   );
 
   return (
-    <div className="container mx-auto px-4 py-12">
-      <div className="mb-8 flex items-center gap-4">
-        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-          <User className="h-8 w-8 text-primary" />
+    <div className="container mx-auto px-3 py-6 sm:px-4 sm:py-10">
+      <div className="mb-5 flex items-center gap-3 sm:mb-8 sm:gap-4">
+        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 sm:h-16 sm:w-16">
+          <User className="h-6 w-6 text-primary sm:h-8 sm:w-8" />
         </div>
         <div>
-          <h1 className="text-3xl font-bold">My Account</h1>
-          <p className="text-muted-foreground">Manage your rentals and order history.</p>
+          <h1 className="text-2xl font-bold sm:text-3xl">My Account</h1>
+          <p className="text-sm text-muted-foreground">Manage rentals and history.</p>
         </div>
       </div>
 
-      <Card className="mb-8 space-y-4 p-4">
+      <Card className="mb-5 space-y-3 rounded-2xl p-3 sm:mb-8 sm:space-y-4 sm:p-4">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-bold">Profile</h2>
           <Button
@@ -248,7 +248,7 @@ export function AccountPage({ onNavigate }: AccountPageProps) {
         </div>
       </Card>
 
-      <div className="mb-12 grid grid-cols-2 gap-4 md:grid-cols-5">
+      <div className="mb-5 grid grid-cols-2 gap-2 sm:mb-8 sm:gap-4 md:grid-cols-5">
         {[
           { label: 'Total Rentals', value: stats.total, icon: Package },
           { label: 'Active', value: stats.active, icon: Clock },
@@ -256,48 +256,52 @@ export function AccountPage({ onNavigate }: AccountPageProps) {
           { label: 'Completed', value: stats.completed, icon: CheckCircle2 },
           { label: 'Cancelled', value: stats.cancelled, icon: Ban },
         ].map((stat) => (
-          <Card key={stat.label} className="p-4 text-center">
-            <stat.icon className="mx-auto mb-2 h-5 w-5 text-muted-foreground" />
-            <p className="text-2xl font-bold">{stat.value}</p>
-            <p className="text-xs uppercase tracking-wider text-muted-foreground">{stat.label}</p>
+          <Card key={stat.label} className="rounded-2xl p-2.5 text-center sm:p-4">
+            <stat.icon className="mx-auto mb-1 h-4 w-4 text-muted-foreground sm:mb-2 sm:h-5 sm:w-5" />
+            <p className="text-xl font-black sm:text-2xl">{stat.value}</p>
+            <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground sm:text-xs">{stat.label}</p>
           </Card>
         ))}
       </div>
 
-      <h2 className="mb-6 flex items-center gap-2 text-xl font-bold">
+      <h2 className="mb-3 flex items-center gap-2 text-lg font-bold sm:mb-6 sm:text-xl">
         <History className="h-5 w-5" /> Order History
       </h2>
 
-      <Card className="mb-8 p-4">
-        <h3 className="mb-3 text-lg font-bold">Rental Calendar (Period View)</h3>
-        <PeriodCalendar periods={calendarPeriods} />
-      </Card>
+      <details className="mb-5 overflow-hidden rounded-2xl border bg-card text-card-foreground shadow sm:mb-8">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-3 text-sm font-black text-slate-900 [&::-webkit-details-marker]:hidden sm:px-4">
+          Rental Calendar
+          <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold text-muted-foreground">{calendarPeriods.length} period(s)</span>
+        </summary>
+        <div className="border-t p-3 sm:p-4">
+          <PeriodCalendar periods={calendarPeriods} />
+        </div>
+      </details>
 
-      <div className="space-y-6">
+      <div className="space-y-3 sm:space-y-5">
         {orders.map((order) => (
-          <Card key={order.id} className="overflow-hidden">
-            <div className="flex flex-wrap items-center justify-between gap-4 border-b bg-muted/30 p-4">
-              <div className="flex items-center gap-6">
+          <Card key={order.id} className="overflow-hidden rounded-2xl">
+            <div className="grid grid-cols-1 gap-3 border-b bg-muted/30 p-3 sm:p-4 md:grid-cols-[1fr_auto] md:items-center">
+              <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center sm:gap-6">
                 <div>
                   <p className="text-xs font-bold uppercase text-muted-foreground">Order ID</p>
-                  <p className="font-mono text-sm">#{order.id}</p>
+                  <p className="truncate font-mono text-xs sm:text-sm">#{order.id.slice(0, 10)}</p>
                 </div>
                 <div>
                   <p className="text-xs font-bold uppercase text-muted-foreground">Date</p>
-                  <p className="text-sm">{format(parseISO(order.created_at), 'MMM dd, yyyy')}</p>
+                  <p className="text-xs sm:text-sm">{format(parseISO(order.created_at), 'MMM dd, yyyy')}</p>
                 </div>
                 <div>
                   <p className="text-xs font-bold uppercase text-muted-foreground">Store</p>
-                  <p className="text-sm font-medium">{order.store_name}</p>
+                  <p className="line-clamp-1 text-xs font-medium sm:text-sm">{order.store_name}</p>
                 </div>
                 <div>
                   <p className="text-xs font-bold uppercase text-muted-foreground">Branch</p>
-                  <p className="text-sm font-medium">{order.store_branch_name || 'Main Branch'}</p>
-                  <p className="text-xs text-muted-foreground">{order.store_branch_address || 'No branch address provided'}</p>
+                  <p className="line-clamp-1 text-xs font-medium sm:text-sm">{order.store_branch_name || 'Main Branch'}</p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="flex items-center justify-between gap-2 md:justify-end">
                 <span
                   className={cn(
                     'rounded-full px-3 py-1 text-[10px] font-bold uppercase',
@@ -313,21 +317,26 @@ export function AccountPage({ onNavigate }: AccountPageProps) {
                   {order.status.replace(/_/g, ' ')}
                 </span>
                 <Button variant="outline" size="sm" onClick={() => setSelectedOrder(order)}>
-                  View Details
+                  Details
                 </Button>
               </div>
             </div>
 
-            <div className="p-4">
-              <div className="space-y-4">
+            <div className="space-y-3 p-3 sm:p-4">
+              <details className="rounded-xl border bg-muted/20" open={order.items.length <= 1}>
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2 text-xs font-black uppercase text-muted-foreground [&::-webkit-details-marker]:hidden">
+                  Rented Items
+                  <span className="rounded-full bg-white px-2 py-0.5">{order.items.length}</span>
+                </summary>
+                <div className="space-y-2 border-t p-2">
                 {order.items.map((item) => (
-                  <div key={item.id} className="flex items-center gap-4">
-                    <div className="h-12 w-12 overflow-hidden rounded border bg-muted">
+                  <div key={item.id} className="flex items-center gap-3 rounded-xl bg-white p-2">
+                    <div className="h-10 w-10 shrink-0 overflow-hidden rounded border bg-muted sm:h-12 sm:w-12">
                       <img src={item.image_url || `https://picsum.photos/seed/item-${item.id}/100/100`} alt="" className="h-full w-full object-cover" />
                     </div>
-                    <div className="flex-1">
+                    <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium">{item.name}</p>
-                      {item.description ? <p className="line-clamp-2 text-xs text-muted-foreground">{item.description}</p> : null}
+                      {item.description ? <p className="line-clamp-1 text-xs text-muted-foreground">{item.description}</p> : null}
                       <p className="text-xs text-muted-foreground">
                         {item.start_date} to {item.end_date}
                       </p>
@@ -339,10 +348,11 @@ export function AccountPage({ onNavigate }: AccountPageProps) {
                     </div>
                   </div>
                 ))}
-              </div>
+                </div>
+              </details>
 
-              <div className="mt-6 flex items-center justify-between border-t pt-4">
-                <div className="flex gap-4">
+              <div className="flex flex-col gap-3 border-t pt-3 sm:flex-row sm:items-center sm:justify-between sm:pt-4">
+                <div className="flex flex-wrap gap-2">
                   {order.lease_agreement_submission_url ? (
                     <Button
                       variant="ghost"
@@ -437,9 +447,9 @@ export function AccountPage({ onNavigate }: AccountPageProps) {
                   )}
                 </div>
 
-                <div className="text-right">
+                <div className="text-left sm:text-right">
                   <p className="text-xs text-muted-foreground">Total Paid</p>
-                  <p className="text-xl font-bold">{formatPHP(order.total_amount)}</p>
+                  <p className="text-lg font-black sm:text-xl">{formatPHP(order.total_amount)}</p>
                 </div>
               </div>
             </div>
@@ -456,15 +466,15 @@ export function AccountPage({ onNavigate }: AccountPageProps) {
       {selectedOrder && (
         <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 sm:p-6" onClick={() => setSelectedOrder(null)}>
           <div 
-            className="i3d-modal max-h-[90vh] w-full max-w-4xl overflow-auto rounded-[2rem] bg-[var(--tone-surface)] p-6 sm:p-8 text-[var(--tone-text)] shadow-2xl border border-white/40 custom-scrollbar"
+            className="i3d-modal max-h-[90vh] w-full max-w-4xl overflow-auto rounded-2xl bg-[var(--tone-surface)] p-4 text-[var(--tone-text)] shadow-2xl border border-white/40 custom-scrollbar sm:p-6"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-[var(--tone-accent)]/20 pb-4">
+            <div className="mb-4 flex flex-col gap-3 border-b border-[var(--tone-accent)]/20 pb-3 sm:mb-6 sm:flex-row sm:items-center sm:justify-between sm:pb-4">
               <div>
-                <h3 className="text-2xl font-black tracking-tight text-[var(--tone-text)]">Transaction Details</h3>
-                <p className="mt-1 font-mono text-sm text-[var(--tone-text-muted)]">Order #{selectedOrder.id}</p>
+                <h3 className="text-xl font-black tracking-tight text-[var(--tone-text)] sm:text-2xl">Transaction Details</h3>
+                <p className="mt-1 font-mono text-xs text-[var(--tone-text-muted)] sm:text-sm">Order #{selectedOrder.id}</p>
               </div>
-              <div className="flex items-center gap-4">
+              <div className="flex items-center justify-between gap-3 sm:justify-end sm:gap-4">
                 <span
                   className={cn(
                     'rounded-full px-4 py-1.5 text-xs font-black uppercase tracking-wider',
@@ -485,8 +495,8 @@ export function AccountPage({ onNavigate }: AccountPageProps) {
               </div>
             </div>
             
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 mb-8">
-              <div className="rounded-3xl border border-white/60 bg-white/40 p-5 shadow-sm backdrop-blur-sm">
+            <div className="mb-5 grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3 sm:mb-8 sm:gap-4">
+              <div className="rounded-2xl border border-white/60 bg-white/40 p-3 shadow-sm backdrop-blur-sm sm:p-5">
                 <p className="text-[10px] font-black uppercase tracking-widest text-[var(--tone-text-muted)] mb-2">Facility & Fulfillment</p>
                 <p className="text-base font-bold text-[var(--tone-text)]">{selectedOrder.store_name}</p>
                 <p className="text-xs font-medium text-[var(--tone-text-muted)] mt-1">{selectedOrder.store_branch_name || 'Main Branch'}</p>
@@ -502,7 +512,7 @@ export function AccountPage({ onNavigate }: AccountPageProps) {
                 </div>
               </div>
 
-              <div className="rounded-3xl border border-white/60 bg-white/40 p-5 shadow-sm backdrop-blur-sm">
+              <div className="rounded-2xl border border-white/60 bg-white/40 p-3 shadow-sm backdrop-blur-sm sm:p-5">
                 <p className="text-[10px] font-black uppercase tracking-widest text-[var(--tone-text-muted)] mb-2">Customer Info</p>
                 <p className="text-base font-bold text-[var(--tone-text)]">{selectedOrder.renter_name || '-'}</p>
                 <p className="text-xs text-[var(--tone-text-muted)] mt-1">{selectedOrder.renter_email}</p>
@@ -513,21 +523,21 @@ export function AccountPage({ onNavigate }: AccountPageProps) {
                 </div>
               </div>
 
-              <div className="rounded-3xl border border-white/60 bg-white/40 p-5 shadow-sm backdrop-blur-sm lg:col-span-1 md:col-span-2">
+              <div className="rounded-2xl border border-white/60 bg-white/40 p-3 shadow-sm backdrop-blur-sm md:col-span-2 lg:col-span-1 sm:p-5">
                 <p className="text-[10px] font-black uppercase tracking-widest text-[var(--tone-text-muted)] mb-2">Emergency Contact</p>
                 <p className="text-base font-bold text-[var(--tone-text)]">{selectedOrder.renter_emergency_contact_name || '-'}</p>
                 <p className="text-sm font-medium text-[var(--tone-text-muted)] mt-1">{selectedOrder.renter_emergency_contact || '-'}</p>
               </div>
             </div>
 
-            <div className="mb-8">
-              <h4 className="mb-4 flex items-center gap-2 text-sm font-black uppercase tracking-widest text-[var(--tone-text-muted)]">
+            <div className="mb-5 sm:mb-8">
+              <h4 className="mb-3 flex items-center gap-2 text-xs font-black uppercase tracking-widest text-[var(--tone-text-muted)] sm:mb-4 sm:text-sm">
                 <Package className="h-4 w-4" /> Rented Equipment ({selectedOrder.items.length})
               </h4>
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 {selectedOrder.items.map((item) => (
-                  <div key={`${selectedOrder.id}-${item.id}-${item.start_date}`} className="group flex items-center gap-4 rounded-2xl border border-white/60 bg-white/40 p-3 shadow-sm transition-all hover:bg-white/60">
-                    <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-white/50 bg-[var(--tone-bg)] shadow-inner">
+                  <div key={`${selectedOrder.id}-${item.id}-${item.start_date}`} className="group flex items-center gap-3 rounded-2xl border border-white/60 bg-white/40 p-2.5 shadow-sm transition-all hover:bg-white/60 sm:gap-4 sm:p-3">
+                    <div className="h-12 w-12 shrink-0 overflow-hidden rounded-xl border border-white/50 bg-[var(--tone-bg)] shadow-inner sm:h-16 sm:w-16">
                       <img src={item.image_url || `https://picsum.photos/seed/account-detail-${item.id}/120/120`} alt={item.name} className="h-full w-full object-cover" />
                     </div>
                     <div className="flex-1 min-w-0">
@@ -544,8 +554,8 @@ export function AccountPage({ onNavigate }: AccountPageProps) {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-              <div className="rounded-3xl border border-[var(--tone-accent)]/20 bg-white/20 p-5 backdrop-blur-md">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 sm:gap-6">
+              <div className="rounded-2xl border border-[var(--tone-accent)]/20 bg-white/20 p-3 backdrop-blur-md sm:p-5">
                 <h4 className="mb-3 text-[10px] font-black uppercase tracking-widest text-[var(--tone-text-muted)]">Attachments</h4>
                 {(selectedOrder.documents || []).length || selectedOrder.lease_agreement_submission_url ? (
                   <div className="space-y-2">
@@ -573,7 +583,7 @@ export function AccountPage({ onNavigate }: AccountPageProps) {
                 )}
               </div>
               
-              <div className="rounded-3xl border border-[var(--tone-accent)] bg-[var(--tone-surface)] p-6 shadow-md relative overflow-hidden">
+              <div className="relative overflow-hidden rounded-2xl border border-[var(--tone-accent)] bg-[var(--tone-surface)] p-4 shadow-md sm:p-6">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--tone-accent)]/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3"></div>
                 <h4 className="mb-4 text-[10px] font-black uppercase tracking-widest text-[var(--tone-text-muted)]">Final Accounting</h4>
                 
@@ -595,7 +605,7 @@ export function AccountPage({ onNavigate }: AccountPageProps) {
                   )}
                   <div className="flex items-end justify-between pt-2">
                     <span className="text-base font-bold text-[var(--tone-text)]">Total Paid</span>
-                    <span className="text-3xl font-black tracking-tight text-[var(--tone-text)]">{formatPHP(selectedOrder.total_amount)}</span>
+                    <span className="text-2xl font-black tracking-tight text-[var(--tone-text)] sm:text-3xl">{formatPHP(selectedOrder.total_amount)}</span>
                   </div>
                 </div>
               </div>

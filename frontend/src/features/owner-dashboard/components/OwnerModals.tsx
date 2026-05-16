@@ -446,7 +446,7 @@ export function OwnerModals({
                       {selectedApp.items.map((item) => (
                         <div key={item.id} className="rounded-xl border bg-white p-3">
                           <div className="grid grid-cols-[4rem,1fr] gap-3">
-                          <div className="h-90 w-90 overflow-hidden rounded border bg-muted">
+                          <div className="h-16 w-16 overflow-hidden rounded border bg-muted">
                             <img src={item.image_url || `https://picsum.photos/seed/app-item-${item.id}/120/120`} alt={item.name} className="h-full w-full object-cover" />
                           </div>
                           <div className="flex-1">
