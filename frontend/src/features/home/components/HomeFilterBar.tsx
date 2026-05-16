@@ -47,25 +47,33 @@ export function HomeFilterBar({
     minRating !== '0',
     nearMeOnly,
   ].filter(Boolean).length;
+  const statusLabel = activeFilterCount ? `${activeFilterCount} filter${activeFilterCount === 1 ? '' : 's'} active` : 'Ready to browse';
 
   return (
     <div className="mb-6 rounded-2xl border border-[var(--tone-border)] bg-[var(--tone-surface)] p-3 shadow-sm sm:mb-8">
-      <div className="grid grid-cols-1 gap-3 lg:grid-cols-[auto,1fr] lg:items-center">
-        <div className="grid grid-cols-2 rounded-xl bg-white p-1 shadow-inner sm:w-fit">
-          <Button
-            variant={viewMode === 'gears' ? 'secondary' : 'ghost'}
-            className={`h-10 rounded-lg px-4 ${viewMode === 'gears' ? 'bg-[var(--tone-text)] text-[var(--color-primary-foreground)] hover:bg-[var(--tone-text)]' : 'text-[var(--tone-text)] hover:bg-[var(--tone-surface)]'}`}
-            onClick={() => onViewModeChange('gears')}
-          >
-            Gears
-          </Button>
-          <Button
-            variant={viewMode === 'stores' ? 'secondary' : 'ghost'}
-            className={`h-10 rounded-lg px-4 ${viewMode === 'stores' ? 'bg-[var(--tone-text)] text-[var(--color-primary-foreground)] hover:bg-[var(--tone-text)]' : 'text-[var(--tone-text)] hover:bg-[var(--tone-surface)]'}`}
-            onClick={() => onViewModeChange('stores')}
-          >
-            Stores
-          </Button>
+      <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between xl:gap-5">
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:gap-4">
+          <div className="grid grid-cols-2 rounded-xl bg-white p-1 shadow-inner sm:w-fit">
+            <Button
+              variant={viewMode === 'gears' ? 'secondary' : 'ghost'}
+              className={`h-10 rounded-lg px-4 ${viewMode === 'gears' ? 'bg-[var(--tone-text)] text-[var(--color-primary-foreground)] hover:bg-[var(--tone-text)]' : 'text-[var(--tone-text)] hover:bg-[var(--tone-surface)]'}`}
+              onClick={() => onViewModeChange('gears')}
+            >
+              Gears
+            </Button>
+            <Button
+              variant={viewMode === 'stores' ? 'secondary' : 'ghost'}
+              className={`h-10 rounded-lg px-4 ${viewMode === 'stores' ? 'bg-[var(--tone-text)] text-[var(--color-primary-foreground)] hover:bg-[var(--tone-text)]' : 'text-[var(--tone-text)] hover:bg-[var(--tone-surface)]'}`}
+              onClick={() => onViewModeChange('stores')}
+            >
+              Stores
+            </Button>
+          </div>
+
+          <div className="hidden items-center gap-2 rounded-full border border-[var(--tone-border)] bg-white px-3 py-2 text-xs font-semibold text-[var(--tone-text-muted)] xl:inline-flex">
+            <SlidersHorizontal className="h-3.5 w-3.5" />
+            <span>{statusLabel}</span>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:flex xl:flex-wrap xl:items-center xl:justify-end">
@@ -126,9 +134,9 @@ export function HomeFilterBar({
           </div>
         </div>
       </div>
-      <div className="mt-3 flex items-center gap-2 text-xs font-semibold text-[var(--tone-text-muted)]">
+      <div className="mt-3 flex items-center gap-2 text-xs font-semibold text-[var(--tone-text-muted)] xl:hidden">
         <SlidersHorizontal className="h-3.5 w-3.5" />
-        <span>{activeFilterCount ? `${activeFilterCount} filter${activeFilterCount === 1 ? '' : 's'} active` : 'Ready to browse'}</span>
+        <span>{statusLabel}</span>
       </div>
     </div>
   );
