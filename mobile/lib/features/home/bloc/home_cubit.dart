@@ -209,14 +209,15 @@ class HomeCubit extends Cubit<HomeState> {
 
   final CatalogRepository _repo;
 
-  Future<void> load() async {
+  Future<void> load({bool forceRefresh = false}) async {
     emit(state.copyWith(status: HomeStatus.loading, error: null));
     try {
       final results = await Future.wait([
-        _repo.feed(),
-        _repo.stores(),
-        _repo.siteContent(),
-        _repo.announcements().catchError((_) => <Announcement>[]),
+        _repo.feed(forceRefresh: forceRefresh),
+        _repo.stores(forceRefresh: forceRefresh),
+        _repo.siteContent(forceRefresh: forceRefresh),
+        _repo.announcements(forceRefresh: forceRefresh)
+            .catchError((_) => <Announcement>[]),
       ]);
       emit(state.copyWith(
         status: HomeStatus.ready,

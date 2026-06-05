@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../app/theme.dart';
 import '../../../core/di/service_locator.dart';
 import '../../../core/widgets/animations.dart';
+import '../../../core/widgets/document_gallery.dart';
 import '../../../core/utils/currency.dart';
 import '../../../core/utils/date_utils.dart';
 import '../../../core/widgets/app_widgets.dart';
@@ -58,7 +59,8 @@ class AccountScreen extends StatelessWidget {
                     );
                   }
                   return RefreshIndicator(
-                    onRefresh: () => context.read<AccountCubit>().load(),
+                    onRefresh: () =>
+                        context.read<AccountCubit>().load(forceRefresh: true),
                     child: ListView.separated(
                       padding: const EdgeInsets.all(12),
                       itemCount: state.orders.length,
@@ -180,6 +182,15 @@ class _OrderCard extends StatelessWidget {
                   style: const TextStyle(
                       color: AppColors.danger, fontSize: 12)),
             ),
+          if (order.documents.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            DocumentGallery(
+              documents: order.documents
+                  .map((d) => (type: d.type, url: d.url))
+                  .toList(),
+              title: 'Your submitted documents',
+            ),
+          ],
           if (_canCancel(order.status))
             Align(
               alignment: Alignment.centerRight,

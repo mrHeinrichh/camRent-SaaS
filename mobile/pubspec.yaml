@@ -37,6 +37,11 @@ dependencies:
   google_sign_in: ^6.2.2
   geolocator: ^13.0.2
 
+  # Encrypted local cache (offline-first / fewer API calls)
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+  flutter_secure_storage: ^9.2.2
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

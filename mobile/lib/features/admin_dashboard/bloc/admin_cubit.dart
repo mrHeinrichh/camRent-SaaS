@@ -52,10 +52,10 @@ class AdminCubit extends Cubit<AdminState> {
 
   final AdminRepository _repo;
 
-  Future<void> load() async {
+  Future<void> load({bool forceRefresh = false}) async {
     emit(state.copyWith(status: AdminStatus.loading, error: null));
     try {
-      final dashboard = await _repo.dashboard();
+      final dashboard = await _repo.dashboard(forceRefresh: forceRefresh);
       final fraud = await _repo.fraudList().catchError((_) => <FraudListEntry>[]);
       final support =
           await _repo.supportTickets().catchError((_) => <SupportTicket>[]);
@@ -75,16 +75,16 @@ class AdminCubit extends Cubit<AdminState> {
 
   Future<void> approveStore(String id) async {
     await _repo.approveStore(id);
-    await load();
+    await load(forceRefresh: true);
   }
 
   Future<void> suspendStore(String id) async {
     await _repo.suspendStore(id);
-    await load();
+    await load(forceRefresh: true);
   }
 
   Future<void> replySupport(String id, String reply, String status) async {
     await _repo.replySupportTicket(id, reply, status);
-    await load();
+    await load(forceRefresh: true);
   }
 }

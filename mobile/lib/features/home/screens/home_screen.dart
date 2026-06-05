@@ -37,7 +37,7 @@ class HomeScreen extends StatelessWidget {
         final total = isGears ? gears.length : stores.length;
 
         return RefreshIndicator(
-          onRefresh: () => context.read<HomeCubit>().load(),
+          onRefresh: () => context.read<HomeCubit>().load(forceRefresh: true),
           child: CustomScrollView(
             slivers: [
               SliverToBoxAdapter(child: _Hero(state: state)),

@@ -8,8 +8,10 @@ class AdminRepository {
   AdminRepository(this._api);
   final ApiClient _api;
 
-  Future<AdminDashboardData> dashboard() async => AdminDashboardData.fromJson(
-        Json.obj(await _api.get(ApiEndpoints.adminDashboard)),
+  Future<AdminDashboardData> dashboard({bool forceRefresh = false}) async =>
+      AdminDashboardData.fromJson(
+        Json.obj(await _api.getCached(ApiEndpoints.adminDashboard,
+            ttl: const Duration(minutes: 2), forceRefresh: forceRefresh)),
       );
 
   Future<void> approveStore(String storeId) =>

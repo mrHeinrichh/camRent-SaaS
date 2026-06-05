@@ -70,18 +70,24 @@ class OwnerCubit extends Cubit<OwnerState> {
 
   final OwnerRepository _repo;
 
-  Future<void> load() async {
+  Future<void> load({bool forceRefresh = false}) async {
     emit(state.copyWith(status: OwnerStatus.loading, error: null));
     try {
-      final dashboard = await _repo.dashboard();
-      final applications =
-          await _repo.applications().catchError((_) => <OwnerApplication>[]);
-      final vouchers = await _repo.vouchers().catchError((_) => <Voucher>[]);
-      final fraud = await _repo.fraudList().catchError((_) => <FraudListEntry>[]);
-      final support =
-          await _repo.supportTickets().catchError((_) => <SupportTicket>[]);
-      final form = await _repo.rentalForm().catchError((_) =>
-          const RentalFormSchema(standardVersion: '', fields: []));
+      final dashboard = await _repo.dashboard(forceRefresh: forceRefresh);
+      final applications = await _repo
+          .applications(forceRefresh: forceRefresh)
+          .catchError((_) => <OwnerApplication>[]);
+      final vouchers = await _repo
+          .vouchers(forceRefresh: forceRefresh)
+          .catchError((_) => <Voucher>[]);
+      final fraud = await _repo
+          .fraudList(forceRefresh: forceRefresh)
+          .catchError((_) => <FraudListEntry>[]);
+      final support = await _repo
+          .supportTickets(forceRefresh: forceRefresh)
+          .catchError((_) => <SupportTicket>[]);
+      final form = await _repo.rentalForm(forceRefresh: forceRefresh).catchError(
+          (_) => const RentalFormSchema(standardVersion: '', fields: []));
       emit(state.copyWith(
         status: OwnerStatus.ready,
         dashboard: dashboard,
@@ -98,47 +104,47 @@ class OwnerCubit extends Cubit<OwnerState> {
 
   Future<void> approve(String id) async {
     await _repo.approveApplication(id);
-    await load();
+    await load(forceRefresh: true);
   }
 
   Future<void> reject(String id, String reason) async {
     await _repo.rejectApplication(id, reason);
-    await load();
+    await load(forceRefresh: true);
   }
 
   Future<void> createVoucher(String code, double discount) async {
     await _repo.createVoucher(code, discount);
-    await load();
+    await load(forceRefresh: true);
   }
 
   Future<void> deleteVoucher(String id) async {
     await _repo.deleteVoucher(id);
-    await load();
+    await load(forceRefresh: true);
   }
 
   Future<void> createSupportTicket(Map<String, dynamic> payload) async {
     await _repo.createSupportTicket(payload);
-    await load();
+    await load(forceRefresh: true);
   }
 
   Future<void> createItem(Map<String, dynamic> payload) async {
     await _repo.createItem(payload);
-    await load();
+    await load(forceRefresh: true);
   }
 
   Future<void> updateItem(String id, Map<String, dynamic> payload) async {
     await _repo.updateItem(id, payload);
-    await load();
+    await load(forceRefresh: true);
   }
 
   Future<void> deleteItem(String id) async {
     await _repo.deleteItem(id);
-    await load();
+    await load(forceRefresh: true);
   }
 
   Future<void> updateStoreProfile(Map<String, dynamic> payload) async {
     await _repo.updateStoreProfile(payload);
-    await load();
+    await load(forceRefresh: true);
   }
 
   Future<void> saveRentalForm(List<RentalFormField> fields,
@@ -156,7 +162,7 @@ class OwnerCubit extends Cubit<OwnerState> {
           .toList(),
       if (settings != null) 'settings': settings,
     });
-    final form = await _repo.rentalForm();
+    final form = await _repo.rentalForm(forceRefresh: true);
     emit(state.copyWith(rentalForm: form));
   }
 
@@ -177,6 +183,6 @@ class OwnerCubit extends Cubit<OwnerState> {
 
   Future<void> reportFraud(Map<String, dynamic> payload) async {
     await _repo.reportFraud(payload);
-    await load();
+    await load(forceRefresh: true);
   }
 }

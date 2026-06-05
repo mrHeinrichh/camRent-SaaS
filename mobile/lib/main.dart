@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app/app.dart';
 import 'core/di/service_locator.dart';
+import 'core/storage/cache_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -16,7 +17,8 @@ Future<void> main() async {
   );
 
   final prefs = await SharedPreferences.getInstance();
-  setupServiceLocator(prefs);
+  final cache = await CacheService.init();
+  setupServiceLocator(prefs, cache);
 
   runApp(const CamRentApp());
 }

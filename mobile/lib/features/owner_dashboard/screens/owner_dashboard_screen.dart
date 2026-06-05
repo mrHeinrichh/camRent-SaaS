@@ -14,6 +14,7 @@ import '../bloc/owner_cubit.dart';
 import 'gear_editor_sheet.dart';
 import 'owner_calendar_tab.dart';
 import 'owner_charts.dart';
+import 'owner_detail_sheets.dart';
 import 'owner_form_builder_tab.dart';
 import 'owner_simple_tabs.dart';
 import 'store_profile_header.dart';
@@ -371,6 +372,10 @@ class _ApplicationsTab extends StatelessWidget {
         return EntranceEffect(
           index: index % 8,
           child: Card(
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: () => showApplicationDetail(context,
+                app: app, cubit: context.read<OwnerCubit>()),
           child: Padding(
             padding: const EdgeInsets.all(12),
             child: Column(
@@ -426,6 +431,7 @@ class _ApplicationsTab extends StatelessWidget {
                   ),
               ],
             ),
+          ),
           ),
         ),
         );

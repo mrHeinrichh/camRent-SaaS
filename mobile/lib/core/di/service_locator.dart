@@ -9,15 +9,18 @@ import '../../data/repositories/owner_repository.dart';
 import '../../data/repositories/upload_repository.dart';
 import '../network/api_client.dart';
 import '../storage/app_preferences.dart';
+import '../storage/cache_service.dart';
 import '../storage/token_store.dart';
 
 final GetIt sl = GetIt.instance;
 
 /// Wires the network + repository layer. Call once at startup.
-void setupServiceLocator(SharedPreferences prefs) {
+void setupServiceLocator(SharedPreferences prefs, CacheService cache) {
   sl.registerSingleton<AppPreferences>(AppPreferences(prefs));
+  sl.registerSingleton<CacheService>(cache);
   sl.registerLazySingleton<TokenStore>(() => TokenStore());
-  sl.registerLazySingleton<ApiClient>(() => ApiClient(sl<TokenStore>()));
+  sl.registerLazySingleton<ApiClient>(
+      () => ApiClient(sl<TokenStore>(), cache: sl<CacheService>()));
 
   sl.registerLazySingleton<AuthRepository>(() => AuthRepository(sl()));
   sl.registerLazySingleton<CatalogRepository>(() => CatalogRepository(sl()));

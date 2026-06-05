@@ -109,31 +109,54 @@ class OwnerAnalytics {
       );
 }
 
+typedef DocRef = ({String type, String url});
+
+List<DocRef> _docs(dynamic v) => Json.list(v)
+    .map((e) => (type: Json.str(e['type']), url: Json.str(e['url'])))
+    .where((d) => d.url.isNotEmpty)
+    .toList();
+
 class OwnerTransaction {
   const OwnerTransaction({
     required this.id,
     required this.renterName,
     required this.renterEmail,
     this.renterPhone,
+    this.renterAddress,
+    this.renterEmergencyContact,
+    this.renterEmergencyContactName,
     required this.totalAmount,
     required this.status,
     required this.createdAt,
     this.paymentMode,
     this.deliveryMode,
+    this.deliveryAddress,
+    this.storeBranchName,
+    this.storeBranchAddress,
     this.items = const [],
+    this.documents = const [],
+    this.idTypes = const [],
   });
 
   final String id;
   final String renterName;
   final String renterEmail;
   final String? renterPhone;
+  final String? renterAddress;
+  final String? renterEmergencyContact;
+  final String? renterEmergencyContactName;
   final double totalAmount;
   final String status;
   final String createdAt;
   final String? paymentMode;
   final String? deliveryMode;
+  final String? deliveryAddress;
+  final String? storeBranchName;
+  final String? storeBranchAddress;
   final List<({String name, String startDate, String endDate, int quantity})>
       items;
+  final List<DocRef> documents;
+  final List<String> idTypes;
 
   factory OwnerTransaction.fromJson(Map<String, dynamic> json) =>
       OwnerTransaction(
@@ -141,11 +164,19 @@ class OwnerTransaction {
         renterName: Json.str(json['renter_name']),
         renterEmail: Json.str(json['renter_email']),
         renterPhone: Json.strOrNull(json['renter_phone']),
+        renterAddress: Json.strOrNull(json['renter_address']),
+        renterEmergencyContact:
+            Json.strOrNull(json['renter_emergency_contact']),
+        renterEmergencyContactName:
+            Json.strOrNull(json['renter_emergency_contact_name']),
         totalAmount: Json.dbl(json['total_amount']),
         status: Json.str(json['status']),
         createdAt: Json.str(json['created_at']),
         paymentMode: Json.strOrNull(json['payment_mode']),
         deliveryMode: Json.strOrNull(json['delivery_mode']),
+        deliveryAddress: Json.strOrNull(json['delivery_address']),
+        storeBranchName: Json.strOrNull(json['store_branch_name']),
+        storeBranchAddress: Json.strOrNull(json['store_branch_address']),
         items: Json.list(json['items'])
             .map((e) => (
                   name: Json.str(e['name']),
@@ -154,6 +185,8 @@ class OwnerTransaction {
                   quantity: Json.intVal(e['quantity'], 1),
                 ))
             .toList(),
+        documents: _docs(json['documents']),
+        idTypes: Json.stringList(json['id_types']),
       );
 }
 
@@ -166,6 +199,7 @@ class OwnerCustomer {
     this.transactionCount = 0,
     this.idTypes = const [],
     this.mostlyRentedGears = const [],
+    this.requirements = const [],
   });
 
   final String renterName;
@@ -175,6 +209,7 @@ class OwnerCustomer {
   final int transactionCount;
   final List<String> idTypes;
   final List<({String name, int count})> mostlyRentedGears;
+  final List<DocRef> requirements;
 
   factory OwnerCustomer.fromJson(Map<String, dynamic> json) => OwnerCustomer(
         renterName: Json.str(json['renter_name']),
@@ -186,6 +221,7 @@ class OwnerCustomer {
         mostlyRentedGears: Json.list(json['mostly_rented_gears'])
             .map((e) => (name: Json.str(e['name']), count: Json.intVal(e['count'])))
             .toList(),
+        requirements: _docs(json['requirements']),
       );
 }
 

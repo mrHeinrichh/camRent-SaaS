@@ -23,8 +23,9 @@ class OrderRepository {
     return AppliedVoucher.fromJson(data, storeId);
   }
 
-  Future<List<OrderHistory>> accountOrders() async {
-    final data = await _api.get(ApiEndpoints.accountOrders);
+  Future<List<OrderHistory>> accountOrders({bool forceRefresh = false}) async {
+    final data = await _api.getCached(ApiEndpoints.accountOrders,
+        ttl: const Duration(minutes: 2), forceRefresh: forceRefresh);
     return (data as List)
         .map((e) => OrderHistory.fromJson(Json.obj(e)))
         .toList();

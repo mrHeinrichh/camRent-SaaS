@@ -7,6 +7,7 @@ import '../../../core/utils/date_utils.dart';
 import '../../../core/widgets/animations.dart';
 import '../../../core/widgets/app_widgets.dart';
 import '../bloc/owner_cubit.dart';
+import 'owner_detail_sheets.dart';
 
 /// Rental history / recent transactions.
 class OwnerTransactionsTab extends StatelessWidget {
@@ -28,7 +29,10 @@ class OwnerTransactionsTab extends StatelessWidget {
         return EntranceEffect(
           index: index % 8,
           child: Card(
-            child: Padding(
+            child: InkWell(
+              borderRadius: BorderRadius.circular(16),
+              onTap: () => showTransactionDetail(context, t),
+              child: Padding(
               padding: const EdgeInsets.all(12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -40,6 +44,11 @@ class OwnerTransactionsTab extends StatelessWidget {
                             style:
                                 const TextStyle(fontWeight: FontWeight.w700)),
                       ),
+                      if (t.documents.isNotEmpty) ...[
+                        Icon(Icons.badge_outlined,
+                            size: 15, color: AppColors.textMuted),
+                        const SizedBox(width: 6),
+                      ],
                       StatusBadge(t.status, color: statusColor(t.status)),
                     ],
                   ),
@@ -71,6 +80,7 @@ class OwnerTransactionsTab extends StatelessWidget {
                   ),
                 ],
               ),
+            ),
             ),
           ),
         );
@@ -112,7 +122,10 @@ class OwnerCustomersTab extends StatelessWidget {
         return EntranceEffect(
           index: index % 8,
           child: Card(
-            child: Padding(
+            child: InkWell(
+              borderRadius: BorderRadius.circular(16),
+              onTap: () => showCustomerDetail(context, c),
+              child: Padding(
               padding: const EdgeInsets.all(12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -188,6 +201,7 @@ class OwnerCustomersTab extends StatelessWidget {
                   ],
                 ],
               ),
+            ),
             ),
           ),
         );

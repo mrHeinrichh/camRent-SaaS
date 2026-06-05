@@ -38,12 +38,12 @@ class AccountCubit extends Cubit<AccountState> {
 
   final OrderRepository _repo;
 
-  Future<void> load() async {
+  Future<void> load({bool forceRefresh = false}) async {
     emit(state.copyWith(status: AccountStatus.loading, error: null));
     try {
       emit(state.copyWith(
         status: AccountStatus.ready,
-        orders: await _repo.accountOrders(),
+        orders: await _repo.accountOrders(forceRefresh: forceRefresh),
       ));
     } on ApiException catch (e) {
       emit(state.copyWith(status: AccountStatus.error, error: e.message));
@@ -53,7 +53,7 @@ class AccountCubit extends Cubit<AccountState> {
   Future<bool> cancel(String id, String reason) async {
     try {
       await _repo.cancelOrder(id, reason);
-      await load();
+      await load(forceRefresh: true);
       return true;
     } on ApiException {
       return false;
