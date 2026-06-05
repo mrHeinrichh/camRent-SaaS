@@ -25,6 +25,8 @@ class ApiEndpoints {
   static String item(String id) => '/api/items/$id';
 
   static String manualBlocks(String itemId) => '/api/manual-blocks/$itemId';
+  static const String manualBlocksBase = '/api/manual-blocks';
+  static String deleteManualBlock(String id) => '/api/manual-blocks/$id';
 
   // Orders / checkout
   static const String orders = '/api/orders';

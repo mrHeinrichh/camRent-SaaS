@@ -82,4 +82,21 @@ class OwnerRepository {
 
   Future<void> updateRentalForm(Map<String, dynamic> payload) =>
       _api.put(ApiEndpoints.ownerRentalForm, body: payload);
+
+  // ── Rental calendar / manual blocks ───────────────────────────────
+  Future<void> addManualBlock({
+    required String itemId,
+    required String startDate,
+    required String endDate,
+    required String reason,
+  }) =>
+      _api.post(ApiEndpoints.manualBlocksBase, body: {
+        'item_id': itemId,
+        'start_date': startDate,
+        'end_date': endDate,
+        'reason': reason,
+      });
+
+  Future<void> deleteManualBlock(String id) =>
+      _api.delete(ApiEndpoints.deleteManualBlock(id));
 }

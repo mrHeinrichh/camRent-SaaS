@@ -5,6 +5,7 @@ import '../../../core/network/api_exception.dart';
 import '../../../data/models/content.dart';
 import '../../../data/models/dashboard.dart';
 import '../../../data/models/order.dart';
+import '../../../data/models/rental_form.dart';
 import '../../../data/repositories/owner_repository.dart';
 
 enum OwnerStatus { loading, ready, error }
@@ -17,6 +18,7 @@ class OwnerState extends Equatable {
     this.vouchers = const [],
     this.fraudList = const [],
     this.supportTickets = const [],
+    this.rentalForm,
     this.error,
   });
 
@@ -26,6 +28,7 @@ class OwnerState extends Equatable {
   final List<Voucher> vouchers;
   final List<FraudListEntry> fraudList;
   final List<SupportTicket> supportTickets;
+  final RentalFormSchema? rentalForm;
   final String? error;
 
   OwnerState copyWith({
@@ -35,6 +38,7 @@ class OwnerState extends Equatable {
     List<Voucher>? vouchers,
     List<FraudListEntry>? fraudList,
     List<SupportTicket>? supportTickets,
+    RentalFormSchema? rentalForm,
     String? error,
   }) =>
       OwnerState(
@@ -44,6 +48,7 @@ class OwnerState extends Equatable {
         vouchers: vouchers ?? this.vouchers,
         fraudList: fraudList ?? this.fraudList,
         supportTickets: supportTickets ?? this.supportTickets,
+        rentalForm: rentalForm ?? this.rentalForm,
         error: error,
       );
 
@@ -55,6 +60,7 @@ class OwnerState extends Equatable {
         vouchers,
         fraudList,
         supportTickets,
+        rentalForm?.fields.length,
         error,
       ];
 }
@@ -74,6 +80,8 @@ class OwnerCubit extends Cubit<OwnerState> {
       final fraud = await _repo.fraudList().catchError((_) => <FraudListEntry>[]);
       final support =
           await _repo.supportTickets().catchError((_) => <SupportTicket>[]);
+      final form = await _repo.rentalForm().catchError((_) =>
+          const RentalFormSchema(standardVersion: '', fields: []));
       emit(state.copyWith(
         status: OwnerStatus.ready,
         dashboard: dashboard,
@@ -81,6 +89,7 @@ class OwnerCubit extends Cubit<OwnerState> {
         vouchers: vouchers,
         fraudList: fraud,
         supportTickets: support,
+        rentalForm: form,
       ));
     } on ApiException catch (e) {
       emit(state.copyWith(status: OwnerStatus.error, error: e.message));
@@ -129,6 +138,45 @@ class OwnerCubit extends Cubit<OwnerState> {
 
   Future<void> updateStoreProfile(Map<String, dynamic> payload) async {
     await _repo.updateStoreProfile(payload);
+    await load();
+  }
+
+  Future<void> saveRentalForm(List<RentalFormField> fields,
+      {Map<String, dynamic>? settings}) async {
+    await _repo.updateRentalForm({
+      'fields': fields
+          .map((f) => {
+                'id': f.id,
+                'label': f.label,
+                'type': f.type.name,
+                'required': f.required,
+                'placeholder': f.placeholder,
+                'options': f.options,
+              })
+          .toList(),
+      if (settings != null) 'settings': settings,
+    });
+    final form = await _repo.rentalForm();
+    emit(state.copyWith(rentalForm: form));
+  }
+
+  Future<void> addManualBlock({
+    required String itemId,
+    required String startDate,
+    required String endDate,
+    required String reason,
+  }) =>
+      _repo.addManualBlock(
+        itemId: itemId,
+        startDate: startDate,
+        endDate: endDate,
+        reason: reason,
+      );
+
+  Future<void> deleteManualBlock(String id) => _repo.deleteManualBlock(id);
+
+  Future<void> reportFraud(Map<String, dynamic> payload) async {
+    await _repo.reportFraud(payload);
     await load();
   }
 }

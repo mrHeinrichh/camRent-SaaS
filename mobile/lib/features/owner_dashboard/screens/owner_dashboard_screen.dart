@@ -12,6 +12,10 @@ import '../../../data/repositories/owner_repository.dart';
 import '../../auth/cubit/auth_cubit.dart';
 import '../bloc/owner_cubit.dart';
 import 'gear_editor_sheet.dart';
+import 'owner_calendar_tab.dart';
+import 'owner_charts.dart';
+import 'owner_form_builder_tab.dart';
+import 'owner_simple_tabs.dart';
 import 'store_profile_header.dart';
 
 class OwnerDashboardScreen extends StatelessWidget {
@@ -22,7 +26,7 @@ class OwnerDashboardScreen extends StatelessWidget {
     return BlocProvider(
       create: (_) => OwnerCubit(sl<OwnerRepository>())..load(),
       child: DefaultTabController(
-        length: 5,
+        length: 10,
         child: Scaffold(
           appBar: AppBar(
             title: const Text('Store dashboard'),
@@ -38,11 +42,16 @@ class OwnerDashboardScreen extends StatelessWidget {
             bottom: const TabBar(
               isScrollable: true,
               tabs: [
-                Tab(text: 'Overview'),
-                Tab(text: 'Gear'),
-                Tab(text: 'Applications'),
-                Tab(text: 'Vouchers'),
-                Tab(text: 'Support'),
+                Tab(icon: Icon(Icons.dashboard_outlined), text: 'Overview'),
+                Tab(icon: Icon(Icons.inbox_outlined), text: 'Applications'),
+                Tab(icon: Icon(Icons.photo_camera_outlined), text: 'Inventory'),
+                Tab(icon: Icon(Icons.calendar_month_outlined), text: 'Calendar'),
+                Tab(icon: Icon(Icons.people_outline), text: 'Customers'),
+                Tab(icon: Icon(Icons.receipt_long_outlined), text: 'Transactions'),
+                Tab(icon: Icon(Icons.tune), text: 'Form Builder'),
+                Tab(icon: Icon(Icons.shield_outlined), text: 'Fraud List'),
+                Tab(icon: Icon(Icons.support_agent), text: 'Support'),
+                Tab(icon: Icon(Icons.local_offer_outlined), text: 'Vouchers'),
               ],
             ),
           ),
@@ -60,10 +69,15 @@ class OwnerDashboardScreen extends StatelessWidget {
               return TabBarView(
                 children: [
                   EntranceEffect(child: _OverviewTab(state: state)),
-                  EntranceEffect(child: _GearTab(state: state)),
                   EntranceEffect(child: _ApplicationsTab(state: state)),
-                  EntranceEffect(child: _VouchersTab(state: state)),
+                  EntranceEffect(child: _GearTab(state: state)),
+                  EntranceEffect(child: OwnerCalendarTab(state: state)),
+                  EntranceEffect(child: OwnerCustomersTab(state: state)),
+                  EntranceEffect(child: OwnerTransactionsTab(state: state)),
+                  EntranceEffect(child: OwnerFormBuilderTab(state: state)),
+                  EntranceEffect(child: OwnerFraudTab(state: state)),
                   EntranceEffect(child: _SupportTab(state: state)),
+                  EntranceEffect(child: _VouchersTab(state: state)),
                 ],
               );
             },
@@ -82,6 +96,17 @@ class _OverviewTab extends StatelessWidget {
   Widget build(BuildContext context) {
     final d = state.dashboard!;
     final analytics = d.analytics;
+    final peak = analytics?.peakRentalDates ?? const [];
+    final gear = analytics?.mostRentedCameras ?? const [];
+    final renters = analytics?.topRenters ?? const [];
+    final peakMax = peak.isEmpty ? 1 : peak.first.count;
+    final gearMax = gear.isEmpty
+        ? 1
+        : gear.map((e) => e.count).reduce((a, b) => a > b ? a : b);
+    final renterMax = renters.isEmpty
+        ? 1
+        : renters.map((e) => e.rentals).reduce((a, b) => a > b ? a : b);
+
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -97,69 +122,120 @@ class _OverviewTab extends StatelessWidget {
           physics: const NeverScrollableScrollPhysics(),
           mainAxisSpacing: 12,
           crossAxisSpacing: 12,
-          childAspectRatio: 1.6,
+          childAspectRatio: 1.5,
           children: [
-            _stat('Total rentals', '${d.totalRentals}', Icons.event_available),
-            _stat('Revenue', formatPHP(d.totalRevenue), Icons.payments_outlined),
-            _stat('Gear listed', '${d.items.length}', Icons.photo_camera),
-            _stat('Pending', '${analytics?.pendingCount ?? 0}',
-                Icons.hourglass_bottom),
+            StatTile(
+                label: 'Total rentals',
+                value: '${d.totalRentals}',
+                icon: Icons.event_available),
+            StatTile(
+                label: 'Revenue',
+                value: formatPHP(d.totalRevenue),
+                icon: Icons.payments_outlined,
+                color: AppColors.success),
+            StatTile(
+                label: 'Gear listed',
+                value: '${d.items.length}',
+                icon: Icons.photo_camera),
+            StatTile(
+                label: 'Pending',
+                value: '${analytics?.pendingCount ?? 0}',
+                icon: Icons.hourglass_bottom,
+                color: AppColors.warning),
+            StatTile(
+                label: 'Reserved',
+                value: '${analytics?.reservedCount ?? 0}',
+                icon: Icons.bookmark_added_outlined),
+            StatTile(
+                label: 'Customers',
+                value: '${analytics?.totalCustomers ?? d.customers.length}',
+                icon: Icons.people_outline),
           ],
         ),
-        if (analytics != null && analytics.mostRentedCameras.isNotEmpty) ...[
-          const SizedBox(height: 16),
-          const Text('Most rented gear',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-          const SizedBox(height: 8),
-          ...analytics.mostRentedCameras.map((c) => ListTile(
-                dense: true,
-                leading: const Icon(Icons.trending_up),
-                title: Text(c.name),
-                trailing: Text('${c.count}×'),
-              )),
-        ],
-        if (d.storeRatings.isNotEmpty) ...[
-          const SizedBox(height: 16),
-          const Text('Recent ratings',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-          const SizedBox(height: 8),
-          ...d.storeRatings.map((r) => Card(
-                child: ListTile(
-                  title: Text(r.renterName),
-                  subtitle: Text(r.description),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.star, size: 14, color: AppColors.accent),
-                      Text('${r.rating}'),
-                    ],
-                  ),
+        const SizedBox(height: 16),
+        ChartCard(
+          title: 'Peak rental dates',
+          icon: Icons.calendar_month_outlined,
+          child: peak.isEmpty
+              ? _empty('No peak date data yet.')
+              : Column(
+                  children: peak
+                      .take(7)
+                      .map((e) => BarRow(
+                            label: prettyDate(e.date),
+                            value: '${e.count}',
+                            fraction: e.count / peakMax,
+                          ))
+                      .toList(),
                 ),
-              )),
-        ],
+        ),
+        ChartCard(
+          title: 'Most rented gear',
+          icon: Icons.trending_up,
+          child: gear.isEmpty
+              ? _empty('No rental data yet.')
+              : Column(
+                  children: gear
+                      .take(6)
+                      .map((e) => BarRow(
+                            label: e.name,
+                            value: '${e.count}×',
+                            fraction: e.count / gearMax,
+                            color: AppColors.success,
+                          ))
+                      .toList(),
+                ),
+        ),
+        ChartCard(
+          title: 'Top renters this month',
+          icon: Icons.workspace_premium_outlined,
+          child: renters.isEmpty
+              ? _empty('No top renter data this month yet.')
+              : Column(
+                  children: renters
+                      .take(6)
+                      .map((e) => BarRow(
+                            label: e.name,
+                            sublabel: e.email,
+                            value: '${e.rentals} • ${formatPHP(e.amount)}',
+                            fraction: e.rentals / renterMax,
+                            color: const Color(0xFF6366F1),
+                          ))
+                      .toList(),
+                ),
+        ),
+        if (d.storeRatings.isNotEmpty)
+          ChartCard(
+            title: 'Recent ratings',
+            icon: Icons.star_outline,
+            child: Column(
+              children: d.storeRatings
+                  .take(5)
+                  .map((r) => ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        dense: true,
+                        title: Text(r.renterName),
+                        subtitle: r.description.isEmpty
+                            ? null
+                            : Text(r.description),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.star,
+                                size: 14, color: AppColors.accent),
+                            Text('${r.rating}'),
+                          ],
+                        ),
+                      ))
+                  .toList(),
+            ),
+          ),
       ],
     );
   }
 
-  Widget _stat(String label, String value, IconData icon) => Card(
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, color: AppColors.accent),
-              const SizedBox(height: 6),
-              Text(value,
-                  style: const TextStyle(
-                      fontSize: 18, fontWeight: FontWeight.bold)),
-              Text(label,
-                  style: TextStyle(
-                      color: AppColors.textMuted, fontSize: 12)),
-            ],
-          ),
-        ),
-      );
+  Widget _empty(String msg) => Text(msg,
+      style: TextStyle(color: AppColors.textMuted, fontSize: 13));
 }
 
 class _GearTab extends StatelessWidget {
