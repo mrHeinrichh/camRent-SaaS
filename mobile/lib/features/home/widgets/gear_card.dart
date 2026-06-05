@@ -40,8 +40,9 @@ class GearCard extends StatelessWidget {
           children: [
             Stack(
               children: [
-                AspectRatio(
-                  aspectRatio: 4 / 3,
+                SizedBox(
+                  height: 120,
+                  width: double.infinity,
                   child: RemoteImage(url: item.imageUrl),
                 ),
                 Positioned(
@@ -65,21 +66,25 @@ class GearCard extends StatelessWidget {
                           fontWeight: FontWeight.w800, fontSize: 14),
                     ),
                     const SizedBox(height: 2),
-                    Text(
-                      item.description.isEmpty
-                          ? 'No description provided.'
-                          : item.description,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                          color: AppColors.textMuted, fontSize: 11.5, height: 1.3),
+                    Flexible(
+                      child: Text(
+                        item.description.isEmpty
+                            ? 'No description provided.'
+                            : item.description,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                            color: AppColors.textMuted,
+                            fontSize: 11.5,
+                            height: 1.3),
+                      ),
                     ),
                     const SizedBox(height: 6),
                     Text(
                       '${item.category.isEmpty ? 'Uncategorized' : item.category} • ${item.brand ?? 'Others'} • Stock: ${item.stock ?? 0}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                           color: AppColors.textMuted, fontSize: 10.5),
                     ),
                     const SizedBox(height: 8),
@@ -119,7 +124,7 @@ class GearCard extends StatelessWidget {
                               style: const TextStyle(
                                   fontWeight: FontWeight.w800, fontSize: 15),
                             ),
-                            const Text('per day',
+                            Text('per day',
                                 style: TextStyle(
                                     color: AppColors.textMuted, fontSize: 10)),
                           ],

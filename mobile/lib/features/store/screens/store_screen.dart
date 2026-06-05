@@ -71,7 +71,7 @@ class StoreScreen extends StatelessWidget {
                                       const SizedBox(width: 4),
                                       Text(
                                           '${store.rating.toStringAsFixed(1)} · ${store.totalReviews} reviews',
-                                          style: const TextStyle(
+                                          style: TextStyle(
                                               color: AppColors.textMuted,
                                               fontSize: 12)),
                                     ],
@@ -85,16 +85,16 @@ class StoreScreen extends StatelessWidget {
                         if (store.description.isNotEmpty)
                           Text(store.description,
                               style:
-                                  const TextStyle(color: AppColors.textMuted)),
+                                  TextStyle(color: AppColors.textMuted)),
                         const SizedBox(height: 8),
                         Row(
                           children: [
-                            const Icon(Icons.location_on_outlined,
+                            Icon(Icons.location_on_outlined,
                                 size: 16, color: AppColors.textMuted),
                             const SizedBox(width: 4),
                             Expanded(
                                 child: Text(store.address,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                         color: AppColors.textMuted,
                                         fontSize: 13))),
                           ],
@@ -123,10 +123,10 @@ class StoreScreen extends StatelessWidget {
                     sliver: SliverGrid(
                       gridDelegate:
                           const SliverGridDelegateWithMaxCrossAxisExtent(
-                        maxCrossAxisExtent: 220,
+                        maxCrossAxisExtent: 230,
                         mainAxisSpacing: 12,
                         crossAxisSpacing: 12,
-                        childAspectRatio: 0.72,
+                        mainAxisExtent: 290,
                       ),
                       delegate: SliverChildBuilderDelegate(
                         (context, index) {
@@ -185,7 +185,7 @@ class _ReviewsSection extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           if (state.reviews.isEmpty)
-            const Text('No reviews yet.',
+            Text('No reviews yet.',
                 style: TextStyle(color: AppColors.textMuted))
           else
             ...state.reviews.map(
@@ -219,7 +219,7 @@ class _ReviewsSection extends StatelessWidget {
                         const SizedBox(height: 6),
                         Text(r.description,
                             style:
-                                const TextStyle(color: AppColors.textMuted)),
+                                TextStyle(color: AppColors.textMuted)),
                       ],
                     ],
                   ),

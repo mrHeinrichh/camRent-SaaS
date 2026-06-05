@@ -21,7 +21,7 @@ class AboutScreen extends StatelessWidget {
                   fontSize: 22, fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
           Text(content.homeSubtitle,
-              style: const TextStyle(color: AppColors.textMuted)),
+              style: TextStyle(color: AppColors.textMuted)),
           const SizedBox(height: 20),
           if (content.footerAboutText.isNotEmpty)
             Text(content.footerAboutText,
@@ -108,7 +108,7 @@ class PoliciesScreen extends StatelessWidget {
                               fontWeight: FontWeight.bold, fontSize: 16)),
                       const SizedBox(height: 6),
                       Text(s.body,
-                          style: const TextStyle(color: AppColors.textMuted)),
+                          style: TextStyle(color: AppColors.textMuted)),
                     ],
                   ),
                 ),
@@ -129,7 +129,7 @@ class PoliciesScreen extends StatelessWidget {
                       Align(
                         alignment: Alignment.centerLeft,
                         child: Text(f.a,
-                            style: const TextStyle(color: AppColors.textMuted)),
+                            style: TextStyle(color: AppColors.textMuted)),
                       ),
                     ],
                   ),
@@ -151,7 +151,7 @@ class DonateScreen extends StatelessWidget {
       appBar: AppBar(title: const Text('Support CamRent')),
       body: ListView(
         padding: const EdgeInsets.all(20),
-        children: const [
+        children: [
           Icon(Icons.favorite, size: 56, color: AppColors.accent),
           SizedBox(height: 16),
           Text('Help keep CamRent running',

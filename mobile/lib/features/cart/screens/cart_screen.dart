@@ -65,12 +65,12 @@ class CartScreen extends StatelessWidget {
                                           fontWeight: FontWeight.w700)),
                                   Text(
                                     '${prettyDate(item.startDate)} → ${prettyDate(item.endDate)}',
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                         color: AppColors.textMuted,
                                         fontSize: 12),
                                   ),
                                   Text('$days day(s)',
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                           color: AppColors.textMuted,
                                           fontSize: 12)),
                                   const SizedBox(height: 4),
@@ -165,7 +165,7 @@ class _Summary extends StatelessWidget {
     return Container(
       padding: EdgeInsets.fromLTRB(
           16, 16, 16, 16 + MediaQuery.of(context).padding.bottom),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: AppColors.surface,
         border: Border(top: BorderSide(color: AppColors.border)),
       ),

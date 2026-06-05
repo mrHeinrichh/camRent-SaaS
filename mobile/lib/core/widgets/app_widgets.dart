@@ -31,7 +31,7 @@ class EmptyState extends StatelessWidget {
             Text(
               title,
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
                 color: AppColors.text,
@@ -42,7 +42,7 @@ class EmptyState extends StatelessWidget {
               Text(
                 message!,
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: AppColors.textMuted),
+                style: TextStyle(color: AppColors.textMuted),
               ),
             ],
             if (action != null) ...[const SizedBox(height: 20), action!],
@@ -105,7 +105,7 @@ class RemoteImage extends StatelessWidget {
       width: width,
       height: height,
       color: AppColors.surfaceSoft,
-      child: const Icon(Icons.photo_camera_back_outlined,
+      child: Icon(Icons.photo_camera_back_outlined,
           color: AppColors.textMuted),
     );
 
@@ -189,7 +189,7 @@ void showSnack(BuildContext context, String message, {bool error = false}) {
       SnackBar(
         content: Text(
           message,
-          style: const TextStyle(color: AppColors.surfaceSoft),
+          style: TextStyle(color: AppColors.surfaceSoft),
         ),
         behavior: SnackBarBehavior.floating,
         backgroundColor: error ? AppColors.danger : AppColors.text,

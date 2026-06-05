@@ -62,7 +62,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         fontSize: 22, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 4),
-                  const Text(
+                  Text(
                     'Rent pro camera gear from trusted stores',
                     textAlign: TextAlign.center,
                     style: TextStyle(color: AppColors.textMuted),
@@ -115,7 +115,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Text("Don't have an account?",
+                      Text("Don't have an account?",
                           style: TextStyle(color: AppColors.textMuted)),
                       TextButton(
                         onPressed: () => context.push('/register'),
@@ -143,7 +143,7 @@ class _OrDivider extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
-      children: const [
+      children: [
         Expanded(child: Divider(color: AppColors.border)),
         Padding(
           padding: EdgeInsets.symmetric(horizontal: 12),

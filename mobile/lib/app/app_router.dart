@@ -39,6 +39,13 @@ GoRouter buildRouter(AuthCubit authCubit) {
       // Splash and onboarding are always reachable.
       if (loc == '/splash' || loc == '/onboarding') return null;
 
+      // Store owners are confined to their dashboard / store pages — they do
+      // not get the renter homepage, cart, checkout, etc.
+      if (auth.isOwner &&
+          !(loc.startsWith('/owner') || loc.startsWith('/store'))) {
+        return '/owner';
+      }
+
       // Role guards for dashboards.
       if (loc.startsWith('/owner') && !auth.isOwner) {
         return loggedIn ? '/' : '/login';

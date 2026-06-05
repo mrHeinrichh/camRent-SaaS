@@ -32,8 +32,9 @@ class StoreCard extends StatelessWidget {
           children: [
             Stack(
               children: [
-                AspectRatio(
-                  aspectRatio: 4 / 3,
+                SizedBox(
+                  height: 120,
+                  width: double.infinity,
                   child: RemoteImage(url: store.bannerUrl),
                 ),
                 Positioned(
@@ -92,7 +93,7 @@ class StoreCard extends StatelessWidget {
                     const SizedBox(height: 6),
                     Row(
                       children: [
-                        const Icon(Icons.location_on_outlined,
+                        Icon(Icons.location_on_outlined,
                             size: 13, color: AppColors.textMuted),
                         const SizedBox(width: 3),
                         Expanded(
@@ -102,23 +103,26 @@ class StoreCard extends StatelessWidget {
                                 : store.address,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
+                            style: TextStyle(
                                 color: AppColors.textMuted, fontSize: 11.5),
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 6),
-                    Text(
-                      store.description.isEmpty
-                          ? 'No store description provided.'
-                          : store.description,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                          color: AppColors.textMuted, fontSize: 11, height: 1.3),
+                    Flexible(
+                      child: Text(
+                        store.description.isEmpty
+                            ? 'No store description provided.'
+                            : store.description,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                            color: AppColors.textMuted,
+                            fontSize: 11,
+                            height: 1.3),
+                      ),
                     ),
-                    const Spacer(),
                     const SizedBox(height: 8),
                     SizedBox(
                       width: double.infinity,

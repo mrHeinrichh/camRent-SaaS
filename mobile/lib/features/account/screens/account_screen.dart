@@ -104,7 +104,7 @@ class _ProfileHeader extends StatelessWidget {
                     style: const TextStyle(
                         fontSize: 16, fontWeight: FontWeight.bold)),
                 Text(user?.email ?? '',
-                    style: const TextStyle(color: AppColors.textMuted)),
+                    style: TextStyle(color: AppColors.textMuted)),
               ],
             ),
           ),
@@ -152,7 +152,7 @@ class _OrderCard extends StatelessWidget {
                                 const TextStyle(fontWeight: FontWeight.w600)),
                         Text(
                           '${prettyDate(it.startDate)} → ${prettyDate(it.endDate)} ×${it.quantity}',
-                          style: const TextStyle(
+                          style: TextStyle(
                               color: AppColors.textMuted, fontSize: 12),
                         ),
                       ],

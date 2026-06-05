@@ -14,6 +14,15 @@ class OwnerRepository {
         Json.obj(await _api.get(ApiEndpoints.ownerDashboard)),
       );
 
+  // ── Gear (item) CRUD ──────────────────────────────────────────────
+  Future<void> createItem(Map<String, dynamic> payload) =>
+      _api.post(ApiEndpoints.items, body: payload);
+
+  Future<void> updateItem(String id, Map<String, dynamic> payload) =>
+      _api.put(ApiEndpoints.item(id), body: payload);
+
+  Future<void> deleteItem(String id) => _api.delete(ApiEndpoints.item(id));
+
   Future<List<OwnerApplication>> applications() async {
     final data = await _api.get(ApiEndpoints.ownerApplications);
     return (data as List)

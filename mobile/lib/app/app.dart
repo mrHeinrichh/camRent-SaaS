@@ -8,6 +8,7 @@ import '../data/repositories/catalog_repository.dart';
 import '../features/auth/cubit/auth_cubit.dart';
 import '../features/cart/cubit/cart_cubit.dart';
 import '../features/home/bloc/home_cubit.dart';
+import '../features/settings/theme_cubit.dart';
 import 'app_router.dart';
 import 'theme.dart';
 
@@ -22,6 +23,7 @@ class _CamRentAppState extends State<CamRentApp> {
   late final AuthCubit _authCubit;
   late final CartCubit _cartCubit;
   late final HomeCubit _homeCubit;
+  late final ThemeCubit _themeCubit;
 
   @override
   void initState() {
@@ -29,6 +31,7 @@ class _CamRentAppState extends State<CamRentApp> {
     _authCubit = AuthCubit(sl<AuthRepository>(), sl<TokenStore>());
     _cartCubit = CartCubit();
     _homeCubit = HomeCubit(sl<CatalogRepository>())..load();
+    _themeCubit = ThemeCubit();
   }
 
   @override
@@ -36,6 +39,7 @@ class _CamRentAppState extends State<CamRentApp> {
     _authCubit.close();
     _cartCubit.close();
     _homeCubit.close();
+    _themeCubit.close();
     super.dispose();
   }
 
@@ -46,12 +50,22 @@ class _CamRentAppState extends State<CamRentApp> {
         BlocProvider.value(value: _authCubit),
         BlocProvider.value(value: _cartCubit),
         BlocProvider.value(value: _homeCubit),
+        BlocProvider.value(value: _themeCubit),
       ],
-      child: MaterialApp.router(
-        title: 'CamRent',
-        debugShowCheckedModeBanner: false,
-        theme: buildAppTheme(),
-        routerConfig: buildRouter(_authCubit),
+      child: BlocBuilder<ThemeCubit, ThemeMode>(
+        builder: (context, mode) {
+          // Keep the custom-widget palette in sync with the active ThemeData.
+          AppColors.brightness =
+              mode == ThemeMode.dark ? Brightness.dark : Brightness.light;
+          return MaterialApp.router(
+            title: 'CamRentPH',
+            debugShowCheckedModeBanner: false,
+            theme: buildAppTheme(Brightness.light),
+            darkTheme: buildAppTheme(Brightness.dark),
+            themeMode: mode,
+            routerConfig: buildRouter(_authCubit),
+          );
+        },
       ),
     );
   }

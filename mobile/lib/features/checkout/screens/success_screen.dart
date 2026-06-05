@@ -22,7 +22,7 @@ class SuccessScreen extends StatelessWidget {
                   style:
                       TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
-              const Text(
+              Text(
                 'The store will review your rental application and get back to you shortly. You can track its status in your account.',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: AppColors.textMuted),

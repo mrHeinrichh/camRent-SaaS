@@ -8,6 +8,7 @@ import '../../../core/utils/currency.dart';
 import '../../../core/utils/date_utils.dart';
 import '../../../core/utils/rental_pricing.dart';
 import '../../../core/widgets/app_widgets.dart';
+import '../../../core/widgets/fly_to_cart.dart';
 import '../../../data/models/cart_item.dart';
 import '../../../data/models/enums.dart';
 import '../../../data/repositories/catalog_repository.dart';
@@ -22,42 +23,57 @@ class ItemScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (_) => ItemCubit(sl<CatalogRepository>())..load(itemId),
-      child: Scaffold(
-        appBar: AppBar(title: const Text('Gear details')),
-        body: BlocBuilder<ItemCubit, ItemState>(
-          builder: (context, state) {
-            if (state.status == ItemStatus.loading) {
-              return const LoadingView();
-            }
-            if (state.status == ItemStatus.error || state.item == null) {
-              return ErrorView(
-                message: state.error ?? 'Item not found',
-                onRetry: () => context.read<ItemCubit>().load(itemId),
-              );
-            }
-            return _ItemBody(state: state);
-          },
-        ),
-      ),
+      child: _ItemView(itemId: itemId),
     );
   }
 }
 
-class _ItemBody extends StatefulWidget {
-  const _ItemBody({required this.state});
-  final ItemState state;
+class _ItemView extends StatefulWidget {
+  const _ItemView({required this.itemId});
+  final String itemId;
 
   @override
-  State<_ItemBody> createState() => _ItemBodyState();
+  State<_ItemView> createState() => _ItemViewState();
 }
 
-class _ItemBodyState extends State<_ItemBody> {
+class _ItemViewState extends State<_ItemView> {
+  final GlobalKey _cartKey = GlobalKey();
+  final GlobalKey _imageKey = GlobalKey();
   DateTimeRange? _range;
   int _quantity = 1;
 
   @override
   Widget build(BuildContext context) {
-    final item = widget.state.item!;
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Gear details'),
+        actions: [
+          CartBadgeIcon(
+            iconKey: _cartKey,
+            onTap: () => context.push('/cart'),
+          ),
+          const SizedBox(width: 4),
+        ],
+      ),
+      body: BlocBuilder<ItemCubit, ItemState>(
+        builder: (context, state) {
+          if (state.status == ItemStatus.loading) {
+            return const LoadingView();
+          }
+          if (state.status == ItemStatus.error || state.item == null) {
+            return ErrorView(
+              message: state.error ?? 'Item not found',
+              onRetry: () => context.read<ItemCubit>().load(widget.itemId),
+            );
+          }
+          return _buildBody(context, state);
+        },
+      ),
+    );
+  }
+
+  Widget _buildBody(BuildContext context, ItemState state) {
+    final item = state.item!;
     final billingMode = item.rentalBillingMode ?? RentalBillingMode.twentyFourHour;
     final days = _range == null
         ? 0
@@ -76,6 +92,7 @@ class _ItemBodyState extends State<_ItemBody> {
             padding: const EdgeInsets.all(16),
             children: [
               RemoteImage(
+                key: _imageKey,
                 url: item.imageUrl,
                 height: 240,
                 width: double.infinity,
@@ -102,10 +119,10 @@ class _ItemBodyState extends State<_ItemBody> {
                           fontSize: 20,
                           color: AppColors.accent,
                           fontWeight: FontWeight.bold)),
-                  const Text(' / ',
+                  Text(' / ',
                       style: TextStyle(color: AppColors.textMuted)),
                   Text(rentalBillingModeLabel(billingMode),
-                      style: const TextStyle(color: AppColors.textMuted)),
+                      style: TextStyle(color: AppColors.textMuted)),
                 ],
               ),
               if (item.depositAmount > 0)
@@ -113,7 +130,7 @@ class _ItemBodyState extends State<_ItemBody> {
                   padding: const EdgeInsets.only(top: 4),
                   child: Text(
                     'Refundable deposit: ${formatPHP(item.depositAmount)}',
-                    style: const TextStyle(
+                    style: TextStyle(
                         color: AppColors.textMuted, fontSize: 13),
                   ),
                 ),
@@ -123,7 +140,7 @@ class _ItemBodyState extends State<_ItemBody> {
                     style: TextStyle(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 4),
                 Text(item.description,
-                    style: const TextStyle(color: AppColors.textMuted)),
+                    style: TextStyle(color: AppColors.textMuted)),
                 const SizedBox(height: 16),
               ],
               if (item.store != null)
@@ -229,6 +246,12 @@ class _ItemBodyState extends State<_ItemBody> {
     if (conflict != null) {
       _showConflictDialog(conflict);
     } else {
+      flyToCart(
+        context: context,
+        sourceKey: _imageKey,
+        targetKey: _cartKey,
+        imageUrl: item.imageUrl,
+      );
       showSnack(context, 'Added to cart');
     }
   }
@@ -290,11 +313,11 @@ class _BookingsNotice extends StatelessWidget {
           const SizedBox(height: 6),
           ...item.bookings.map<Widget>((b) => Text(
                 '${prettyDate(b.startDate)} → ${prettyDate(b.endDate)} (${b.status})',
-                style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
+                style: TextStyle(color: AppColors.textMuted, fontSize: 12),
               )),
           ...item.manualBlocks.map<Widget>((b) => Text(
                 '${prettyDate(b.startDate)} → ${prettyDate(b.endDate)} (blocked)',
-                style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
+                style: TextStyle(color: AppColors.textMuted, fontSize: 12),
               )),
         ],
       ),
@@ -320,7 +343,7 @@ class _AddBar extends StatelessWidget {
     return Container(
       padding: EdgeInsets.fromLTRB(
           16, 12, 16, 12 + MediaQuery.of(context).padding.bottom),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: AppColors.surface,
         border: Border(top: BorderSide(color: AppColors.border)),
       ),
@@ -330,14 +353,14 @@ class _AddBar extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('Estimated',
+              Text('Estimated',
                   style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
               Text(formatPHP(estimate),
                   style: const TextStyle(
                       fontSize: 18, fontWeight: FontWeight.bold)),
               if (days > 0)
                 Text('$days day(s)',
-                    style: const TextStyle(
+                    style: TextStyle(
                         color: AppColors.textMuted, fontSize: 11)),
             ],
           ),

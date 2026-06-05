@@ -111,4 +111,24 @@ class OwnerCubit extends Cubit<OwnerState> {
     await _repo.createSupportTicket(payload);
     await load();
   }
+
+  Future<void> createItem(Map<String, dynamic> payload) async {
+    await _repo.createItem(payload);
+    await load();
+  }
+
+  Future<void> updateItem(String id, Map<String, dynamic> payload) async {
+    await _repo.updateItem(id, payload);
+    await load();
+  }
+
+  Future<void> deleteItem(String id) async {
+    await _repo.deleteItem(id);
+    await load();
+  }
+
+  Future<void> updateStoreProfile(Map<String, dynamic> payload) async {
+    await _repo.updateStoreProfile(payload);
+    await load();
+  }
 }

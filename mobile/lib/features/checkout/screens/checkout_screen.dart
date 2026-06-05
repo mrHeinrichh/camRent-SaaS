@@ -247,7 +247,7 @@ class _CheckoutViewState extends State<_CheckoutView> {
                 ),
                 const SizedBox(height: 16),
                 _section('Required documents'),
-                const Text(
+                Text(
                   'Upload 2 valid IDs (front & back) and a selfie holding your ID.',
                   style: TextStyle(color: AppColors.textMuted, fontSize: 12),
                 ),

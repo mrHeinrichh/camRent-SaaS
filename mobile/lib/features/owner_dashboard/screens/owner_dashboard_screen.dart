@@ -11,6 +11,8 @@ import '../../../core/widgets/app_widgets.dart';
 import '../../../data/repositories/owner_repository.dart';
 import '../../auth/cubit/auth_cubit.dart';
 import '../bloc/owner_cubit.dart';
+import 'gear_editor_sheet.dart';
+import 'store_profile_sheet.dart';
 
 class OwnerDashboardScreen extends StatelessWidget {
   const OwnerDashboardScreen({super.key});
@@ -94,8 +96,22 @@ class _OverviewTab extends StatelessWidget {
               ),
               title: Text(d.store!.name),
               subtitle: Text('Status: ${d.store!.status}'),
-              trailing: StatusBadge(d.store!.status,
-                  color: statusColor(d.store!.status)),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  StatusBadge(d.store!.status,
+                      color: statusColor(d.store!.status)),
+                  IconButton(
+                    tooltip: 'Edit store',
+                    icon: const Icon(Icons.edit_outlined),
+                    onPressed: () => showStoreProfileEditor(
+                      context,
+                      cubit: context.read<OwnerCubit>(),
+                      store: d.store!,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         const SizedBox(height: 12),
@@ -162,7 +178,7 @@ class _OverviewTab extends StatelessWidget {
                   style: const TextStyle(
                       fontSize: 18, fontWeight: FontWeight.bold)),
               Text(label,
-                  style: const TextStyle(
+                  style: TextStyle(
                       color: AppColors.textMuted, fontSize: 12)),
             ],
           ),
@@ -174,36 +190,118 @@ class _GearTab extends StatelessWidget {
   const _GearTab({required this.state});
   final OwnerState state;
 
+  String? get _storeId => state.dashboard?.store?.id;
+
   @override
   Widget build(BuildContext context) {
     final items = state.dashboard!.items;
-    if (items.isEmpty) {
-      return const EmptyState(
-          title: 'No gear listed', icon: Icons.photo_camera_back_outlined);
-    }
-    return ListView.builder(
-      padding: const EdgeInsets.all(12),
-      itemCount: items.length,
-      itemBuilder: (context, index) {
-        final item = items[index];
-        return Card(
-          child: ListTile(
-            leading: RemoteImage(
-              url: item.imageUrl,
-              width: 48,
-              height: 48,
-              borderRadius: BorderRadius.circular(8),
+    final cubit = context.read<OwnerCubit>();
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      floatingActionButton: _storeId == null
+          ? null
+          : FloatingActionButton.extended(
+              onPressed: () =>
+                  showGearEditor(context, cubit: cubit, storeId: _storeId!),
+              icon: const Icon(Icons.add),
+              label: const Text('Add gear'),
             ),
-            title: Text(item.name),
-            subtitle: Text(
-                '${formatPHP(item.dailyPrice)}/day · stock ${item.stock ?? 0}'),
-            trailing: StatusBadge(
-              item.isAvailable ? 'Available' : 'Hidden',
-              color: item.isAvailable ? AppColors.success : AppColors.textMuted,
+      body: items.isEmpty
+          ? const EmptyState(
+              title: 'No gear listed yet',
+              message: 'Tap "Add gear" to list your first item.',
+              icon: Icons.photo_camera_back_outlined,
+            )
+          : ListView.builder(
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 88),
+              itemCount: items.length,
+              itemBuilder: (context, index) {
+                final item = items[index];
+                return EntranceEffect(
+                  index: index % 8,
+                  child: Card(
+                    child: ListTile(
+                      leading: RemoteImage(
+                        url: item.imageUrl,
+                        width: 48,
+                        height: 48,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      title: Text(item.name),
+                      subtitle: Text(
+                          '${formatPHP(item.dailyPrice)}/day · stock ${item.stock ?? 0}'),
+                      trailing: PopupMenuButton<String>(
+                        onSelected: (v) {
+                          if (v == 'edit') {
+                            showGearEditor(context,
+                                cubit: cubit,
+                                storeId: _storeId ?? item.storeId,
+                                existing: item);
+                          } else if (v == 'delete') {
+                            _confirmDelete(context, cubit, item.id, item.name);
+                          }
+                        },
+                        itemBuilder: (_) => [
+                          const PopupMenuItem(
+                              value: 'edit',
+                              child: ListTile(
+                                  dense: true,
+                                  leading: Icon(Icons.edit_outlined),
+                                  title: Text('Edit'))),
+                          const PopupMenuItem(
+                              value: 'delete',
+                              child: ListTile(
+                                  dense: true,
+                                  leading: Icon(Icons.delete_outline,
+                                      color: AppColors.danger),
+                                  title: Text('Delete'))),
+                        ],
+                        child: Padding(
+                          padding: const EdgeInsets.all(6),
+                          child: StatusBadge(
+                            item.isAvailable ? 'Available' : 'Hidden',
+                            color: item.isAvailable
+                                ? AppColors.success
+                                : AppColors.textMuted,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
             ),
+    );
+  }
+
+  void _confirmDelete(
+      BuildContext context, OwnerCubit cubit, String id, String name) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Delete gear'),
+        content: Text('Remove "$name"? This cannot be undone.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.danger),
+            onPressed: () async {
+              Navigator.pop(dialogContext);
+              try {
+                await cubit.deleteItem(id);
+                if (context.mounted) showSnack(context, 'Gear deleted');
+              } catch (e) {
+                if (context.mounted) {
+                  showSnack(context, 'Could not delete: $e', error: true);
+                }
+              }
+            },
+            child: const Text('Delete'),
           ),
-        );
-      },
+        ],
+      ),
     );
   }
 }
@@ -246,7 +344,7 @@ class _ApplicationsTab extends StatelessWidget {
                   ],
                 ),
                 Text('${app.renterEmail} · ${app.renterPhone}',
-                    style: const TextStyle(
+                    style: TextStyle(
                         color: AppColors.textMuted, fontSize: 12)),
                 const SizedBox(height: 6),
                 ...app.items.map((it) => Text(

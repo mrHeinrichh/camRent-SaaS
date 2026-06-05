@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../app/theme.dart';
 import '../features/auth/cubit/auth_cubit.dart';
 import '../features/cart/cubit/cart_cubit.dart';
+import '../features/settings/theme_cubit.dart';
 
 /// Bottom-navigation shell hosting the renter tabs (Home, Cart, Account) with a
 /// drawer for static pages. Mirrors the web Navbar.
@@ -82,7 +83,7 @@ class _AppDrawer extends StatelessWidget {
         child: ListView(
           children: [
             DrawerHeader(
-              decoration: const BoxDecoration(color: AppColors.surface),
+              decoration: BoxDecoration(color: AppColors.surface),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.end,
@@ -97,7 +98,7 @@ class _AppDrawer extends StatelessWidget {
                   ),
                   if (auth.user != null)
                     Text(auth.user!.email,
-                        style: const TextStyle(color: AppColors.textMuted)),
+                        style: TextStyle(color: AppColors.textMuted)),
                 ],
               ),
             ),
@@ -132,6 +133,18 @@ class _AppDrawer extends StatelessWidget {
                 Navigator.pop(context);
                 context.push('/donate');
               },
+            ),
+            const Divider(),
+            BlocBuilder<ThemeCubit, ThemeMode>(
+              builder: (context, mode) => SwitchListTile(
+                secondary: Icon(mode == ThemeMode.dark
+                    ? Icons.dark_mode
+                    : Icons.light_mode),
+                title: const Text('Dark mode'),
+                value: mode == ThemeMode.dark,
+                activeThumbColor: AppColors.accent,
+                onChanged: (_) => context.read<ThemeCubit>().toggle(),
+              ),
             ),
             const Divider(),
             if (auth.isOwner)

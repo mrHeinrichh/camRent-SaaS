@@ -49,7 +49,7 @@ class _GoogleButtonState extends State<GoogleButton> {
       onPressed: _busy ? null : _handle,
       style: OutlinedButton.styleFrom(
         padding: const EdgeInsets.symmetric(vertical: 13),
-        side: const BorderSide(color: AppColors.border),
+        side: BorderSide(color: AppColors.border),
         backgroundColor: AppColors.surfaceSoft,
       ),
       child: _busy
@@ -61,7 +61,7 @@ class _GoogleButtonState extends State<GoogleButton> {
                 const _GoogleGlyph(),
                 const SizedBox(width: 10),
                 Text(widget.label,
-                    style: const TextStyle(
+                    style: TextStyle(
                         color: AppColors.text, fontWeight: FontWeight.w700)),
               ],
             ),

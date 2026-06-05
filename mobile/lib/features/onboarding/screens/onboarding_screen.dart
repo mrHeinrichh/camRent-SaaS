@@ -184,7 +184,7 @@ class _OnboardPageView extends StatelessWidget {
           const SizedBox(height: 28),
           Text(
             page.title,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 26,
               fontWeight: FontWeight.w800,
               height: 1.15,
@@ -194,7 +194,7 @@ class _OnboardPageView extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             page.summary,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 15,
               height: 1.5,
               color: AppColors.textMuted,
@@ -246,7 +246,7 @@ class _FeatureRow extends StatelessWidget {
             Expanded(
               child: Text(
                 text,
-                style: const TextStyle(fontSize: 14.5, color: AppColors.text),
+                style: TextStyle(fontSize: 14.5, color: AppColors.text),
               ),
             ),
           ],

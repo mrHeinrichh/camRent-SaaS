@@ -55,7 +55,7 @@ class HomeScreen extends StatelessWidget {
                             fontSize: 18, fontWeight: FontWeight.w700),
                       ),
                       Text('$total result(s)',
-                          style: const TextStyle(
+                          style: TextStyle(
                               color: AppColors.textMuted, fontSize: 12)),
                     ],
                   ),
@@ -78,11 +78,11 @@ class HomeScreen extends StatelessWidget {
                   padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
                   sliver: SliverGrid(
                     gridDelegate:
-                        const SliverGridDelegateWithMaxCrossAxisExtent(
+                        SliverGridDelegateWithMaxCrossAxisExtent(
                       maxCrossAxisExtent: 230,
                       mainAxisSpacing: 12,
                       crossAxisSpacing: 12,
-                      childAspectRatio: 0.62,
+                      mainAxisExtent: isGears ? 290 : 300,
                     ),
                     delegate: SliverChildBuilderDelegate(
                       (context, index) {
@@ -146,7 +146,7 @@ class _Hero extends StatelessWidget {
                 .toBoxDecoration(),
             child: Text(
               content.homeBadge,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w800,
                 color: AppColors.textMuted,
@@ -157,7 +157,7 @@ class _Hero extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             content.homeTitle,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.w800,
               height: 1.2,
@@ -167,14 +167,14 @@ class _Hero extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             content.homeSubtitle,
-            style: const TextStyle(
+            style: TextStyle(
                 color: AppColors.textMuted, fontSize: 14, height: 1.45),
           ),
           const SizedBox(height: 12),
           Row(
             children: [
               Text('${state.storeCount} Stores',
-                  style: const TextStyle(
+                  style: TextStyle(
                       color: AppColors.textMuted,
                       fontSize: 13,
                       fontWeight: FontWeight.w600)),
@@ -182,11 +182,11 @@ class _Hero extends StatelessWidget {
                 margin: const EdgeInsets.symmetric(horizontal: 10),
                 width: 4,
                 height: 4,
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                     color: AppColors.border, shape: BoxShape.circle),
               ),
               Text('${state.gearCount} Gears',
-                  style: const TextStyle(
+                  style: TextStyle(
                       color: AppColors.textMuted,
                       fontSize: 13,
                       fontWeight: FontWeight.w600)),

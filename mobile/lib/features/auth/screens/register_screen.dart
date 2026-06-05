@@ -183,7 +183,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                   const SizedBox(height: 12),
                   Row(
-                    children: const [
+                    children: [
                       Expanded(child: Divider(color: AppColors.border)),
                       Padding(
                         padding: EdgeInsets.symmetric(horizontal: 12),
@@ -346,7 +346,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ),
                       ],
                     )
-                  : const Text(
+                  : Text(
                       'Review your details and tap "Create account" to finish.',
                       style: TextStyle(color: AppColors.textMuted),
                     ),

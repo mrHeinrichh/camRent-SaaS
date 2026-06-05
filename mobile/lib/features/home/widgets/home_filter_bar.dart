@@ -185,7 +185,7 @@ class _DropdownChip<T> extends StatelessWidget {
           value: value,
           isDense: true,
           borderRadius: BorderRadius.circular(14),
-          style: const TextStyle(fontSize: 13, color: AppColors.text),
+          style: TextStyle(fontSize: 13, color: AppColors.text),
           dropdownColor: AppColors.surfaceSoft,
           items: items,
           onChanged: onChanged,
@@ -221,7 +221,7 @@ class _BrandFieldState extends State<_BrandField> {
               : kAllBrands,
           isDense: true,
           borderRadius: BorderRadius.circular(14),
-          style: const TextStyle(fontSize: 13, color: AppColors.text),
+          style: TextStyle(fontSize: 13, color: AppColors.text),
           dropdownColor: AppColors.surfaceSoft,
           items: kBrandOptions
               .map((b) => DropdownMenuItem(value: b, child: Text(b)))
