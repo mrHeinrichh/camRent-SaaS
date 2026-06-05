@@ -12,7 +12,7 @@ import '../../../data/repositories/owner_repository.dart';
 import '../../auth/cubit/auth_cubit.dart';
 import '../bloc/owner_cubit.dart';
 import 'gear_editor_sheet.dart';
-import 'store_profile_sheet.dart';
+import 'store_profile_header.dart';
 
 class OwnerDashboardScreen extends StatelessWidget {
   const OwnerDashboardScreen({super.key});
@@ -86,33 +86,9 @@ class _OverviewTab extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       children: [
         if (d.store != null)
-          Card(
-            child: ListTile(
-              leading: RemoteImage(
-                url: d.store!.logoUrl,
-                width: 44,
-                height: 44,
-                borderRadius: BorderRadius.circular(22),
-              ),
-              title: Text(d.store!.name),
-              subtitle: Text('Status: ${d.store!.status}'),
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  StatusBadge(d.store!.status,
-                      color: statusColor(d.store!.status)),
-                  IconButton(
-                    tooltip: 'Edit store',
-                    icon: const Icon(Icons.edit_outlined),
-                    onPressed: () => showStoreProfileEditor(
-                      context,
-                      cubit: context.read<OwnerCubit>(),
-                      store: d.store!,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+          StoreProfileHeader(
+            store: d.store!,
+            cubit: context.read<OwnerCubit>(),
           ),
         const SizedBox(height: 12),
         GridView.count(
@@ -230,42 +206,36 @@ class _GearTab extends StatelessWidget {
                       title: Text(item.name),
                       subtitle: Text(
                           '${formatPHP(item.dailyPrice)}/day · stock ${item.stock ?? 0}'),
-                      trailing: PopupMenuButton<String>(
-                        onSelected: (v) {
-                          if (v == 'edit') {
-                            showGearEditor(context,
-                                cubit: cubit,
-                                storeId: _storeId ?? item.storeId,
-                                existing: item);
-                          } else if (v == 'delete') {
-                            _confirmDelete(context, cubit, item.id, item.name);
-                          }
-                        },
-                        itemBuilder: (_) => [
-                          const PopupMenuItem(
-                              value: 'edit',
-                              child: ListTile(
-                                  dense: true,
-                                  leading: Icon(Icons.edit_outlined),
-                                  title: Text('Edit'))),
-                          const PopupMenuItem(
-                              value: 'delete',
-                              child: ListTile(
-                                  dense: true,
-                                  leading: Icon(Icons.delete_outline,
-                                      color: AppColors.danger),
-                                  title: Text('Delete'))),
-                        ],
-                        child: Padding(
-                          padding: const EdgeInsets.all(6),
-                          child: StatusBadge(
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          StatusBadge(
                             item.isAvailable ? 'Available' : 'Hidden',
                             color: item.isAvailable
                                 ? AppColors.success
                                 : AppColors.textMuted,
                           ),
-                        ),
+                          IconButton(
+                            tooltip: 'Edit',
+                            icon: const Icon(Icons.edit_outlined, size: 20),
+                            onPressed: () => showGearEditor(context,
+                                cubit: cubit,
+                                storeId: _storeId ?? item.storeId,
+                                existing: item),
+                          ),
+                          IconButton(
+                            tooltip: 'Delete',
+                            icon: const Icon(Icons.delete_outline,
+                                size: 20, color: AppColors.danger),
+                            onPressed: () =>
+                                _confirmDelete(context, cubit, item.id, item.name),
+                          ),
+                        ],
                       ),
+                      onTap: () => showGearEditor(context,
+                          cubit: cubit,
+                          storeId: _storeId ?? item.storeId,
+                          existing: item),
                     ),
                   ),
                 );
