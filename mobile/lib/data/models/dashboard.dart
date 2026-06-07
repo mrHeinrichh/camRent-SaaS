@@ -344,6 +344,7 @@ class StoreInsight {
 
 class CustomerInsight {
   const CustomerInsight({
+    required this.customerId,
     required this.fullName,
     required this.email,
     this.isActive = true,
@@ -351,6 +352,7 @@ class CustomerInsight {
     this.totalSpent = 0,
   });
 
+  final String customerId;
   final String fullName;
   final String email;
   final bool isActive;
@@ -359,6 +361,7 @@ class CustomerInsight {
 
   factory CustomerInsight.fromJson(Map<String, dynamic> json) =>
       CustomerInsight(
+        customerId: Json.str(json['customer_id']),
         fullName: Json.str(json['full_name']),
         email: Json.str(json['email']),
         isActive: Json.boolVal(json['is_active'], true),

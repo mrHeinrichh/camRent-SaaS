@@ -62,11 +62,29 @@ class ApiEndpoints {
 
   // Admin
   static const String adminFraudList = '/api/admin/fraud-list';
+  static String adminFraudItem(String id) => '/api/admin/fraud-list/$id';
+  static String adminFraudGlobalize(String id) =>
+      '/api/admin/fraud-list/globalize/$id';
+  static String adminFraudApproveGlobal(String id) =>
+      '/api/admin/fraud-list/$id/approve-global';
   static const String adminFraudAnalytics = '/api/admin/fraud-analytics';
   static const String adminSupportTickets = '/api/admin/support-tickets';
+  static String adminSupportTicket(String id) =>
+      '/api/admin/support-tickets/$id';
   static const String adminAnnouncements = '/api/admin/announcements';
+  static String adminAnnouncementItem(String id) =>
+      '/api/admin/announcements/$id';
   static const String adminAnnouncementSettings =
       '/api/admin/announcement-settings';
   static const String adminDonationSettings = '/api/admin/donation-settings';
   static const String adminSiteContent = '/api/admin/site-content';
+
+  // Admin store / customer actions
+  static String adminApproveStore(String id) =>
+      '/api/admin/stores/$id/approve';
+  static String adminStoreActive(String id) => '/api/admin/stores/$id/active';
+  static String adminDeleteStore(String id) => '/api/admin/stores/$id/delete';
+  static String adminCustomerActive(String id) =>
+      '/api/admin/customers/$id/active';
+  static String adminDeleteUser(String id) => '/api/admin/users/$id/delete';
 }
