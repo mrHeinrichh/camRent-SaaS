@@ -9,6 +9,8 @@ const userSchema = new Schema(
     avatar_url: { type: String, default: '' },
     phone: { type: String, default: '' },
     is_active: { type: Boolean, default: true },
+    is_deleted: { type: Boolean, default: false },
+    deleted_at: { type: Date, default: null },
   },
   { timestamps: { createdAt: 'created_at', updatedAt: false } },
 );

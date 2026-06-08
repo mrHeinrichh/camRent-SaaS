@@ -15,23 +15,24 @@ itemRoutes.get('/', authenticate, async (req: AuthedRequest, res) => {
   if (req.user?.role === 'owner') {
     const ownedStores = await Store.find({ owner_id: toId(req.user.id) }).select('_id').lean();
     const storeIds = ownedStores.map((store) => store._id);
-    const items = await Item.find({ store_id: { $in: storeIds } }).lean();
+    const items = await Item.find({ store_id: { $in: storeIds }, is_deleted: { $ne: true } }).lean();
     return res.json(serializeMany(items as any[]));
   }
 
-  const activeStores = await Store.find({ status: 'approved', is_active: true }).select('_id').lean();
-  const items = await Item.find({ store_id: { $in: activeStores.map((store) => store._id) }, is_available: true, stock: { $gt: 0 } }).lean();
+  const activeStores = await Store.find({ status: 'approved', is_active: true, is_deleted: { $ne: true } }).select('_id').lean();
+  const items = await Item.find({ store_id: { $in: activeStores.map((store) => store._id) }, is_available: true, is_deleted: { $ne: true }, stock: { $gt: 0 } }).lean();
   res.json(serializeMany(items as any[]));
 });
 
 itemRoutes.get('/feed', authenticate, async (req: AuthedRequest, res) => {
-  const visibleStores = await Store.find({ status: 'approved', is_active: true })
+  const visibleStores = await Store.find({ status: 'approved', is_active: true, is_deleted: { $ne: true } })
     .select('_id name logo_url rating location_lat location_lng branches')
     .lean();
   const storeMap = new Map(visibleStores.map((store) => [String(store._id), store]));
   const items = await Item.find({
     store_id: { $in: visibleStores.map((store) => store._id) },
     is_available: true,
+    is_deleted: { $ne: true },
     stock: { $gt: 0 },
   }).lean();
 
@@ -66,6 +67,9 @@ itemRoutes.get('/:id', authenticate, async (req: AuthedRequest, res) => {
 
   const isOwnerOfStore = Boolean(req.user?.role === 'owner' && store.owner_id.toString() === req.user.id);
 
+  if ((item as any).is_deleted === true || (store as any).is_deleted === true) {
+    return res.status(404).json({ error: 'Item not found' });
+  }
   if (!isOwnerOfStore && (store.status !== 'approved' || !store.is_active || item.is_available === false || Number(item.stock) <= 0)) {
     return res.status(404).json({ error: 'Item not found' });
   }
@@ -134,9 +138,13 @@ itemRoutes.delete('/:id', authenticate, checkRole(['owner']), async (req: Authed
     }
   }
 
-  await ManualBlock.deleteMany({ item_id: item._id });
-  await OrderItem.deleteMany({ item_id: item._id });
-  await item.deleteOne();
+  // Safe (soft) delete: hide the gear from all listings but keep its records
+  // (bookings, order history) intact so the action is recoverable.
+  (item as any).is_deleted = true;
+  item.is_available = false;
+  item.stock = 0;
+  (item as any).deleted_at = new Date();
+  await item.save();
 
   res.json({ success: true });
 });

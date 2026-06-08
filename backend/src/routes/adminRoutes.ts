@@ -106,19 +106,20 @@ const verifyAdminPassword = async (adminUserId: string, adminPassword: string) =
   return bcrypt.compare(String(adminPassword || ''), adminUser.password);
 };
 
+// Safe (soft) delete: the store and its gear are flagged and hidden from all
+// listings, but no records (orders, reviews, history) are destroyed, so the
+// action is fully recoverable.
 const deleteStoreData = async (storeId: string) => {
-  const orders = await Order.find({ store_id: storeId }).select('_id').lean();
-  const orderIds = orders.map((order: any) => order._id);
-  if (orderIds.length) {
-    await Promise.all([OrderItem.deleteMany({ order_id: { $in: orderIds } }), OrderDocument.deleteMany({ order_id: { $in: orderIds } })]);
-  }
+  const now = new Date();
   await Promise.all([
-    Order.deleteMany({ store_id: storeId }),
-    Item.deleteMany({ store_id: storeId }),
-    FraudList.deleteMany({ store_id: storeId }),
-    SupportTicket.deleteMany({ store_id: storeId }),
-    StoreReview.deleteMany({ store_id: storeId }),
-    Store.deleteOne({ _id: storeId }),
+    Store.updateOne(
+      { _id: storeId },
+      { is_deleted: true, is_active: false, deleted_at: now },
+    ),
+    Item.updateMany(
+      { store_id: storeId },
+      { is_deleted: true, is_available: false, deleted_at: now },
+    ),
   ]);
 };
 
@@ -293,11 +294,11 @@ adminRoutes.get('/admin/fraud-analytics', authenticate, checkRole(['admin']), as
 adminRoutes.get('/dashboard/admin', authenticate, checkRole(['admin']), async (_req, res) => {
   await enforceStoreDueDeactivation();
   const [pendingStores, allStores, orders, items, customers, orderItems, supportTickets, reviews, pendingGlobalFraudCount] = await Promise.all([
-    Store.find({ status: 'pending' }).lean(),
-    Store.find().lean(),
+    Store.find({ status: 'pending', is_deleted: { $ne: true } }).lean(),
+    Store.find({ is_deleted: { $ne: true } }).lean(),
     Order.find().lean(),
-    Item.find().lean(),
-    User.find({ role: 'renter' }).lean(),
+    Item.find({ is_deleted: { $ne: true } }).lean(),
+    User.find({ role: 'renter', is_deleted: { $ne: true } }).lean(),
     OrderItem.find().lean(),
     SupportTicket.find().lean(),
     StoreReview.find().sort({ created_at: -1 }).lean(),
@@ -566,32 +567,19 @@ adminRoutes.post('/admin/users/:id/delete', authenticate, checkRole(['admin']), 
   if (user.role === 'admin') return res.status(403).json({ error: 'Admin users cannot be deleted' });
   if (String(user._id) === String(req.user?.id)) return res.status(403).json({ error: 'You cannot delete your own account' });
 
+  // Safe (soft) delete: flag and deactivate the account (and an owner's stores)
+  // without destroying orders, reviews or history — fully recoverable.
   if (user.role === 'owner') {
     const ownedStores = await Store.find({ owner_id: user._id }).select('_id').lean();
     for (const ownedStore of ownedStores as any[]) {
       await deleteStoreData(ownedStore._id.toString());
     }
-    await SupportTicket.deleteMany({ owner_id: user._id });
-  } else if (user.role === 'renter') {
-    const renterOrders = await Order.find({
-      $or: [{ renter_id: user._id }, { renter_email: normalizeEmail(user.email) }],
-    })
-      .select('_id')
-      .lean();
-    const renterOrderIds = renterOrders.map((order: any) => order._id);
-    if (renterOrderIds.length) {
-      await Promise.all([
-        OrderItem.deleteMany({ order_id: { $in: renterOrderIds } }),
-        OrderDocument.deleteMany({ order_id: { $in: renterOrderIds } }),
-      ]);
-    }
-    await Promise.all([
-      Order.deleteMany({ _id: { $in: renterOrderIds } }),
-      StoreReview.deleteMany({ renter_id: user._id }),
-    ]);
   }
 
-  await User.deleteOne({ _id: user._id });
+  user.is_deleted = true;
+  user.is_active = false;
+  (user as any).deleted_at = new Date();
+  await user.save();
   res.json({ success: true });
 });
 

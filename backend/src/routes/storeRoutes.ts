@@ -17,7 +17,7 @@ export const storeRoutes = Router();
 
 storeRoutes.get('/', async (_req, res) => {
   await enforceStoreDueDeactivation();
-  const stores = await Store.find({ status: 'approved', is_active: true }).lean();
+  const stores = await Store.find({ status: 'approved', is_active: true, is_deleted: { $ne: true } }).lean();
   res.json(serializeMany(stores as any[]));
 });
 
@@ -25,8 +25,8 @@ storeRoutes.get('/:id', async (req, res) => {
   await enforceStoreDueDeactivation();
   if (!Types.ObjectId.isValid(req.params.id)) return res.status(404).json({ error: 'Store not found' });
   const store = await Store.findById(req.params.id).lean();
-  if (!store || store.status !== 'approved' || !store.is_active) return res.status(404).json({ error: 'Store not found' });
-  const items = await Item.find({ store_id: store._id, is_available: true, stock: { $gt: 0 } }).lean();
+  if (!store || (store as any).is_deleted === true || store.status !== 'approved' || !store.is_active) return res.status(404).json({ error: 'Store not found' });
+  const items = await Item.find({ store_id: store._id, is_available: true, is_deleted: { $ne: true }, stock: { $gt: 0 } }).lean();
   res.json({ ...serialize(store as any), items: serializeMany(items as any[]) });
 });
 

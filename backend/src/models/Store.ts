@@ -10,6 +10,8 @@ const storeSchema = new Schema(
     banner_url: { type: String, default: '' },
     status: { type: String, enum: ['pending', 'approved', 'suspended'], default: 'pending' },
     is_active: { type: Boolean, default: true },
+    is_deleted: { type: Boolean, default: false },
+    deleted_at: { type: Date, default: null },
     approved_at: { type: Date, default: null },
     payment_due_date: { type: Date, default: null },
     location_lat: { type: Number, default: null },

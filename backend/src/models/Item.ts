@@ -12,6 +12,8 @@ const itemSchema = new Schema(
     brand: { type: String, default: '' },
     stock: { type: Number, default: 1, min: 0 },
     is_available: { type: Boolean, default: true },
+    is_deleted: { type: Boolean, default: false },
+    deleted_at: { type: Date, default: null },
   },
   { timestamps: false },
 );

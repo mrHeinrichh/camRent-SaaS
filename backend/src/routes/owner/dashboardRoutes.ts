@@ -38,7 +38,7 @@ export function registerOwnerDashboardRoutes(router: Router) {
     const store = storeDoc.toObject();
 
     const orders = await Order.find({ store_id: store._id }).sort({ created_at: -1 }).lean();
-    const items = await Item.find({ store_id: store._id }).lean();
+    const items = await Item.find({ store_id: store._id, is_deleted: { $ne: true } }).lean();
     const recentOrders = orders.slice(0, 10);
     const allOrderIds = orders.map((order) => order._id);
     const allDocs = await OrderDocument.find({ order_id: { $in: allOrderIds } }).lean();
