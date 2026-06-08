@@ -108,16 +108,6 @@ class _CheckoutViewState extends State<_CheckoutView> {
     _prefilled = true;
   }
 
-  Future<void> _openUrl(String url) async {
-    final uri = Uri.tryParse(url);
-    if (uri == null) return;
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } else if (mounted) {
-      showSnack(context, 'Could not open the document', error: true);
-    }
-  }
-
   Future<void> _pickAndUpload(String key, {bool lease = false}) async {
     final file = await _picker.pickImage(
         source: ImageSource.gallery, imageQuality: 70, maxWidth: 1600);
@@ -422,11 +412,9 @@ class _CheckoutViewState extends State<_CheckoutView> {
           const SizedBox(height: 8),
           _sectionTitle('Lease agreement',
               'Upload the signed lease agreement given by your official rental shop.'),
-          _NoteBox(
+          const _NoteBox(
             text:
-                'Download the official lease agreement from this store, sign it, then upload your signed copy below.',
-            actionLabel: 'View official lease agreement',
-            onAction: () => _openUrl(store.leaseAgreementFileUrl!),
+                'Request the official lease agreement from the rental shop through their official social media page, sign it, then upload your signed copy below. It is not downloadable here.',
           ),
           const SizedBox(height: 8),
           _DocTile(
@@ -732,10 +720,8 @@ class _MapCard extends StatelessWidget {
 }
 
 class _NoteBox extends StatelessWidget {
-  const _NoteBox({required this.text, this.actionLabel, this.onAction});
+  const _NoteBox({required this.text});
   final String text;
-  final String? actionLabel;
-  final VoidCallback? onAction;
 
   @override
   Widget build(BuildContext context) {
@@ -746,35 +732,16 @@ class _NoteBox extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.accent.withValues(alpha: 0.4)),
       ),
-      child: Column(
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Icon(Icons.sticky_note_2_outlined,
-                  size: 16, color: AppColors.accent),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(text,
-                    style: const TextStyle(fontSize: 12.5, height: 1.4)),
-              ),
-            ],
+          const Icon(Icons.sticky_note_2_outlined,
+              size: 16, color: AppColors.accent),
+          const SizedBox(width: 8),
+          Expanded(
+            child:
+                Text(text, style: const TextStyle(fontSize: 12.5, height: 1.4)),
           ),
-          if (actionLabel != null && onAction != null) ...[
-            const SizedBox(height: 6),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: TextButton.icon(
-                onPressed: onAction,
-                style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                    visualDensity: VisualDensity.compact),
-                icon: const Icon(Icons.download_outlined, size: 18),
-                label: Text(actionLabel!),
-              ),
-            ),
-          ],
         ],
       ),
     );
