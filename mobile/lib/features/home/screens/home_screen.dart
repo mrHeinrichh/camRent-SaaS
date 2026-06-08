@@ -11,8 +11,52 @@ import '../widgets/gear_card.dart';
 import '../widgets/home_filter_bar.dart';
 import '../widgets/store_card.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  final ScrollController _controller = ScrollController();
+  final GlobalKey _heroKey = GlobalKey();
+  bool _heroDismissed = false;
+  double _heroHeight = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _controller.removeListener(_onScroll);
+    _controller.dispose();
+    super.dispose();
+  }
+
+  // Once the hero has scrolled fully out of view it is removed for the rest of
+  // this visit; scrolling back up will not bring it back. The scroll offset is
+  // corrected by the hero's height so the content does not jump.
+  void _onScroll() {
+    if (_heroDismissed || !_controller.hasClients) return;
+    if (_heroHeight == 0) {
+      final box = _heroKey.currentContext?.findRenderObject() as RenderBox?;
+      if (box != null) _heroHeight = box.size.height;
+    }
+    if (_heroHeight > 0 && _controller.offset >= _heroHeight) {
+      final newOffset = _controller.offset - _heroHeight;
+      setState(() => _heroDismissed = true);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_controller.hasClients) {
+          _controller.jumpTo(
+              newOffset.clamp(0.0, _controller.position.maxScrollExtent));
+        }
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -37,12 +81,23 @@ class HomeScreen extends StatelessWidget {
         final total = isGears ? gears.length : stores.length;
 
         return RefreshIndicator(
-          onRefresh: () => context.read<HomeCubit>().load(forceRefresh: true),
+          onRefresh: () {
+            // Pull-to-refresh brings the hero back for this fresh view.
+            setState(() {
+              _heroDismissed = false;
+              _heroHeight = 0;
+            });
+            return context.read<HomeCubit>().load(forceRefresh: true);
+          },
           child: CustomScrollView(
+            controller: _controller,
             slivers: [
-              SliverToBoxAdapter(child: _Hero(state: state)),
+              if (!_heroDismissed)
+                SliverToBoxAdapter(
+                  child: KeyedSubtree(key: _heroKey, child: _Hero(state: state)),
+                ),
               SliverToBoxAdapter(child: _SearchField(state: state)),
-              SliverToBoxAdapter(child: HomeFilterBar(state: state)),
+              SliverToBoxAdapter(child: HomeControlsBar(state: state)),
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(16, 6, 16, 8),

@@ -57,6 +57,20 @@ class HomeState extends Equatable {
   int get storeCount => stores.length;
   int get gearCount => items.length;
 
+  /// Number of non-default filters currently applied (for the Filters badge).
+  int get activeFilterCount {
+    var n = 0;
+    if (viewMode == ViewMode.gears) {
+      if (category != kAllGear) n++;
+      if (brand != kAllBrands) n++;
+    } else if (sortMode != SortMode.defaultOrder) {
+      n++;
+    }
+    if (minRating > 0) n++;
+    if (nearMeOnly) n++;
+    return n;
+  }
+
   List<String> get availableCategories {
     final set = <String>{};
     for (final item in items) {
@@ -233,6 +247,15 @@ class HomeCubit extends Cubit<HomeState> {
 
   void setQuery(String value) => emit(state.copyWith(query: value));
   void clearSearch() => emit(state.copyWith(query: ''));
+
+  /// Resets every filter (category, brand, rating, sort, near-me) to default.
+  void resetFilters() => emit(state.copyWith(
+        category: kAllGear,
+        brand: kAllBrands,
+        minRating: 0,
+        sortMode: SortMode.defaultOrder,
+        nearMeOnly: false,
+      ));
   void setViewMode(ViewMode mode) => emit(state.copyWith(viewMode: mode));
   void setCategory(String value) => emit(state.copyWith(category: value));
   void setBrand(String value) => emit(state.copyWith(brand: value));
