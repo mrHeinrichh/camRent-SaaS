@@ -166,11 +166,6 @@ class _CheckoutViewState extends State<_CheckoutView> {
       showSnack(context, 'Proof of billing address is required', error: true);
       return;
     }
-    if ((store.leaseAgreementFileUrl?.isNotEmpty ?? false) &&
-        state.leaseAgreementUrl == null) {
-      showSnack(context, 'Completed lease agreement is required', error: true);
-      return;
-    }
     for (final field in state.rentalForm?.fields ?? <RentalFormField>[]) {
       if (field.required && (_customAnswers[field.id]?.isEmpty ?? true)) {
         showSnack(context, '${field.label} is required', error: true);
@@ -218,7 +213,6 @@ class _CheckoutViewState extends State<_CheckoutView> {
 
   // Completion progress, mirroring the web mini progress bar.
   double _completion(CheckoutState state) {
-    final store = state.store;
     final checks = <bool>[
       _name.text.trim().isNotEmpty,
       _email.text.contains('@'),
@@ -232,8 +226,6 @@ class _CheckoutViewState extends State<_CheckoutView> {
       _paymentMode.isNotEmpty,
       ..._idDocs.keys.map((k) => (state.documentUrls[k] ?? '').isNotEmpty),
       (state.documentUrls[_billingKey] ?? '').isNotEmpty,
-      (store?.leaseAgreementFileUrl?.isEmpty ?? true) ||
-          state.leaseAgreementUrl != null,
       _agree,
     ];
     final done = checks.where((c) => c).length;
@@ -410,18 +402,10 @@ class _CheckoutViewState extends State<_CheckoutView> {
         ),
         if (store.leaseAgreementFileUrl?.isNotEmpty ?? false) ...[
           const SizedBox(height: 8),
-          _sectionTitle('Lease agreement',
-              'Upload the signed lease agreement given by your official rental shop.'),
+          _sectionTitle('Lease agreement', null),
           const _NoteBox(
             text:
-                'Request the official lease agreement from the rental shop through their official social media page, sign it, then upload your signed copy below. It is not downloadable here.',
-          ),
-          const SizedBox(height: 8),
-          _DocTile(
-            label: 'Signed lease agreement',
-            uploaded: state.leaseAgreementUrl != null,
-            uploading: state.uploadingKey == 'lease',
-            onTap: () => _pickAndUpload('lease', lease: true),
+                'The rental shop will provide and process the lease agreement with you directly through their official social media page. No lease upload is needed here.',
           ),
         ],
         if (state.rentalForm?.fields.isNotEmpty ?? false) ...[
