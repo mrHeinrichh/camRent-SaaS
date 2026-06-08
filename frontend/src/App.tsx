@@ -11,6 +11,7 @@ import { AdminDashboardPage } from '@/src/pages/AdminDashboardPage';
 import { CartPage } from '@/src/pages/CartPage';
 import { CheckoutPage } from '@/src/pages/CheckoutPage';
 import { HomePage } from '@/src/pages/HomePage';
+import { DownloadPage } from '@/src/pages/DownloadPage';
 import { ItemPage } from '@/src/pages/ItemPage';
 import { LoginPage } from '@/src/pages/LoginPage';
 import { OwnerDashboardPage } from '@/src/pages/OwnerDashboardPage';
@@ -27,7 +28,7 @@ export default function App() {
   const [siteContent, setSiteContent] = useState<SiteContent>(defaultSiteContent as any);
 
   useEffect(() => {
-    if (user?.role === 'owner' && page !== 'owner' && page !== 'login') {
+    if (user?.role === 'owner' && page !== 'owner' && page !== 'login' && page !== 'download') {
       setPage('owner');
     }
   }, [page, setPage, user]);
@@ -35,6 +36,11 @@ export default function App() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const params = new URLSearchParams(window.location.search);
+    const path = window.location.pathname.replace(/\/+$/, '');
+    if (path === '/download' || params.get('page') === 'download' || params.has('download')) {
+      setPage('download');
+      return;
+    }
     const storeId = params.get('store');
     const itemId = params.get('item');
     if (storeId) {
@@ -42,7 +48,7 @@ export default function App() {
     } else if (itemId) {
       openItem(itemId);
     }
-  }, [openStore, openItem]);
+  }, [openStore, openItem, setPage]);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -74,6 +80,11 @@ export default function App() {
     if (user?.role === 'owner') return;
     openItem(id);
   };
+
+  // Standalone marketing landing — rendered without the app navbar/shell.
+  if (page === 'download') {
+    return <DownloadPage onBackHome={() => setPage('home')} />;
+  }
 
   return (
     <div className="min-h-screen bg-[var(--tone-bg)] font-sans antialiased">

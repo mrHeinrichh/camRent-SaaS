@@ -1,5 +1,6 @@
 export type AppPage =
   | 'home'
+  | 'download'
   | 'about'
   | 'policies'
   | 'donate'

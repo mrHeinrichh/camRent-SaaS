@@ -1,4 +1,4 @@
-import { Camera, LogOut, Search, ShoppingCart, User } from 'lucide-react';
+import { Camera, Download, LogOut, Search, ShoppingCart, User } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useEffect, useRef, useState } from 'react';
 import { Button, Input } from '@/src/components/ui';
@@ -45,6 +45,16 @@ export function Navbar({ onNavigate }: NavbarProps) {
           ) : null}
 
           <div className="flex items-center gap-2 sm:gap-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="hidden px-2 sm:inline-flex sm:px-3"
+              onClick={() => onNavigate('download')}
+              aria-label="Get the app"
+            >
+              <Download className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Get the app</span>
+            </Button>
             {user?.role !== 'owner' && user?.role !== 'admin' && (
               <Button variant="ghost" size="icon" onClick={() => onNavigate('cart')} className="relative" aria-label="Open cart" data-cart-target="true">
                 <motion.span animate={{ scale: cartBump ? 1.15 : 1 }} transition={{ type: 'spring', stiffness: 500, damping: 18 }}>
