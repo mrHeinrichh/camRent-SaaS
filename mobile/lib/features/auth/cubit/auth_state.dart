@@ -9,6 +9,7 @@ class AuthState extends Equatable {
     this.token,
     this.busy = false,
     this.error,
+    this.cooldownUntil,
   });
 
   final AuthStatus status;
@@ -16,6 +17,10 @@ class AuthState extends Equatable {
   final String? token;
   final bool busy;
   final String? error;
+
+  /// When set (and in the future), auth attempts are blocked by the server's
+  /// rate-limit cooldown; the UI shows a countdown and disables submit.
+  final DateTime? cooldownUntil;
 
   bool get isOwner => user?.role == UserRole.owner;
   bool get isAdmin => user?.role == UserRole.admin;
@@ -28,6 +33,7 @@ class AuthState extends Equatable {
     bool? busy,
     String? error,
     bool clearError = false,
+    DateTime? cooldownUntil,
   }) =>
       AuthState(
         status: status ?? this.status,
@@ -35,8 +41,10 @@ class AuthState extends Equatable {
         token: token ?? this.token,
         busy: busy ?? this.busy,
         error: clearError ? null : (error ?? this.error),
+        cooldownUntil: cooldownUntil ?? this.cooldownUntil,
       );
 
   @override
-  List<Object?> get props => [status, user?.id, token, busy, error];
+  List<Object?> get props =>
+      [status, user?.id, token, busy, error, cooldownUntil];
 }

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../app/theme.dart';
 import '../../../core/widgets/app_widgets.dart';
 import '../cubit/auth_cubit.dart';
+import '../widgets/cooldown_button.dart';
 import '../widgets/google_button.dart';
 
 /// Registration wizard supporting both renter and owner sign-up with email OTP
@@ -142,10 +143,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
             padding: const EdgeInsets.only(top: 16),
             child: Row(
               children: [
-                ElevatedButton(
-                  onPressed: state.busy ? null : details.onStepContinue,
-                  child: Text(_step == 2 ? 'Create account' : 'Next'),
-                ),
+                _step == 2
+                    ? CooldownButton(
+                        label: 'Create account',
+                        busy: state.busy,
+                        cooldownUntil: state.cooldownUntil,
+                        onPressed: details.onStepContinue ?? () {},
+                      )
+                    : ElevatedButton(
+                        onPressed: state.busy ? null : details.onStepContinue,
+                        child: const Text('Next'),
+                      ),
                 const SizedBox(width: 12),
                 if (_step > 0)
                   TextButton(

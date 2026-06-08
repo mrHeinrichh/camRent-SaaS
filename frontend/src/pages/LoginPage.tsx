@@ -34,7 +34,31 @@ export function LoginPage({ onNavigate, content }: LoginPageProps) {
   const [activeWallpaper, setActiveWallpaper] = useState(0);
   const [missingGoogleAccount, setMissingGoogleAccount] = useState<{ email?: string } | null>(null);
   const [registerInitialEmail, setRegisterInitialEmail] = useState('');
+  const [cooldownUntil, setCooldownUntil] = useState(0);
+  const [cooldownSeconds, setCooldownSeconds] = useState(0);
   const { setSession } = useAppStore();
+
+  // Live countdown for auth rate-limit cooldown (HTTP 429 from the server).
+  useEffect(() => {
+    if (cooldownUntil <= Date.now()) {
+      setCooldownSeconds(0);
+      return;
+    }
+    const tick = () => {
+      const remaining = Math.max(0, Math.ceil((cooldownUntil - Date.now()) / 1000));
+      setCooldownSeconds(remaining);
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [cooldownUntil]);
+
+  const applyCooldown = (err: any) => {
+    if (err?.status === 429) {
+      const secs = Number(err?.details?.cooldown_seconds) || 0;
+      if (secs > 0) setCooldownUntil(Date.now() + secs * 1000);
+    }
+  };
   const googleButtonRef = useRef<HTMLDivElement>(null);
   const googleInitializedRef = useRef(false);
   const envMeta = ((import.meta as any).env || {}) as Record<string, string | boolean | undefined>;
@@ -102,6 +126,7 @@ export function LoginPage({ onNavigate, content }: LoginPageProps) {
       setSession(data.user, data.token);
       onNavigate(data.user.role === 'owner' ? 'owner' : 'home');
     } catch (err: any) {
+      applyCooldown(err);
       setError(err.message || 'Authentication failed');
     } finally {
       setSubmitting(false);
@@ -122,6 +147,7 @@ export function LoginPage({ onNavigate, content }: LoginPageProps) {
         setMissingGoogleAccount({ email: err?.details?.email });
         return;
       }
+      applyCooldown(err);
       setError(err.message || 'Google authentication failed');
     } finally {
       setSubmitting(false);
@@ -196,6 +222,7 @@ export function LoginPage({ onNavigate, content }: LoginPageProps) {
       setSession(data.user, data.token);
       onNavigate(data.user.role === 'owner' ? 'owner' : 'home');
     } catch (err: any) {
+      applyCooldown(err);
       setError(err.message || 'Authentication failed');
     } finally {
       setSubmitting(false);
@@ -269,6 +296,7 @@ export function LoginPage({ onNavigate, content }: LoginPageProps) {
                     <RegisterWizard
                       key={registerInitialEmail || 'register'}
                       submitting={submitting}
+                      cooldownSeconds={cooldownSeconds}
                       initialEmail={registerInitialEmail}
                       onSubmit={handleRegister}
                       onOpenPolicies={() => onNavigate('policies')}
@@ -280,6 +308,7 @@ export function LoginPage({ onNavigate, content }: LoginPageProps) {
                   email={email}
                   password={password}
                   submitting={submitting}
+                  cooldownSeconds={cooldownSeconds}
                   error={error}
                   fieldErrors={fieldErrors}
                   googleEnabled={Boolean(googleClientId)}

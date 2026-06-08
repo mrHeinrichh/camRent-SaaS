@@ -9,6 +9,7 @@ import type { RentalBillingMode } from '@/src/types/domain';
 
 interface RegisterWizardProps {
   submitting: boolean;
+  cooldownSeconds?: number;
   initialEmail?: string;
   onSubmit: (state: RegisterFormState) => Promise<void>;
   onOpenPolicies: () => void;
@@ -16,7 +17,7 @@ interface RegisterWizardProps {
 
 const defaultBranches: StoreBranchInput[] = [{ name: 'Main Branch', address: '', location_lat: '', location_lng: '' }];
 
-export function RegisterWizard({ submitting, initialEmail = '', onSubmit, onOpenPolicies }: RegisterWizardProps) {
+export function RegisterWizard({ submitting, cooldownSeconds = 0, initialEmail = '', onSubmit, onOpenPolicies }: RegisterWizardProps) {
   const [step, setStep] = useState(1);
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState(initialEmail);
@@ -686,7 +687,7 @@ export function RegisterWizard({ submitting, initialEmail = '', onSubmit, onOpen
         {step < totalSteps ? (
           <Button type="button" onClick={handleNext} disabled={submitting}>Next</Button>
         ) : (
-          <Button type="submit" disabled={submitting}>{submitting ? 'Please wait...' : 'Sign Up'}</Button>
+          <Button type="submit" disabled={submitting || cooldownSeconds > 0}>{submitting ? 'Please wait...' : cooldownSeconds > 0 ? `Try again in ${cooldownSeconds}s` : 'Sign Up'}</Button>
         )}
       </div>
     </form>

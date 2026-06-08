@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../app/theme.dart';
 import '../../../core/widgets/app_widgets.dart';
 import '../cubit/auth_cubit.dart';
+import '../widgets/cooldown_button.dart';
 import '../widgets/google_button.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -97,15 +98,11 @@ class _LoginScreenState extends State<LoginScreen> {
                         (v == null || v.isEmpty) ? 'Enter your password' : null,
                   ),
                   const SizedBox(height: 24),
-                  ElevatedButton(
-                    onPressed: state.busy ? null : _submit,
-                    child: state.busy
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Text('Sign in'),
+                  CooldownButton(
+                    label: 'Sign in',
+                    busy: state.busy,
+                    cooldownUntil: state.cooldownUntil,
+                    onPressed: _submit,
                   ),
                   const SizedBox(height: 18),
                   const _OrDivider(),

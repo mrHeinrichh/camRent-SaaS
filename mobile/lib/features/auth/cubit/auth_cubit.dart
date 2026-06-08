@@ -22,6 +22,23 @@ class AuthCubit extends HydratedCubit<AuthState> {
   final AuthRepository _repo;
   final TokenStore _tokenStore;
 
+  /// Builds a failure state, capturing a server cooldown (HTTP 429) so the UI
+  /// can show a countdown and disable the submit button.
+  AuthState _failure(ApiException e) {
+    if (e.statusCode == 429) {
+      int? seconds;
+      final details = e.details;
+      if (details is Map && details['cooldown_seconds'] != null) {
+        seconds = int.tryParse('${details['cooldown_seconds']}');
+      }
+      final until = seconds != null && seconds > 0
+          ? DateTime.now().add(Duration(seconds: seconds))
+          : null;
+      return state.copyWith(busy: false, error: e.message, cooldownUntil: until);
+    }
+    return state.copyWith(busy: false, error: e.message);
+  }
+
   void _applySession(AuthResult result) {
     _tokenStore.setToken(result.token);
     emit(state.copyWith(
@@ -39,7 +56,7 @@ class AuthCubit extends HydratedCubit<AuthState> {
       _applySession(await _repo.login(email, password));
       return true;
     } on ApiException catch (e) {
-      emit(state.copyWith(busy: false, error: e.message));
+      emit(_failure(e));
       return false;
     }
   }
@@ -50,7 +67,7 @@ class AuthCubit extends HydratedCubit<AuthState> {
       _applySession(await _repo.register(payload));
       return true;
     } on ApiException catch (e) {
-      emit(state.copyWith(busy: false, error: e.message));
+      emit(_failure(e));
       return false;
     }
   }
@@ -61,7 +78,7 @@ class AuthCubit extends HydratedCubit<AuthState> {
       _applySession(await _repo.googleSignIn(credential));
       return true;
     } on ApiException catch (e) {
-      emit(state.copyWith(busy: false, error: e.message));
+      emit(_failure(e));
       return false;
     }
   }

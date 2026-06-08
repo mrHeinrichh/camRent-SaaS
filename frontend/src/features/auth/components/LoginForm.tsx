@@ -6,6 +6,7 @@ interface LoginFormProps {
   password: string;
   submitting: boolean;
   error?: string;
+  cooldownSeconds?: number;
   fieldErrors?: { email?: string; password?: string };
   googleEnabled?: boolean;
   googleButtonRef?: React.RefObject<HTMLDivElement>;
@@ -14,7 +15,7 @@ interface LoginFormProps {
   onSubmit: (event: FormEvent) => void;
 }
 
-export function LoginForm({ email, password, submitting, error, fieldErrors, googleEnabled, googleButtonRef, onEmailChange, onPasswordChange, onSubmit }: LoginFormProps) {
+export function LoginForm({ email, password, submitting, error, cooldownSeconds = 0, fieldErrors, googleEnabled, googleButtonRef, onEmailChange, onPasswordChange, onSubmit }: LoginFormProps) {
   return (
     <form onSubmit={onSubmit} className="space-y-5 rounded-2xl border border-[var(--tone-border)] bg-[var(--tone-surface-soft)] p-6">
       {error && (
@@ -55,8 +56,8 @@ export function LoginForm({ email, password, submitting, error, fieldErrors, goo
           Forgot password?
         </button>
       </div>
-      <Button type="submit" className="w-full" disabled={submitting}>
-        {submitting ? 'Please wait...' : 'Login'}
+      <Button type="submit" className="w-full" disabled={submitting || cooldownSeconds > 0}>
+        {submitting ? 'Please wait...' : cooldownSeconds > 0 ? `Try again in ${cooldownSeconds}s` : 'Login'}
       </Button>
       <div className="space-y-4 pt-1">
         <div className="h-px w-full bg-[var(--tone-border)]" />
