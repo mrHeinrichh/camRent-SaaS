@@ -54,6 +54,8 @@ class _OwnerCalendarTabState extends State<OwnerCalendarTab> {
   String? _toneFor(DateTime day) {
     final detail = _detail;
     if (detail == null) return null;
+    // Past days are never marked — only current/upcoming availability matters.
+    if (isPastDay(day)) return null;
     bool within(String s, String e) {
       final sd = DateTime.tryParse(s);
       final ed = DateTime.tryParse(e);
@@ -233,7 +235,7 @@ class _OwnerCalendarTabState extends State<OwnerCalendarTab> {
     final detail = _detail;
     if (detail == null) return [];
     final widgets = <Widget>[];
-    for (final b in detail.bookings) {
+    for (final b in detail.bookings.where((b) => !periodEnded(b.endDate))) {
       widgets.add(Card(
         child: ListTile(
           dense: true,
@@ -246,7 +248,7 @@ class _OwnerCalendarTabState extends State<OwnerCalendarTab> {
         ),
       ));
     }
-    for (final b in detail.manualBlocks) {
+    for (final b in detail.manualBlocks.where((b) => !periodEnded(b.endDate))) {
       widgets.add(Card(
         child: ListTile(
           dense: true,

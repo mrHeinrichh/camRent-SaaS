@@ -50,7 +50,10 @@ class _ItemViewState extends State<_ItemView> {
         actions: [
           CartBadgeIcon(
             iconKey: _cartKey,
-            onTap: () => context.push('/cart'),
+            // Cart is a bottom-nav (shell branch) destination — switch to it
+            // with go(); pushing a shell route duplicates the shell page and
+            // crashes the Navigator with a duplicate page-key assertion.
+            onTap: () => context.go('/cart'),
           ),
           const SizedBox(width: 4),
         ],
@@ -289,8 +292,14 @@ class _BookingsNotice extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final blocks = [...item.bookings, ...item.manualBlocks];
-    if (blocks.isEmpty) return const SizedBox.shrink();
+    // Only show current/upcoming periods; fully-past rentals/blocks are hidden.
+    final bookings =
+        item.bookings.where((b) => !periodEnded(b.endDate)).toList();
+    final manualBlocks =
+        item.manualBlocks.where((b) => !periodEnded(b.endDate)).toList();
+    if (bookings.isEmpty && manualBlocks.isEmpty) {
+      return const SizedBox.shrink();
+    }
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -311,11 +320,11 @@ class _BookingsNotice extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 6),
-          ...item.bookings.map<Widget>((b) => Text(
+          ...bookings.map<Widget>((b) => Text(
                 '${prettyDate(b.startDate)} → ${prettyDate(b.endDate)} (${b.status})',
                 style: TextStyle(color: AppColors.textMuted, fontSize: 12),
               )),
-          ...item.manualBlocks.map<Widget>((b) => Text(
+          ...manualBlocks.map<Widget>((b) => Text(
                 '${prettyDate(b.startDate)} → ${prettyDate(b.endDate)} (blocked)',
                 style: TextStyle(color: AppColors.textMuted, fontSize: 12),
               )),
