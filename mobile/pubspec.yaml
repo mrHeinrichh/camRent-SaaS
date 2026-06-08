@@ -43,6 +43,9 @@ dependencies:
   hive_flutter: ^1.1.0
   flutter_secure_storage: ^9.2.2
 
+  # Local notifications (e.g. new rental applications for owners)
+  flutter_local_notifications: ^18.0.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

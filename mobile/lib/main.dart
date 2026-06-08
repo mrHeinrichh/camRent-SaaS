@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app/app.dart';
 import 'core/di/service_locator.dart';
+import 'core/services/notification_service.dart';
 import 'core/storage/cache_service.dart';
 
 Future<void> main() async {
@@ -19,6 +20,8 @@ Future<void> main() async {
   final prefs = await SharedPreferences.getInstance();
   final cache = await CacheService.init();
   setupServiceLocator(prefs, cache);
+
+  await sl<NotificationService>().init();
 
   runApp(const CamRentApp());
 }

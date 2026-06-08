@@ -5,6 +5,8 @@
     <!-- Optional: "Near me" gear/store filtering. -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    <!-- Owner notifications for new rental applications. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <application
         android:label="CamRentPH"
         android:name="${applicationName}"
