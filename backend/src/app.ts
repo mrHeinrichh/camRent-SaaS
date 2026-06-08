@@ -10,6 +10,7 @@ import { authRoutes } from './routes/authRoutes';
 import { docsRoutes } from './routes/docsRoutes';
 import { itemRoutes } from './routes/itemRoutes';
 import { apiRateLimit } from './middleware/rateLimit';
+import { authRateLimit } from './middleware/authRateLimit';
 import { orderRoutes } from './routes/orderRoutes';
 import { ownerRoutes } from './routes/ownerRoutes';
 import { storeRoutes } from './routes/storeRoutes';
@@ -59,7 +60,7 @@ export async function startServer() {
   app.use('/api', apiRateLimit);
 
   app.use('/docs', docsRoutes);
-  app.use('/api/auth', authRoutes);
+  app.use('/api/auth', authRateLimit, authRoutes);
   app.use('/api/upload', uploadRoutes);
   app.use('/api/stores', storeRoutes);
   app.use('/api/items', itemRoutes);
