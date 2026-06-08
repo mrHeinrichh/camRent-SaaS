@@ -1,0 +1,89 @@
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.build/
+.buildlog/
+.history
+.svn/
+.swiftpm/
+migrate_working_dir/
+
+# IntelliJ related
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# The .vscode folder contains launch configuration and tasks you configure in
+# VS Code which you may wish to be included in version control, so this line
+# is commented out by default.
+#.vscode/
+
+# Flutter/Dart/Pub related
+**/doc/api/
+**/ios/Flutter/.last_build_id
+.dart_tool/
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+/build/
+/coverage/
+
+# Symbolication related
+app.*.symbols
+
+# Obfuscation related
+app.*.map.json
+
+# Android Studio will place build artifacts here
+/android/app/debug
+/android/app/profile
+/android/app/release
+
+# ──────────────────────────────────────────────────────────────────
+# Secrets & signing — never commit. Keeps the repo non-extractable for
+# credentials, keystores, and generated native build outputs.
+# ──────────────────────────────────────────────────────────────────
+
+# Env / secrets
+*.env
+.env*
+!.env.example
+**/secrets.dart
+**/*.secret.*
+
+# Android signing
+**/key.properties
+**/*.jks
+**/*.keystore
+**/keystore.properties
+
+# Firebase / Google service configs (contain API keys / client ids)
+**/google-services.json
+**/GoogleService-Info.plist
+**/firebase_options.dart
+
+# Android local config & generated
+/android/local.properties
+/android/.gradle/
+/android/captures/
+/android/app/.cxx/
+
+# iOS / macOS CocoaPods & generated
+/ios/Pods/
+/ios/.symlinks/
+/ios/Flutter/Flutter.framework
+/ios/Flutter/Flutter.podspec
+/ios/Flutter/flutter_export_environment.sh
+/ios/Runner/GeneratedPluginRegistrant.*
+**/Podfile.lock
+
+# Build outputs / bundles
+*.apk
+*.aab
+*.ipa
+*.app.zip
