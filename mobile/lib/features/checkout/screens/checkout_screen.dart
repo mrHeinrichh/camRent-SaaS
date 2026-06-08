@@ -9,6 +9,7 @@ import '../../../core/di/service_locator.dart';
 import '../../../core/utils/currency.dart';
 import '../../../core/widgets/app_widgets.dart';
 import '../../../data/models/rental_form.dart';
+import '../../../data/models/store.dart';
 import '../../../data/repositories/catalog_repository.dart';
 import '../../../data/repositories/order_repository.dart';
 import '../../../data/repositories/upload_repository.dart';
@@ -311,7 +312,7 @@ class _CheckoutViewState extends State<_CheckoutView> {
   }
 
   // ── Step 2: delivery & branch ─────────────────────────────────────
-  Widget _stepDelivery(store, List<Map<String, String>> branches,
+  Widget _stepDelivery(Store store, List<Map<String, String>> branches,
       List<String> deliveryModes, bool hasMap) {
     final selectedBranch = store.branches.isEmpty
         ? null
@@ -373,7 +374,7 @@ class _CheckoutViewState extends State<_CheckoutView> {
   }
 
   // ── Step 3: requirements & review ─────────────────────────────────
-  Widget _stepRequirements(CheckoutState state, store) {
+  Widget _stepRequirements(CheckoutState state, Store store) {
     final settings = state.rentalForm?.settings;
     final cart = context.watch<CartCubit>().state;
     final total = cart.rentalSubtotal +
