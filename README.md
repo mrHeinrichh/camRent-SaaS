@@ -1,6 +1,3 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
 
 # CamRent SaaS
 
@@ -8,7 +5,7 @@ This repo is now split into two packages:
 
 - `frontend/`: Vite + React + TypeScript + Zustand
 - `backend/`: Express + TypeScript + MongoDB + Cloudinary
-
+- `mobile/`: Flutter + Bloc Pattern
 ## Run locally
 
 **Prerequisites:** Node.js and MongoDB
