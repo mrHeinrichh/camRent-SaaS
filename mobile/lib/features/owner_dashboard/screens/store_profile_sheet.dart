@@ -1,3 +1,4 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -44,6 +45,7 @@ class _StoreProfileSheetState extends State<_StoreProfileSheet> {
 
   late String _logoUrl = widget.store.logoUrl;
   late String _bannerUrl = widget.store.bannerUrl;
+  late String _leaseUrl = widget.store.leaseAgreementFileUrl ?? '';
   String? _uploadingField;
   bool _saving = false;
 
@@ -76,6 +78,24 @@ class _StoreProfileSheetState extends State<_StoreProfileSheet> {
     }
   }
 
+  Future<void> _pickLease() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: const ['pdf', 'jpg', 'jpeg', 'png'],
+    );
+    final path = result?.files.single.path;
+    if (path == null) return;
+    setState(() => _uploadingField = 'lease');
+    try {
+      final url = await sl<UploadRepository>().upload(path);
+      setState(() => _leaseUrl = url);
+    } catch (_) {
+      if (mounted) showSnack(context, 'Upload failed', error: true);
+    } finally {
+      if (mounted) setState(() => _uploadingField = null);
+    }
+  }
+
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _saving = true);
@@ -86,6 +106,7 @@ class _StoreProfileSheetState extends State<_StoreProfileSheet> {
         'address': _address.text.trim(),
         'logo_url': _logoUrl,
         'banner_url': _bannerUrl,
+        'lease_agreement_file_url': _leaseUrl,
       });
       if (mounted) {
         Navigator.pop(context);
@@ -125,6 +146,8 @@ class _StoreProfileSheetState extends State<_StoreProfileSheet> {
               _field(_name, 'Store name', required: true),
               _field(_description, 'Description', maxLines: 3),
               _field(_address, 'Address', required: true, maxLines: 2),
+              const SizedBox(height: 8),
+              _leaseRow(),
               const SizedBox(height: 12),
               SizedBox(
                 width: double.infinity,
@@ -141,6 +164,53 @@ class _StoreProfileSheetState extends State<_StoreProfileSheet> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _leaseRow() {
+    final uploading = _uploadingField == 'lease';
+    final hasLease = _leaseUrl.isNotEmpty;
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceSoft,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            hasLease ? Icons.check_circle : Icons.description_outlined,
+            color: hasLease ? AppColors.success : AppColors.textMuted,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Lease agreement (reference)',
+                    style: TextStyle(fontWeight: FontWeight.w600)),
+                Text(
+                  hasLease
+                      ? 'Your reference lease agreement is set.'
+                      : 'Upload your own lease agreement (PDF or image).',
+                  style:
+                      TextStyle(color: AppColors.textMuted, fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+          uploading
+              ? const SizedBox(
+                  height: 18,
+                  width: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2))
+              : TextButton(
+                  onPressed: _pickLease,
+                  child: Text(hasLease ? 'Replace' : 'Upload'),
+                ),
+        ],
       ),
     );
   }
