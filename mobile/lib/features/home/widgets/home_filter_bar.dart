@@ -54,8 +54,8 @@ class _Segmented extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 44,
-      padding: const EdgeInsets.all(4),
+      height: 56,
+      padding: const EdgeInsets.all(5),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(999),
@@ -75,24 +75,34 @@ class _Segmented extends StatelessWidget {
   Widget _seg(String label, IconData icon, bool selected, VoidCallback onTap) {
     return Expanded(
       child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
         onTap: onTap,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
           curve: Curves.easeOut,
+          height: double.infinity,
           decoration: BoxDecoration(
             color: selected ? AppColors.accent : Colors.transparent,
             borderRadius: BorderRadius.circular(999),
+            boxShadow: selected
+                ? const [
+                    BoxShadow(
+                        color: AppColors.shadow,
+                        blurRadius: 8,
+                        offset: Offset(0, 2))
+                  ]
+                : null,
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(icon,
-                  size: 16,
+                  size: 20,
                   color: selected ? AppColors.accentText : AppColors.textMuted),
-              const SizedBox(width: 6),
+              const SizedBox(width: 8),
               Text(label,
                   style: TextStyle(
-                    fontSize: 13,
+                    fontSize: 16,
                     fontWeight: FontWeight.w700,
                     color:
                         selected ? AppColors.accentText : AppColors.textMuted,
@@ -115,8 +125,8 @@ class _FiltersButton extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        height: 44,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        height: 56,
+        padding: const EdgeInsets.symmetric(horizontal: 18),
         decoration: BoxDecoration(
           color: count > 0 ? AppColors.accent : AppColors.surface,
           borderRadius: BorderRadius.circular(999),
@@ -126,12 +136,12 @@ class _FiltersButton extends StatelessWidget {
         child: Row(
           children: [
             Icon(Icons.tune,
-                size: 18,
+                size: 20,
                 color: count > 0 ? AppColors.accentText : AppColors.text),
-            const SizedBox(width: 6),
+            const SizedBox(width: 8),
             Text('Filters',
                 style: TextStyle(
-                  fontSize: 13,
+                  fontSize: 15,
                   fontWeight: FontWeight.w700,
                   color: count > 0 ? AppColors.accentText : AppColors.text,
                 )),
