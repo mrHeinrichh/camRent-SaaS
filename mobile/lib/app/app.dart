@@ -10,6 +10,7 @@ import '../features/cart/cubit/cart_cubit.dart';
 import '../features/home/bloc/home_cubit.dart';
 import '../features/settings/theme_cubit.dart';
 import 'app_router.dart';
+import 'package:go_router/go_router.dart';
 import 'theme.dart';
 
 class CamRentApp extends StatefulWidget {
@@ -24,6 +25,7 @@ class _CamRentAppState extends State<CamRentApp> {
   late final CartCubit _cartCubit;
   late final HomeCubit _homeCubit;
   late final ThemeCubit _themeCubit;
+  late final GoRouter _router;
 
   @override
   void initState() {
@@ -32,6 +34,9 @@ class _CamRentAppState extends State<CamRentApp> {
     _cartCubit = CartCubit();
     _homeCubit = HomeCubit(sl<CatalogRepository>())..load();
     _themeCubit = ThemeCubit();
+    // Build the router exactly once — rebuilding it on every MaterialApp
+    // rebuild causes the Navigator to reconcile duplicate page keys and crash.
+    _router = buildRouter(_authCubit);
   }
 
   @override
@@ -63,7 +68,7 @@ class _CamRentAppState extends State<CamRentApp> {
             theme: buildAppTheme(Brightness.light),
             darkTheme: buildAppTheme(Brightness.dark),
             themeMode: mode,
-            routerConfig: buildRouter(_authCubit),
+            routerConfig: _router,
           );
         },
       ),
