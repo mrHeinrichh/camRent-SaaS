@@ -8,6 +8,9 @@ import '../../../core/widgets/animations.dart';
 import '../../../core/utils/currency.dart';
 import '../../../core/utils/date_utils.dart';
 import '../../../core/widgets/app_widgets.dart';
+import '../../../core/widgets/notification_bell.dart';
+import '../../../core/widgets/search_field.dart';
+import '../../../data/models/dashboard.dart';
 import '../../../data/repositories/owner_repository.dart';
 import '../../auth/cubit/auth_cubit.dart';
 import '../bloc/owner_cubit.dart';
@@ -26,64 +29,89 @@ class OwnerDashboardScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (_) => OwnerCubit(sl<OwnerRepository>())..load(),
-      child: DefaultTabController(
-        length: 10,
-        child: Scaffold(
-          appBar: AppBar(
-            title: const Text('Store dashboard'),
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.logout),
-                onPressed: () {
-                  context.read<AuthCubit>().logout();
-                  context.go('/');
-                },
-              ),
-            ],
-            bottom: const TabBar(
-              isScrollable: true,
-              tabs: [
-                Tab(icon: Icon(Icons.dashboard_outlined), text: 'Overview'),
-                Tab(icon: Icon(Icons.inbox_outlined), text: 'Applications'),
-                Tab(icon: Icon(Icons.photo_camera_outlined), text: 'Inventory'),
-                Tab(icon: Icon(Icons.calendar_month_outlined), text: 'Calendar'),
-                Tab(icon: Icon(Icons.people_outline), text: 'Customers'),
-                Tab(icon: Icon(Icons.receipt_long_outlined), text: 'Transactions'),
-                Tab(icon: Icon(Icons.tune), text: 'Form Builder'),
-                Tab(icon: Icon(Icons.shield_outlined), text: 'Fraud List'),
-                Tab(icon: Icon(Icons.support_agent), text: 'Support'),
-                Tab(icon: Icon(Icons.local_offer_outlined), text: 'Vouchers'),
-              ],
-            ),
-          ),
-          body: BlocBuilder<OwnerCubit, OwnerState>(
-            builder: (context, state) {
-              if (state.status == OwnerStatus.loading) {
-                return const LoadingView();
-              }
-              if (state.status == OwnerStatus.error) {
-                return ErrorView(
-                  message: state.error ?? 'Failed to load dashboard',
-                  onRetry: () => context.read<OwnerCubit>().load(),
-                );
-              }
-              return TabBarView(
-                children: [
-                  EntranceEffect(child: _OverviewTab(state: state)),
-                  EntranceEffect(child: _ApplicationsTab(state: state)),
-                  EntranceEffect(child: _GearTab(state: state)),
-                  EntranceEffect(child: OwnerCalendarTab(state: state)),
-                  EntranceEffect(child: OwnerCustomersTab(state: state)),
-                  EntranceEffect(child: OwnerTransactionsTab(state: state)),
-                  EntranceEffect(child: OwnerFormBuilderTab(state: state)),
-                  EntranceEffect(child: OwnerFraudTab(state: state)),
-                  EntranceEffect(child: _SupportTab(state: state)),
-                  EntranceEffect(child: _VouchersTab(state: state)),
+      child: BlocBuilder<OwnerCubit, OwnerState>(
+        builder: (context, state) {
+          final pendingCount = state.applications.where((app) {
+            final status = app.status.toUpperCase();
+            return status == 'PENDING_REVIEW' || status == 'PENDING';
+          }).length;
+          return DefaultTabController(
+            length: 10,
+            child: Scaffold(
+              appBar: AppBar(
+                title: const Text('Store dashboard'),
+                actions: [
+                  const NotificationBell(),
+                  IconButton(
+                    icon: const Icon(Icons.logout),
+                    onPressed: () {
+                      context.read<AuthCubit>().logout();
+                      context.go('/');
+                    },
+                  ),
                 ],
-              );
-            },
-          ),
-        ),
+                bottom: TabBar(
+                  isScrollable: true,
+                  tabs: [
+                    const Tab(
+                        icon: Icon(Icons.dashboard_outlined), text: 'Overview'),
+                    Tab(
+                      icon: Badge(
+                        isLabelVisible: pendingCount > 0,
+                        label: Text('$pendingCount'),
+                        child: const Icon(Icons.inbox_outlined),
+                      ),
+                      text: 'Applications',
+                    ),
+                    const Tab(
+                        icon: Icon(Icons.photo_camera_outlined),
+                        text: 'Inventory'),
+                    const Tab(
+                        icon: Icon(Icons.calendar_month_outlined),
+                        text: 'Calendar'),
+                    const Tab(
+                        icon: Icon(Icons.people_outline), text: 'Customers'),
+                    const Tab(
+                        icon: Icon(Icons.receipt_long_outlined),
+                        text: 'Transactions'),
+                    const Tab(icon: Icon(Icons.tune), text: 'Form Builder'),
+                    const Tab(
+                        icon: Icon(Icons.shield_outlined), text: 'Fraud List'),
+                    const Tab(icon: Icon(Icons.support_agent), text: 'Support'),
+                    const Tab(
+                        icon: Icon(Icons.local_offer_outlined),
+                        text: 'Vouchers'),
+                  ],
+                ),
+              ),
+              body: Builder(builder: (context) {
+                if (state.status == OwnerStatus.loading) {
+                  return const LoadingView();
+                }
+                if (state.status == OwnerStatus.error) {
+                  return ErrorView(
+                    message: state.error ?? 'Failed to load dashboard',
+                    onRetry: () => context.read<OwnerCubit>().load(),
+                  );
+                }
+                return TabBarView(
+                  children: [
+                    EntranceEffect(child: _OverviewTab(state: state)),
+                    EntranceEffect(child: _ApplicationsTab(state: state)),
+                    EntranceEffect(child: _GearTab(state: state)),
+                    EntranceEffect(child: OwnerCalendarTab(state: state)),
+                    EntranceEffect(child: OwnerCustomersTab(state: state)),
+                    EntranceEffect(child: OwnerTransactionsTab(state: state)),
+                    EntranceEffect(child: OwnerFormBuilderTab(state: state)),
+                    EntranceEffect(child: OwnerFraudTab(state: state)),
+                    EntranceEffect(child: _SupportTab(state: state)),
+                    EntranceEffect(child: _VouchersTab(state: state)),
+                  ],
+                );
+              }),
+            ),
+          );
+        },
       ),
     );
   }
@@ -239,15 +267,25 @@ class _OverviewTab extends StatelessWidget {
       style: TextStyle(color: AppColors.textMuted, fontSize: 13));
 }
 
-class _GearTab extends StatelessWidget {
+class _GearTab extends StatefulWidget {
   const _GearTab({required this.state});
   final OwnerState state;
 
+  @override
+  State<_GearTab> createState() => _GearTabState();
+}
+
+class _GearTabState extends State<_GearTab> {
+  String _query = '';
+
+  OwnerState get state => widget.state;
   String? get _storeId => state.dashboard?.store?.id;
 
   @override
   Widget build(BuildContext context) {
-    final items = state.dashboard!.items;
+    final items = state.dashboard!.items
+        .where((item) => matchesQuery(_query, [item.name, item.description]))
+        .toList();
     final cubit = context.read<OwnerCubit>();
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -259,13 +297,23 @@ class _GearTab extends StatelessWidget {
               icon: const Icon(Icons.add),
               label: const Text('Add gear'),
             ),
-      body: items.isEmpty
+      body: state.dashboard!.items.isEmpty
           ? const EmptyState(
               title: 'No gear listed yet',
               message: 'Tap "Add gear" to list your first item.',
               icon: Icons.photo_camera_back_outlined,
             )
-          : ListView.builder(
+          : Column(children: [
+              SearchField(
+                hint: 'Search gear',
+                onChanged: (value) => setState(() => _query = value),
+              ),
+              Expanded(
+                child: items.isEmpty
+                    ? const EmptyState(
+                        title: 'No matching gear',
+                        icon: Icons.search_off_outlined)
+                    : ListView.builder(
               padding: const EdgeInsets.fromLTRB(12, 12, 12, 88),
               itemCount: items.length,
               itemBuilder: (context, index) {
@@ -318,6 +366,8 @@ class _GearTab extends StatelessWidget {
                 );
               },
             ),
+              ),
+            ]),
     );
   }
 
@@ -353,9 +403,31 @@ class _GearTab extends StatelessWidget {
   }
 }
 
-class _ApplicationsTab extends StatelessWidget {
+class _ApplicationsTab extends StatefulWidget {
   const _ApplicationsTab({required this.state});
   final OwnerState state;
+
+  @override
+  State<_ApplicationsTab> createState() => _ApplicationsTabState();
+}
+
+class _ApplicationsTabState extends State<_ApplicationsTab> {
+  String _query = '';
+  String _statusFilter = 'ALL';
+
+  // Tracking statuses shown as filter chips, in lifecycle order.
+  static const _statusLabels = <String, String>{
+    'PENDING_REVIEW': 'Pending',
+    'APPROVED': 'Approved',
+    'ONGOING': 'Ongoing',
+    'COMPLETED': 'Completed',
+    'REJECTED': 'Rejected',
+    'CANCELLED': 'Cancelled',
+    'CANCELLED_BY_OWNER': 'Cancelled by store',
+    'FRAUD_REPORTED': 'Fraud reported',
+  };
+
+  OwnerState get state => widget.state;
 
   @override
   Widget build(BuildContext context) {
@@ -363,12 +435,77 @@ class _ApplicationsTab extends StatelessWidget {
       return const EmptyState(
           title: 'No applications yet', icon: Icons.inbox_outlined);
     }
+
+    final countByStatus = <String, int>{};
+    for (final app in state.applications) {
+      final status = app.status.toUpperCase();
+      countByStatus[status] = (countByStatus[status] ?? 0) + 1;
+    }
+
+    final filtered = state.applications.where((app) {
+      if (_statusFilter != 'ALL' &&
+          app.status.toUpperCase() != _statusFilter) {
+        return false;
+      }
+      return matchesQuery(_query, [
+        app.renterName,
+        app.renterEmail,
+        app.renterPhone,
+        app.status,
+        ...app.items.map((it) => it.name),
+      ]);
+    }).toList();
+
+    return Column(
+      children: [
+        SearchField(
+          hint: 'Search applications (name, email, gear…)',
+          onChanged: (value) => setState(() => _query = value),
+        ),
+        SizedBox(
+          height: 44,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            children: [
+              _chip('ALL', 'All', state.applications.length),
+              ..._statusLabels.entries
+                  .where((entry) => (countByStatus[entry.key] ?? 0) > 0)
+                  .map((entry) => _chip(
+                      entry.key, entry.value, countByStatus[entry.key] ?? 0)),
+            ],
+          ),
+        ),
+        Expanded(
+          child: filtered.isEmpty
+              ? const EmptyState(
+                  title: 'No matching applications',
+                  icon: Icons.search_off_outlined)
+              : _list(filtered),
+        ),
+      ],
+    );
+  }
+
+  Widget _chip(String value, String label, int count) {
+    final selected = _statusFilter == value;
+    return Padding(
+      padding: const EdgeInsets.only(right: 6),
+      child: FilterChip(
+        selected: selected,
+        label: Text('$label ($count)'),
+        onSelected: (_) => setState(() => _statusFilter = value),
+      ),
+    );
+  }
+
+  Widget _list(List<OwnerApplication> apps) {
     return ListView.separated(
       padding: const EdgeInsets.all(12),
-      itemCount: state.applications.length,
+      itemCount: apps.length,
       separatorBuilder: (_, __) => const SizedBox(height: 10),
       itemBuilder: (context, index) {
-        final app = state.applications[index];
+        final app = apps[index];
         return EntranceEffect(
           index: index % 8,
           child: Card(

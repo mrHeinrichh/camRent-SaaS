@@ -38,6 +38,10 @@ dependencies:
   google_sign_in: ^6.2.2
   geolocator: ^13.0.2
 
+  # Maps (OpenStreetMap tiles — no API key required)
+  flutter_map: ^8.1.1
+  latlong2: ^0.9.1
+
   # Encrypted local cache (offline-first / fewer API calls)
   hive: ^2.2.3
   hive_flutter: ^1.1.0

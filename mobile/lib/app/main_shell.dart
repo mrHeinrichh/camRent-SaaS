@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import '../app/theme.dart';
+import '../core/widgets/notification_bell.dart';
 import '../features/auth/cubit/auth_cubit.dart';
 import '../features/cart/cubit/cart_cubit.dart';
 import '../features/settings/theme_cubit.dart';
@@ -25,7 +26,7 @@ class MainShell extends StatelessWidget {
           BlocBuilder<AuthCubit, AuthState>(
             builder: (context, state) {
               if (state.status == AuthStatus.authenticated) {
-                return const SizedBox.shrink();
+                return const NotificationBell();
               }
               return TextButton(
                 onPressed: () => context.push('/login'),

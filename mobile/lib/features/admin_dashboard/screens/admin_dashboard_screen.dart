@@ -8,12 +8,15 @@ import '../../../core/utils/currency.dart';
 import '../../../core/utils/date_utils.dart';
 import '../../../core/widgets/animations.dart';
 import '../../../core/widgets/app_widgets.dart';
+import '../../../core/widgets/notification_bell.dart';
+import '../../../core/widgets/search_field.dart';
 import '../../../data/models/content.dart';
 import '../../../data/models/store.dart';
 import '../../../data/repositories/admin_repository.dart';
 import '../../auth/cubit/auth_cubit.dart';
 import '../bloc/admin_cubit.dart';
 import 'admin_sheets.dart';
+import 'admin_store_map_tab.dart';
 
 class AdminDashboardScreen extends StatelessWidget {
   const AdminDashboardScreen({super.key});
@@ -22,61 +25,97 @@ class AdminDashboardScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (_) => AdminCubit(sl<AdminRepository>())..load(),
-      child: DefaultTabController(
-        length: 7,
-        child: Scaffold(
-          appBar: AppBar(
-            title: const Text('Admin console'),
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.logout),
-                onPressed: () {
-                  context.read<AuthCubit>().logout();
-                  context.go('/');
-                },
-              ),
-            ],
-            bottom: const TabBar(
-              isScrollable: true,
-              tabs: [
-                Tab(icon: Icon(Icons.dashboard_outlined), text: 'Overview'),
-                Tab(icon: Icon(Icons.storefront_outlined), text: 'Stores'),
-                Tab(icon: Icon(Icons.people_outline), text: 'Customers'),
-                Tab(icon: Icon(Icons.shield_outlined), text: 'Fraud'),
-                Tab(icon: Icon(Icons.support_agent), text: 'Support'),
-                Tab(icon: Icon(Icons.campaign_outlined), text: 'Announcements'),
-                Tab(icon: Icon(Icons.tune), text: 'Content'),
-              ],
-            ),
-          ),
-          body: BlocConsumer<AdminCubit, AdminState>(
-            listenWhen: (p, c) => p.error != c.error && c.error != null,
-            listener: (context, state) =>
-                showSnack(context, state.error!, error: true),
-            builder: (context, state) {
-              if (state.status == AdminStatus.loading) {
-                return const LoadingView();
-              }
-              if (state.status == AdminStatus.error) {
-                return ErrorView(
-                  message: state.error ?? 'Failed to load',
-                  onRetry: () => context.read<AdminCubit>().load(),
-                );
-              }
-              return TabBarView(
-                children: [
-                  EntranceEffect(child: _OverviewTab(state: state)),
-                  EntranceEffect(child: _StoresTab(state: state)),
-                  EntranceEffect(child: _CustomersTab(state: state)),
-                  EntranceEffect(child: _FraudTab(state: state)),
-                  EntranceEffect(child: _SupportTab(state: state)),
-                  EntranceEffect(child: _AnnouncementsTab(state: state)),
-                  EntranceEffect(child: _ContentTab(state: state)),
+      child: BlocConsumer<AdminCubit, AdminState>(
+        listenWhen: (p, c) => p.error != c.error && c.error != null,
+        listener: (context, state) =>
+            showSnack(context, state.error!, error: true),
+        builder: (context, state) {
+          final summary = state.dashboard?.summary;
+          final pendingMerchants = summary?.pendingMerchants ??
+              state.dashboard?.pendingStores.length ??
+              0;
+          final openTickets = summary?.openSupportTickets ?? 0;
+          final pendingGlobalFraud = summary?.pendingGlobalFraud ?? 0;
+          return DefaultTabController(
+            length: 8,
+            child: Scaffold(
+              appBar: AppBar(
+                title: const Text('Admin console'),
+                actions: [
+                  const NotificationBell(),
+                  IconButton(
+                    icon: const Icon(Icons.logout),
+                    onPressed: () {
+                      context.read<AuthCubit>().logout();
+                      context.go('/');
+                    },
+                  ),
                 ],
-              );
-            },
-          ),
-        ),
+                bottom: TabBar(
+                  isScrollable: true,
+                  tabs: [
+                    const Tab(
+                        icon: Icon(Icons.dashboard_outlined), text: 'Overview'),
+                    Tab(
+                      icon: Badge(
+                        isLabelVisible: pendingMerchants > 0,
+                        label: Text('$pendingMerchants'),
+                        child: const Icon(Icons.storefront_outlined),
+                      ),
+                      text: 'Stores',
+                    ),
+                    const Tab(icon: Icon(Icons.map_outlined), text: 'Map'),
+                    const Tab(
+                        icon: Icon(Icons.people_outline), text: 'Customers'),
+                    Tab(
+                      icon: Badge(
+                        isLabelVisible: pendingGlobalFraud > 0,
+                        label: Text('$pendingGlobalFraud'),
+                        child: const Icon(Icons.shield_outlined),
+                      ),
+                      text: 'Fraud',
+                    ),
+                    Tab(
+                      icon: Badge(
+                        isLabelVisible: openTickets > 0,
+                        label: Text('$openTickets'),
+                        child: const Icon(Icons.support_agent),
+                      ),
+                      text: 'Support',
+                    ),
+                    const Tab(
+                        icon: Icon(Icons.campaign_outlined),
+                        text: 'Announcements'),
+                    const Tab(icon: Icon(Icons.tune), text: 'Content'),
+                  ],
+                ),
+              ),
+              body: Builder(builder: (context) {
+                if (state.status == AdminStatus.loading) {
+                  return const LoadingView();
+                }
+                if (state.status == AdminStatus.error) {
+                  return ErrorView(
+                    message: state.error ?? 'Failed to load',
+                    onRetry: () => context.read<AdminCubit>().load(),
+                  );
+                }
+                return TabBarView(
+                  children: [
+                    EntranceEffect(child: _OverviewTab(state: state)),
+                    EntranceEffect(child: _StoresTab(state: state)),
+                    EntranceEffect(child: AdminStoreMapTab(state: state)),
+                    EntranceEffect(child: _CustomersTab(state: state)),
+                    EntranceEffect(child: _FraudTab(state: state)),
+                    EntranceEffect(child: _SupportTab(state: state)),
+                    EntranceEffect(child: _AnnouncementsTab(state: state)),
+                    EntranceEffect(child: _ContentTab(state: state)),
+                  ],
+                );
+              }),
+            ),
+          );
+        },
       ),
     );
   }
@@ -114,6 +153,10 @@ class _OverviewTab extends StatelessWidget {
                 Icons.pending_actions),
             _stat('Open tickets', '${s?.openSupportTickets ?? 0}',
                 Icons.support_agent),
+            _stat('Near due (7 days)', '${s?.nearDueStores ?? 0}',
+                Icons.hourglass_bottom),
+            _stat('Overdue stores', '${s?.overdueStores ?? 0}',
+                Icons.warning_amber_outlined),
           ],
         ),
         const SizedBox(height: 16),
@@ -171,30 +214,132 @@ class _StoresTab extends StatelessWidget {
   const _StoresTab({required this.state});
   final AdminState state;
 
+  /// Days until the store's payment due date; negative = overdue.
+  static int? dueDaysRemaining(Store store) {
+    final raw = store.paymentDueDate;
+    if (raw == null || raw.isEmpty) return null;
+    final due = DateTime.tryParse(raw);
+    if (due == null) return null;
+    return due.difference(DateTime.now()).inHours ~/ 24;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final summary = state.dashboard!.summary;
     final pending = state.dashboard!.pendingStores;
     final all = state.dashboard!.allStores;
-    return ListView(
-      padding: const EdgeInsets.all(12),
-      children: [
-        if (pending.isNotEmpty) ...[
-          const Text('Pending approval',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-          const SizedBox(height: 8),
-          ...pending.map((s) => _storeCard(context, s, pending: true)),
-          const SizedBox(height: 16),
-        ],
-        const Text('All stores',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-        const SizedBox(height: 8),
-        if (all.isEmpty)
-          const EmptyState(title: 'No stores', icon: Icons.storefront_outlined)
-        else
-          ...all.map((s) => _storeCard(context, s)),
-      ],
+    final pendingMerchants = summary?.pendingMerchants ?? pending.length;
+    final nearDue = summary?.nearDueStores ?? 0;
+    final overdue = summary?.overdueStores ?? 0;
+
+    return SearchableList(
+      hint: 'Search stores (name, address, status…)',
+      builder: (context, query) {
+        final filteredPending = pending
+            .where((s) => matchesQuery(query, [s.name, s.address, s.status]))
+            .toList();
+        final filteredAll = all
+            .where((s) => matchesQuery(query, [s.name, s.address, s.status]))
+            .toList();
+        return ListView(
+          padding: const EdgeInsets.all(12),
+          children: [
+            Row(
+              children: [
+                _dueStat('Pending Merchant Applicants', pendingMerchants,
+                    AppColors.accent),
+                const SizedBox(width: 8),
+                _dueStat('Near Due (within 7 days)', nearDue, AppColors.warning,
+                    warn: nearDue > 0),
+                const SizedBox(width: 8),
+                _dueStat('Overdue Stores', overdue, AppColors.danger,
+                    warn: overdue > 0),
+              ],
+            ),
+            if (nearDue > 0 || overdue > 0) ...[
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppColors.warning.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                      color: AppColors.warning.withValues(alpha: 0.5)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.warning_amber_outlined,
+                        size: 18, color: AppColors.warning),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Some merchant accounts are near due or already overdue. Review payment due dates below.',
+                        style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.text),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+            const SizedBox(height: 16),
+            if (filteredPending.isNotEmpty) ...[
+              Text('Pending approval (${filteredPending.length})',
+                  style: const TextStyle(
+                      fontWeight: FontWeight.bold, fontSize: 16)),
+              const SizedBox(height: 8),
+              ...filteredPending.map((s) => _storeCard(context, s, pending: true)),
+              const SizedBox(height: 16),
+            ],
+            Text('All stores (${filteredAll.length})',
+                style:
+                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            const SizedBox(height: 8),
+            if (filteredAll.isEmpty)
+              const EmptyState(
+                  title: 'No matching stores', icon: Icons.storefront_outlined)
+            else
+              ...filteredAll.map((s) => _storeCard(context, s)),
+          ],
+        );
+      },
     );
   }
+
+  Widget _dueStat(String label, int value, Color color, {bool warn = false}) =>
+      Expanded(
+        child: Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: AppColors.surfaceSoft,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Text('$value',
+                      style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: warn ? color : AppColors.text)),
+                  if (warn) ...[
+                    const SizedBox(width: 4),
+                    Icon(Icons.warning_amber_outlined, size: 16, color: color),
+                  ],
+                ],
+              ),
+              const SizedBox(height: 2),
+              Text(label,
+                  style: TextStyle(fontSize: 10, color: AppColors.textMuted)),
+            ],
+          ),
+        ),
+      );
 
   Widget _storeCard(BuildContext context, Store store, {bool pending = false}) {
     final cubit = context.read<AdminCubit>();
@@ -207,8 +352,49 @@ class _StoresTab extends StatelessWidget {
           borderRadius: BorderRadius.circular(22),
         ),
         title: Text(store.name),
-        subtitle: Text(store.address,
-            maxLines: 1, overflow: TextOverflow.ellipsis),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(store.address, maxLines: 1, overflow: TextOverflow.ellipsis),
+            Builder(builder: (context) {
+              final days = dueDaysRemaining(store);
+              if (days == null) {
+                return Text('No payment due date',
+                    style:
+                        TextStyle(fontSize: 11, color: AppColors.textMuted));
+              }
+              final overdue = days < 0;
+              final nearDue = days >= 0 && days <= 7;
+              final color = overdue
+                  ? AppColors.danger
+                  : nearDue
+                      ? AppColors.warning
+                      : AppColors.textMuted;
+              return Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (overdue || nearDue) ...[
+                    Icon(Icons.warning_amber_outlined, size: 13, color: color),
+                    const SizedBox(width: 3),
+                  ],
+                  Flexible(
+                    child: Text(
+                      'Due ${prettyDate(store.paymentDueDate)}'
+                      '${overdue ? ' · ${-days}d overdue' : nearDue ? ' · in ${days}d' : ''}',
+                      style: TextStyle(
+                          fontSize: 11,
+                          color: color,
+                          fontWeight: (overdue || nearDue)
+                              ? FontWeight.w700
+                              : FontWeight.w400),
+                    ),
+                  ),
+                ],
+              );
+            }),
+          ],
+        ),
+        isThreeLine: true,
         trailing: pending
             ? FilledButton(
                 onPressed: () async {
@@ -266,13 +452,23 @@ class _CustomersTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final customers = state.dashboard!.customerInsights;
+    final allCustomers = state.dashboard!.customerInsights;
     final cubit = context.read<AdminCubit>();
-    if (customers.isEmpty) {
+    if (allCustomers.isEmpty) {
       return const EmptyState(
           title: 'No customers yet', icon: Icons.people_outline);
     }
-    return ListView.builder(
+    return SearchableList(
+      hint: 'Search customers (name, email…)',
+      builder: (context, query) {
+        final customers = allCustomers
+            .where((c) => matchesQuery(query, [c.fullName, c.email]))
+            .toList();
+        if (customers.isEmpty) {
+          return const EmptyState(
+              title: 'No matching customers', icon: Icons.search_off_outlined);
+        }
+        return ListView.builder(
       padding: const EdgeInsets.all(12),
       itemCount: customers.length,
       itemBuilder: (context, index) {
@@ -318,6 +514,8 @@ class _CustomersTab extends StatelessWidget {
         );
       },
     );
+      },
+    );
   }
 }
 
@@ -338,11 +536,27 @@ class _FraudTab extends StatelessWidget {
       body: state.fraudList.isEmpty
           ? const EmptyState(
               title: 'No fraud reports', icon: Icons.shield_outlined)
-          : ListView.builder(
+          : SearchableList(
+              hint: 'Search fraud list (name, email, phone…)',
+              builder: (context, query) {
+                final entries = state.fraudList
+                    .where((f) => matchesQuery(query, [
+                          f.fullName,
+                          f.email,
+                          f.contactNumber,
+                          f.reason,
+                        ]))
+                    .toList();
+                if (entries.isEmpty) {
+                  return const EmptyState(
+                      title: 'No matching entries',
+                      icon: Icons.search_off_outlined);
+                }
+                return ListView.builder(
               padding: const EdgeInsets.fromLTRB(12, 12, 12, 88),
-              itemCount: state.fraudList.length,
+              itemCount: entries.length,
               itemBuilder: (context, index) {
-                final f = state.fraudList[index];
+                final f = entries[index];
                 final pendingGlobal =
                     f.scope == 'global' && f.status == 'pending';
                 return Card(
@@ -390,6 +604,8 @@ class _FraudTab extends StatelessWidget {
                   ),
                 );
               },
+            );
+              },
             ),
     );
   }
@@ -406,33 +622,46 @@ class _SupportTab extends StatelessWidget {
       return const EmptyState(
           title: 'No support tickets', icon: Icons.support_agent);
     }
-    return ListView.builder(
-      padding: const EdgeInsets.all(12),
-      itemCount: state.supportTickets.length,
-      itemBuilder: (context, index) {
-        final t = state.supportTickets[index];
-        return Card(
-          child: ListTile(
-            title: Text(t.subject),
-            subtitle: Text('${t.storeName ?? ''} · ${t.type}\n${t.message}',
-                maxLines: 3, overflow: TextOverflow.ellipsis),
-            isThreeLine: true,
-            trailing: PopupMenuButton<String>(
-              onSelected: (v) {
-                if (v == 'reply') {
-                  _reply(context, cubit, t.id, t.status);
-                } else if (v == 'delete') {
-                  cubit.deleteSupport(t.id);
-                }
-              },
-              itemBuilder: (_) => [
-                const PopupMenuItem(value: 'reply', child: Text('Reply')),
-                const PopupMenuItem(value: 'delete', child: Text('Delete')),
-              ],
-              child: StatusBadge(t.status, color: statusColor(t.status)),
-            ),
-            onTap: () => _reply(context, cubit, t.id, t.status),
-          ),
+    return SearchableList(
+      hint: 'Search tickets (subject, store, type, status…)',
+      builder: (context, query) {
+        final tickets = state.supportTickets
+            .where((t) => matchesQuery(
+                query, [t.subject, t.storeName, t.type, t.status, t.message]))
+            .toList();
+        if (tickets.isEmpty) {
+          return const EmptyState(
+              title: 'No matching tickets', icon: Icons.search_off_outlined);
+        }
+        return ListView.builder(
+          padding: const EdgeInsets.all(12),
+          itemCount: tickets.length,
+          itemBuilder: (context, index) {
+            final t = tickets[index];
+            return Card(
+              child: ListTile(
+                title: Text(t.subject),
+                subtitle: Text('${t.storeName ?? ''} · ${t.type}\n${t.message}',
+                    maxLines: 3, overflow: TextOverflow.ellipsis),
+                isThreeLine: true,
+                trailing: PopupMenuButton<String>(
+                  onSelected: (v) {
+                    if (v == 'reply') {
+                      _reply(context, cubit, t.id, t.status);
+                    } else if (v == 'delete') {
+                      cubit.deleteSupport(t.id);
+                    }
+                  },
+                  itemBuilder: (_) => [
+                    const PopupMenuItem(value: 'reply', child: Text('Reply')),
+                    const PopupMenuItem(value: 'delete', child: Text('Delete')),
+                  ],
+                  child: StatusBadge(t.status, color: statusColor(t.status)),
+                ),
+                onTap: () => _reply(context, cubit, t.id, t.status),
+              ),
+            );
+          },
         );
       },
     );

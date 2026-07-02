@@ -10,6 +10,7 @@ import { User } from '../models/User';
 import { SupportTicket } from '../models/SupportTicket';
 import { Order } from '../models/Order';
 import { enforceStoreDueDeactivation } from '../services/billingService';
+import { notifyAdmins, notifyUser } from '../services/notificationService';
 import type { AuthedRequest } from '../types/auth';
 import { serialize, serializeMany, toId } from '../utils/mongo';
 
@@ -119,6 +120,15 @@ storeRoutes.post('/:id/reviews', authenticate, checkRole(['renter']), requireAut
   store.rating = Number(avg.toFixed(2));
   await store.save();
 
+  if (store.owner_id) {
+    await notifyUser(store.owner_id.toString(), {
+      type: 'store_review',
+      title: `New ${rating}★ review`,
+      body: `${review.renter_name} rated ${store.name} ${rating} star${rating === 1 ? '' : 's'}${description ? `: "${description}"` : '.'}`,
+      data: { store_id: store._id.toString() },
+    });
+  }
+
   res.json({ success: true, review: serialize(review as any), rating: store.rating });
 });
 
@@ -148,6 +158,13 @@ storeRoutes.post('/:id/report', authenticate, checkRole(['renter']), requireAuth
     reporter_name: String(reporter?.full_name || req.user?.email || 'Customer').trim(),
     reporter_email: String(reporter?.email || req.user?.email || '').trim(),
     reporter_phone: String(reporter?.phone || '').trim(),
+  });
+
+  await notifyAdmins({
+    type: 'store_report',
+    title: `Store reported: ${store.name}`,
+    body: `${String(reporter?.full_name || 'A customer').trim()} reported the store — "${subject}".`,
+    data: { ticket_id: ticket._id.toString(), store_id: store._id.toString() },
   });
 
   res.json({ success: true, ticket: serialize(ticket as any) });

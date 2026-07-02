@@ -11,10 +11,13 @@ import { docsRoutes } from './routes/docsRoutes';
 import { itemRoutes } from './routes/itemRoutes';
 import { apiRateLimit } from './middleware/rateLimit';
 import { authRateLimit } from './middleware/authRateLimit';
+import { notificationRoutes } from './routes/notificationRoutes';
 import { orderRoutes } from './routes/orderRoutes';
 import { ownerRoutes } from './routes/ownerRoutes';
 import { storeRoutes } from './routes/storeRoutes';
 import { uploadRoutes } from './routes/uploadRoutes';
+import { setNotificationSocket } from './services/notificationService';
+import { startReminderScheduler } from './services/reminderService';
 import { seedDatabase } from './services/seedService';
 
 export async function startServer() {
@@ -28,6 +31,7 @@ export async function startServer() {
   const io = new Server(httpServer, { cors: { origin: '*' } });
 
   app.locals.io = io;
+  setNotificationSocket(io);
   app.use((req, res, next) => {
     const origin = req.headers.origin || '';
     const allowedOrigins = new Set([
@@ -67,6 +71,7 @@ export async function startServer() {
   app.use('/api', orderRoutes);
   app.use('/api', ownerRoutes);
   app.use('/api', adminRoutes);
+  app.use('/api', notificationRoutes);
 
   app.use((error: any, req: express.Request, res: express.Response, _next: express.NextFunction) => {
     console.error('[server] unhandled error', {
@@ -82,4 +87,7 @@ export async function startServer() {
   httpServer.listen(env.port, '0.0.0.0', () => {
     console.log(`Server running on http://0.0.0.0:${env.port}`);
   });
+
+  // Pickup / return / overdue reminders for customers, merchants and admins.
+  startReminderScheduler();
 }

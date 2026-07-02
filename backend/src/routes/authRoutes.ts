@@ -9,6 +9,7 @@ import { EmailOtp } from '../models/EmailOtp';
 import { Store } from '../models/Store';
 import { User } from '../models/User';
 import { sendOtpEmail, sendOwnerRegistrationNotification } from '../services/emailService';
+import { notifyAdmins } from '../services/notificationService';
 import type { AuthedRequest } from '../types/auth';
 import { validateE164Phone } from '../utils/phone';
 import { serialize } from '../utils/mongo';
@@ -166,6 +167,14 @@ authRoutes.post('/register', async (req, res) => {
     res.json({ token, user: serialize(user) });
 
     if (ownerRegistrationNotification) {
+      notifyAdmins({
+        type: 'store_registered',
+        title: 'New store registration',
+        body: `${ownerRegistrationNotification.ownerName || ownerRegistrationNotification.ownerEmail} registered "${ownerRegistrationNotification.storeName}" and is awaiting approval.`,
+        data: { store_id: ownerRegistrationNotification.storeId },
+      }).catch((notificationError: any) => {
+        console.error('[auth] admin in-app notification failed', { message: notificationError?.message });
+      });
       sendOwnerRegistrationNotification(ownerRegistrationNotification).catch((notificationError: any) => {
         console.error('[auth] owner registration notification failed', {
           userId: ownerRegistrationNotification?.userId,
@@ -299,7 +308,7 @@ authRoutes.post('/owner/send-otp', sendOtpHandler);
 authRoutes.post('/owner/verify-otp', verifyOtpHandler);
 
 authRoutes.post('/google', async (req, res) => {
-  if (!googleClient || !env.googleClientId) {
+  if (!googleClient || !env.googleClientIds.length) {
     return res.status(500).json({ error: 'Google sign-in is not configured' });
   }
 
@@ -307,11 +316,14 @@ authRoutes.post('/google', async (req, res) => {
   if (!credential) {
     return res.status(400).json({ error: 'Missing Google credential' });
   }
+  // Sent by the mobile "Sign up with Google" button: create a renter account
+  // on first Google sign-in instead of rejecting unknown emails.
+  const allowCreate = req.body?.allow_create === true;
 
   try {
     const ticket = await googleClient.verifyIdToken({
       idToken: credential,
-      audience: env.googleClientId,
+      audience: env.googleClientIds,
     });
     const payload = ticket.getPayload();
     const email = String(payload?.email || '').trim().toLowerCase();
@@ -322,7 +334,20 @@ authRoutes.post('/google', async (req, res) => {
       return res.status(400).json({ error: 'Google account has no email' });
     }
 
-    const user = await User.findOne({ email });
+    let user = await User.findOne({ email });
+    if (!user && allowCreate) {
+      // Google already verified the email. The random password can be reset
+      // later; these accounts normally keep signing in via Google.
+      const randomPassword = await bcrypt.hash(`google:${email}:${Date.now()}:${Math.random()}`, 10);
+      user = await User.create({
+        email,
+        password: randomPassword,
+        role: 'renter',
+        full_name: fullName,
+        avatar_url: avatarUrl || DEFAULT_USER_AVATAR_URL,
+      });
+      console.log('[auth] google sign-up created renter', { userId: user._id.toString(), email });
+    }
     if (!user) {
       console.warn('[auth] google login missing account', { email });
       return res.status(404).json({

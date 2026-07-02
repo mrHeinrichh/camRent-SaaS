@@ -7,12 +7,15 @@ import '../../../core/services/google_auth_service.dart';
 import '../../../core/widgets/app_widgets.dart';
 import '../cubit/auth_cubit.dart';
 
-/// "Continue with Google" button — used for both login and sign-up since the
-/// backend creates the account on first Google sign-in.
+/// "Continue with Google" button. On the register screen ([signUp] = true) the
+/// backend creates a renter account on first Google sign-in; on the login
+/// screen an unknown email is rejected with a hint to register first.
 class GoogleButton extends StatefulWidget {
-  const GoogleButton({super.key, this.label = 'Continue with Google'});
+  const GoogleButton(
+      {super.key, this.label = 'Continue with Google', this.signUp = false});
 
   final String label;
+  final bool signUp;
 
   @override
   State<GoogleButton> createState() => _GoogleButtonState();
@@ -32,14 +35,25 @@ class _GoogleButtonState extends State<GoogleButton> {
         if (mounted) setState(() => _busy = false);
         return; // user cancelled
       }
-      final ok = await authCubit.googleSignIn(idToken);
+      final ok =
+          await authCubit.googleSignIn(idToken, allowCreate: widget.signUp);
       if (!mounted) return;
       setState(() => _busy = false);
-      if (ok) router.go('/');
+      if (ok) {
+        router.go('/');
+      } else {
+        // Surface the backend's reason (e.g. "No account exists for this
+        // Google email…") instead of a generic failure.
+        final message = authCubit.state.error;
+        if (message != null && message.isNotEmpty) {
+          showSnack(context, message, error: true);
+        }
+      }
     } catch (e) {
       if (!mounted) return;
       setState(() => _busy = false);
-      showSnack(context, 'Google sign-in failed. Please try again.', error: true);
+      final detail = e is StateError ? e.message : e.toString();
+      showSnack(context, 'Google sign-in failed: $detail', error: true);
     }
   }
 

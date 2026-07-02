@@ -72,10 +72,12 @@ class AuthCubit extends HydratedCubit<AuthState> {
     }
   }
 
-  Future<bool> googleSignIn(String credential) async {
+  Future<bool> googleSignIn(String credential,
+      {bool allowCreate = false}) async {
     emit(state.copyWith(busy: true, clearError: true));
     try {
-      _applySession(await _repo.googleSignIn(credential));
+      _applySession(
+          await _repo.googleSignIn(credential, allowCreate: allowCreate));
       return true;
     } on ApiException catch (e) {
       emit(_failure(e));

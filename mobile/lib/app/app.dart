@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../core/di/service_locator.dart';
-import '../core/services/owner_notifier.dart';
+import '../core/services/app_notifier.dart';
 import '../core/storage/token_store.dart';
 import '../data/repositories/auth_repository.dart';
 import '../data/repositories/catalog_repository.dart';
@@ -38,15 +38,13 @@ class _CamRentAppState extends State<CamRentApp> {
     // Build the router exactly once — rebuilding it on every MaterialApp
     // rebuild causes the Navigator to reconcile duplicate page keys and crash.
     _router = buildRouter(_authCubit);
-    // Start owner notifications if a store owner is already signed in.
-    _syncOwnerNotifier(_authCubit.state);
+    // Start notification polling if a user is already signed in.
+    _syncAppNotifier(_authCubit.state);
   }
 
-  void _syncOwnerNotifier(AuthState state) {
-    final notifier = sl<OwnerNotifier>();
-    if (state.status == AuthStatus.authenticated &&
-        state.isOwner &&
-        state.user != null) {
+  void _syncAppNotifier(AuthState state) {
+    final notifier = sl<AppNotifier>();
+    if (state.status == AuthStatus.authenticated && state.user != null) {
       notifier.start(state.user!.id);
     } else {
       notifier.stop();
@@ -74,7 +72,7 @@ class _CamRentAppState extends State<CamRentApp> {
       child: BlocListener<AuthCubit, AuthState>(
         listenWhen: (p, c) =>
             p.status != c.status || p.user?.id != c.user?.id,
-        listener: (context, state) => _syncOwnerNotifier(state),
+        listener: (context, state) => _syncAppNotifier(state),
         child: BlocBuilder<ThemeCubit, ThemeMode>(
         builder: (context, mode) {
           // Keep the custom-widget palette in sync with the active ThemeData.

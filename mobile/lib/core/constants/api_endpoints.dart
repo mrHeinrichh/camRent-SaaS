@@ -59,6 +59,12 @@ class ApiEndpoints {
   static const String ownerSupportTickets = '/api/owner/support-tickets';
   static String approveOrder(String id) => '/api/orders/$id/approve';
   static String rejectOrder(String id) => '/api/orders/$id/reject';
+  static String completeOrder(String id) => '/api/orders/$id/complete';
+
+  // Notifications
+  static const String notifications = '/api/notifications';
+  static const String notificationsReadAll = '/api/notifications/read-all';
+  static String notificationRead(String id) => '/api/notifications/$id/read';
 
   // Admin
   static const String adminFraudList = '/api/admin/fraud-list';

@@ -2,6 +2,7 @@ import type { Router } from 'express';
 import { authenticate, checkRole } from '../../middleware/auth';
 import { Store } from '../../models/Store';
 import { SupportTicket } from '../../models/SupportTicket';
+import { notifyAdmins } from '../../services/notificationService';
 import type { AuthedRequest } from '../../types/auth';
 import { serialize, serializeMany, toId } from '../../utils/mongo';
 
@@ -41,6 +42,13 @@ export function registerOwnerSupportRoutes(router: Router) {
       status: 'open',
       admin_reply: '',
       resolved_at: null,
+    });
+
+    await notifyAdmins({
+      type: 'support_ticket',
+      title: `New ${type} ticket from ${store.name}`,
+      body: `${subject} — priority ${priority}.`,
+      data: { ticket_id: ticket._id.toString(), store_id: store._id.toString() },
     });
 
     res.json({ success: true, ticket: serialize(ticket as any) });

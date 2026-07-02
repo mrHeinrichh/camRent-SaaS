@@ -34,10 +34,14 @@ class AuthRepository {
     );
   }
 
-  Future<AuthResult> googleSignIn(String credential) async {
+  /// Exchanges a Google ID token for a session. [allowCreate] (used by the
+  /// "Sign up with Google" button) lets the backend create a renter account
+  /// on first Google sign-in instead of rejecting unknown emails.
+  Future<AuthResult> googleSignIn(String credential,
+      {bool allowCreate = false}) async {
     final data = Json.obj(await _api.post(
       ApiEndpoints.google,
-      body: {'credential': credential},
+      body: {'credential': credential, 'allow_create': allowCreate},
     ));
     return AuthResult(
       token: Json.str(data['token']),

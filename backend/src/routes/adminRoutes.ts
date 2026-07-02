@@ -15,6 +15,7 @@ import { StoreReview } from '../models/StoreReview';
 import { SupportTicket } from '../models/SupportTicket';
 import { User } from '../models/User';
 import { enforceStoreDueDeactivation } from '../services/billingService';
+import { notifyUser } from '../services/notificationService';
 import { serialize, serializeMany } from '../utils/mongo';
 
 export const adminRoutes = Router();
@@ -504,12 +505,20 @@ adminRoutes.post('/admin/stores/:id/approve', authenticate, checkRole(['admin'])
   const now = new Date();
   const dueDate = new Date(now);
   dueDate.setMonth(dueDate.getMonth() + 1);
-  await Store.findByIdAndUpdate(req.params.id, {
+  const store = await Store.findByIdAndUpdate(req.params.id, {
     status: 'approved',
     is_active: true,
     approved_at: now,
     payment_due_date: dueDate,
   });
+  if (store?.owner_id) {
+    await notifyUser(store.owner_id.toString(), {
+      type: 'store_approved',
+      title: 'Your store is approved 🎉',
+      body: `${store.name} is now live on CamRent. Customers can browse your gear and send booking requests.`,
+      data: { store_id: store._id.toString() },
+    });
+  }
   res.json({ success: true });
 });
 
@@ -528,7 +537,17 @@ adminRoutes.post('/admin/stores/:id/active', authenticate, checkRole(['admin']),
     updateData.payment_due_date = dueDate;
   }
 
-  await Store.findByIdAndUpdate(req.params.id, updateData);
+  const store = await Store.findByIdAndUpdate(req.params.id, updateData);
+  if (store?.owner_id) {
+    await notifyUser(store.owner_id.toString(), {
+      type: isActive ? 'store_activated' : 'store_deactivated',
+      title: isActive ? 'Your store was reactivated' : 'Your store was deactivated',
+      body: isActive
+        ? `${store.name} is visible to customers again.`
+        : `${store.name} is temporarily hidden from customers. Contact support for details.`,
+      data: { store_id: store._id.toString() },
+    });
+  }
   res.json({ success: true });
 });
 
@@ -625,10 +644,22 @@ adminRoutes.put('/admin/support-tickets/:id', authenticate, checkRole(['admin'])
     if (!adminTicketPriorityValues.has(priority)) return res.status(400).json({ error: 'Invalid priority value' });
     (ticket as any).priority = priority;
   }
+  const replyChanged = req.body?.admin_reply !== undefined
+    && String(req.body.admin_reply || '').trim() !== String((ticket as any).admin_reply || '');
   if (req.body?.admin_reply !== undefined) {
     (ticket as any).admin_reply = String(req.body.admin_reply || '').trim();
   }
   await ticket.save();
+
+  if (replyChanged && (ticket as any).admin_reply && ticket.owner_id) {
+    await notifyUser(ticket.owner_id.toString(), {
+      type: 'support_reply',
+      title: 'Support ticket update',
+      body: `Admin replied to your ticket "${ticket.subject}": ${(ticket as any).admin_reply}`,
+      data: { ticket_id: ticket._id.toString() },
+    });
+  }
+
   res.json({ success: true, ticket: serialize(ticket as any) });
 });
 

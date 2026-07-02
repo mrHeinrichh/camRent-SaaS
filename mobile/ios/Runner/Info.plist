@@ -74,5 +74,23 @@
 		</array>
 		<key>UIStatusBarHidden</key>
 		<false/>
+		<!-- Google Sign-In redirect. Replace YOUR_IOS_CLIENT_ID with the id of an
+		     iOS-type OAuth client from Google Cloud Console (Credentials page),
+		     bundle id com.camrent.camrentMobile. The scheme is the client id
+		     REVERSED: client "123-abc.apps.googleusercontent.com" becomes
+		     "com.googleusercontent.apps.123-abc". Also paste the (non-reversed)
+		     client id into Env.googleIosClientId in lib/core/constants/env.dart
+		     and into the backend GOOGLE_CLIENT_IDS env var. -->
+		<key>CFBundleURLTypes</key>
+		<array>
+			<dict>
+				<key>CFBundleTypeRole</key>
+				<string>Editor</string>
+				<key>CFBundleURLSchemes</key>
+				<array>
+					<string>com.googleusercontent.apps.YOUR_IOS_CLIENT_ID</string>
+				</array>
+			</dict>
+		</array>
 	</dict>
 </plist>

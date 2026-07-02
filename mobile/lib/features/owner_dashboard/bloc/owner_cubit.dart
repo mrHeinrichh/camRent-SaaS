@@ -112,6 +112,11 @@ class OwnerCubit extends Cubit<OwnerState> {
     await load(forceRefresh: true);
   }
 
+  Future<void> complete(String id) async {
+    await _repo.completeApplication(id);
+    await load(forceRefresh: true);
+  }
+
   Future<void> createVoucher(String code, double discount) async {
     await _repo.createVoucher(code, discount);
     await load(forceRefresh: true);

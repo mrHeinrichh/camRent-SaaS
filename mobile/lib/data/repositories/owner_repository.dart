@@ -39,6 +39,9 @@ class OwnerRepository {
   Future<void> rejectApplication(String id, String reason) =>
       _api.post(ApiEndpoints.rejectOrder(id), body: {'reason': reason});
 
+  Future<void> completeApplication(String id) =>
+      _api.post(ApiEndpoints.completeOrder(id));
+
   Future<List<Voucher>> vouchers({bool forceRefresh = false}) async {
     final data = await _api.getCached(ApiEndpoints.ownerVouchers,
         ttl: const Duration(minutes: 5), forceRefresh: forceRefresh);

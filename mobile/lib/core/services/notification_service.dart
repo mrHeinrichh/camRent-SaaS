@@ -1,18 +1,20 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
-/// Thin wrapper over local notifications used to alert store owners about new
-/// rental applications. Shows notifications even while the app is in the
-/// foreground.
+/// Thin wrapper over local notifications used to alert users about booking
+/// activity — new applications for merchants, approvals and pickup/return
+/// reminders for customers, and platform alerts for admins. Shows
+/// notifications even while the app is in the foreground.
 class NotificationService {
   final FlutterLocalNotificationsPlugin _plugin =
       FlutterLocalNotificationsPlugin();
   bool _ready = false;
 
   static const _channel = AndroidNotificationChannel(
-    'owner_applications',
-    'Rental applications',
-    description: 'New rental applications and bookings for your store',
+    'camrent_notifications',
+    'Booking activity',
+    description:
+        'Booking requests, approvals, pickup and return reminders',
     importance: Importance.high,
   );
 

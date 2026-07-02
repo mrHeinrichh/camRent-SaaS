@@ -177,6 +177,44 @@ export const openApiDocument = {
         responses: { '200': { description: 'Order history' } },
       },
     },
+    '/api/orders/{id}/complete': {
+      post: {
+        summary: 'Mark an approved/ongoing booking as returned (owner)',
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+        responses: { '200': { description: 'Booking completed' } },
+      },
+    },
+    '/api/notifications': {
+      get: {
+        summary: 'Get in-app notifications and unread count for the current user',
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: 'limit', in: 'query', required: false, schema: { type: 'integer' } }],
+        responses: { '200': { description: 'Notification feed' } },
+      },
+    },
+    '/api/notifications/unread-count': {
+      get: {
+        summary: 'Get unread notification count for the current user',
+        security: [{ bearerAuth: [] }],
+        responses: { '200': { description: 'Unread count' } },
+      },
+    },
+    '/api/notifications/{id}/read': {
+      post: {
+        summary: 'Mark one notification as read',
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+        responses: { '200': { description: 'Marked read' } },
+      },
+    },
+    '/api/notifications/read-all': {
+      post: {
+        summary: 'Mark all notifications as read',
+        security: [{ bearerAuth: [] }],
+        responses: { '200': { description: 'All marked read' } },
+      },
+    },
     '/api/dashboard/owner': {
       get: {
         summary: 'Get owner dashboard data',

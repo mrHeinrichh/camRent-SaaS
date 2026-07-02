@@ -202,7 +202,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ],
                   ),
                   const SizedBox(height: 12),
-                  const GoogleButton(label: 'Sign up with Google'),
+                  const GoogleButton(
+                      label: 'Sign up with Google', signUp: true),
                 ],
               ),
             ),

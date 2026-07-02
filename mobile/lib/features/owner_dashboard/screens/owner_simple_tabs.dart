@@ -6,6 +6,7 @@ import '../../../core/utils/currency.dart';
 import '../../../core/utils/date_utils.dart';
 import '../../../core/widgets/animations.dart';
 import '../../../core/widgets/app_widgets.dart';
+import '../../../core/widgets/search_field.dart';
 import '../bloc/owner_cubit.dart';
 import 'owner_detail_sheets.dart';
 
@@ -16,12 +17,28 @@ class OwnerTransactionsTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final txns = state.dashboard?.recentTransactions ?? const [];
-    if (txns.isEmpty) {
+    final allTxns = state.dashboard?.recentTransactions ?? const [];
+    if (allTxns.isEmpty) {
       return const EmptyState(
           title: 'No transactions yet', icon: Icons.receipt_long_outlined);
     }
-    return ListView.builder(
+    return SearchableList(
+      hint: 'Search transactions (renter, gear, status…)',
+      builder: (context, query) {
+        final txns = allTxns
+            .where((t) => matchesQuery(query, [
+                  t.renterName,
+                  t.renterEmail,
+                  t.status,
+                  ...t.items.map((it) => it.name),
+                ]))
+            .toList();
+        if (txns.isEmpty) {
+          return const EmptyState(
+              title: 'No matching transactions',
+              icon: Icons.search_off_outlined);
+        }
+        return ListView.builder(
       padding: const EdgeInsets.all(12),
       itemCount: txns.length,
       itemBuilder: (context, index) {
@@ -86,6 +103,8 @@ class OwnerTransactionsTab extends StatelessWidget {
         );
       },
     );
+      },
+    );
   }
 
   Widget _pill(IconData icon, String text) => Padding(
@@ -109,12 +128,27 @@ class OwnerCustomersTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final customers = state.dashboard?.customers ?? const [];
-    if (customers.isEmpty) {
+    final allCustomers = state.dashboard?.customers ?? const [];
+    if (allCustomers.isEmpty) {
       return const EmptyState(
           title: 'No customers yet', icon: Icons.people_outline);
     }
-    return ListView.builder(
+    return SearchableList(
+      hint: 'Search customers (name, email, phone…)',
+      builder: (context, query) {
+        final customers = allCustomers
+            .where((c) => matchesQuery(query, [
+                  c.renterName,
+                  c.renterEmail,
+                  c.renterPhone,
+                  c.renterAddress,
+                ]))
+            .toList();
+        if (customers.isEmpty) {
+          return const EmptyState(
+              title: 'No matching customers', icon: Icons.search_off_outlined);
+        }
+        return ListView.builder(
       padding: const EdgeInsets.all(12),
       itemCount: customers.length,
       itemBuilder: (context, index) {
@@ -207,6 +241,8 @@ class OwnerCustomersTab extends StatelessWidget {
         );
       },
     );
+      },
+    );
   }
 }
 
@@ -230,29 +266,47 @@ class OwnerFraudTab extends StatelessWidget {
               title: 'No fraud reports',
               message: 'Reported renters appear here.',
               icon: Icons.shield_outlined)
-          : ListView.builder(
-              padding: const EdgeInsets.fromLTRB(12, 12, 12, 88),
-              itemCount: state.fraudList.length,
-              itemBuilder: (context, index) {
-                final f = state.fraudList[index];
-                return EntranceEffect(
-                  index: index % 8,
-                  child: Card(
-                    child: ListTile(
-                      leading: const Icon(Icons.warning_amber_rounded,
-                          color: AppColors.danger),
-                      title: Text(f.fullName),
-                      subtitle: Text(
-                          '${f.email} · ${f.contactNumber}\nReason: ${f.reason}'),
-                      isThreeLine: true,
-                      trailing: f.scope == null
-                          ? null
-                          : StatusBadge(f.scope!.toUpperCase(),
-                              color: f.scope == 'global'
-                                  ? AppColors.danger
-                                  : AppColors.warning),
-                    ),
-                  ),
+          : SearchableList(
+              hint: 'Search fraud list (name, email, phone…)',
+              builder: (context, query) {
+                final entries = state.fraudList
+                    .where((f) => matchesQuery(query, [
+                          f.fullName,
+                          f.email,
+                          f.contactNumber,
+                          f.reason,
+                        ]))
+                    .toList();
+                if (entries.isEmpty) {
+                  return const EmptyState(
+                      title: 'No matching entries',
+                      icon: Icons.search_off_outlined);
+                }
+                return ListView.builder(
+                  padding: const EdgeInsets.fromLTRB(12, 12, 12, 88),
+                  itemCount: entries.length,
+                  itemBuilder: (context, index) {
+                    final f = entries[index];
+                    return EntranceEffect(
+                      index: index % 8,
+                      child: Card(
+                        child: ListTile(
+                          leading: const Icon(Icons.warning_amber_rounded,
+                              color: AppColors.danger),
+                          title: Text(f.fullName),
+                          subtitle: Text(
+                              '${f.email} · ${f.contactNumber}\nReason: ${f.reason}'),
+                          isThreeLine: true,
+                          trailing: f.scope == null
+                              ? null
+                              : StatusBadge(f.scope!.toUpperCase(),
+                                  color: f.scope == 'global'
+                                      ? AppColors.danger
+                                      : AppColors.warning),
+                        ),
+                      ),
+                    );
+                  },
                 );
               },
             ),

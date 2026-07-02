@@ -115,6 +115,8 @@ Future<void> showApplicationDetail(
 }) {
   final pending = app.status.toUpperCase() == 'PENDING_REVIEW' ||
       app.status.toUpperCase() == 'PENDING';
+  final active = app.status.toUpperCase() == 'APPROVED' ||
+      app.status.toUpperCase() == 'ONGOING';
   return _sheet(
     context,
     Column(
@@ -182,6 +184,23 @@ Future<void> showApplicationDetail(
                 ),
               ),
             ],
+          ),
+        ],
+        if (active) ...[
+          const SizedBox(height: 20),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              icon: const Icon(Icons.assignment_turned_in_outlined),
+              label: const Text('Mark as returned'),
+              onPressed: () async {
+                Navigator.pop(context);
+                await cubit.complete(app.id);
+                if (context.mounted) {
+                  showSnack(context, 'Booking marked as returned');
+                }
+              },
+            ),
           ),
         ],
       ],

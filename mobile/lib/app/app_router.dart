@@ -14,6 +14,7 @@ import '../features/checkout/screens/checkout_screen.dart';
 import '../features/checkout/screens/success_screen.dart';
 import '../features/home/screens/home_screen.dart';
 import '../features/item/screens/item_screen.dart';
+import '../features/notifications/screens/notifications_screen.dart';
 import '../features/onboarding/screens/onboarding_screen.dart';
 import '../features/onboarding/screens/splash_screen.dart';
 import '../features/owner_dashboard/screens/owner_dashboard_screen.dart';
@@ -53,8 +54,9 @@ GoRouter buildRouter(AuthCubit authCubit) {
       if (loc.startsWith('/admin') && !auth.isAdmin) {
         return loggedIn ? '/' : '/login';
       }
-      // Account requires login.
+      // Account and notifications require login.
       if (loc == '/account' && !loggedIn) return '/login';
+      if (loc == '/notifications' && !loggedIn) return '/login';
       return null;
     },
     routes: [
@@ -148,6 +150,14 @@ GoRouter buildRouter(AuthCubit authCubit) {
         pageBuilder: (context, state) => buildPageTransition(
           state: state,
           child: const SuccessScreen(),
+        ),
+      ),
+      GoRoute(
+        path: '/notifications',
+        parentNavigatorKey: _rootKey,
+        pageBuilder: (context, state) => buildPageTransition(
+          state: state,
+          child: const NotificationsScreen(),
         ),
       ),
       GoRoute(

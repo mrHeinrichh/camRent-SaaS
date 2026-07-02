@@ -280,6 +280,9 @@ class SystemSummary {
     this.totalCustomers = 0,
     this.totalStores = 0,
     this.pendingMerchants = 0,
+    this.nearDueStores = 0,
+    this.overdueStores = 0,
+    this.pendingGlobalFraud = 0,
     this.openSupportTickets = 0,
     this.totalRatings = 0,
   });
@@ -289,6 +292,9 @@ class SystemSummary {
   final int totalCustomers;
   final int totalStores;
   final int pendingMerchants;
+  final int nearDueStores;
+  final int overdueStores;
+  final int pendingGlobalFraud;
   final int openSupportTickets;
   final int totalRatings;
 
@@ -298,6 +304,9 @@ class SystemSummary {
         totalCustomers: Json.intVal(json['totalCustomers']),
         totalStores: Json.intVal(json['totalStores']),
         pendingMerchants: Json.intVal(json['pendingMerchants']),
+        nearDueStores: Json.intVal(json['nearDueStores']),
+        overdueStores: Json.intVal(json['overdueStores']),
+        pendingGlobalFraud: Json.intVal(json['pendingGlobalFraud']),
         openSupportTickets: Json.intVal(json['openSupportTickets']),
         totalRatings: Json.intVal(json['totalRatings']),
       );

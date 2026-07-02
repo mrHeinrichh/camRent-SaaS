@@ -20,6 +20,17 @@ export const env = {
   cloudinaryApiSecret: process.env.CLOUDINARY_API_SECRET,
   corsOrigins: process.env.CORS_ORIGINS || process.env.FRONTEND_URL || '',
   googleClientId: process.env.GOOGLE_CLIENT_ID || '',
+  // All OAuth client ids whose ID tokens we accept. The web client id is the
+  // audience for web + Android (serverClientId) tokens; iOS tokens carry the
+  // iOS client id. Set GOOGLE_CLIENT_IDS as a comma-separated list to add
+  // platform clients; GOOGLE_CLIENT_ID is always included.
+  googleClientIds: [
+    ...new Set(
+      [process.env.GOOGLE_CLIENT_ID || '', ...(process.env.GOOGLE_CLIENT_IDS || '').split(',')]
+        .map((id) => id.trim())
+        .filter(Boolean),
+    ),
+  ],
   gmailClientId: process.env.GMAIL_CLIENT_ID?.trim() || process.env.GOOGLE_CLIENT_ID?.trim() || '',
   gmailClientSecret: process.env.GMAIL_CLIENT_SECRET?.trim() || process.env.GOOGLE_CLIENT_SECRET?.trim() || '',
   gmailRefreshToken: process.env.GMAIL_REFRESH_TOKEN?.trim() || process.env.GOOGLE_REFRESH_TOKEN?.trim() || '',

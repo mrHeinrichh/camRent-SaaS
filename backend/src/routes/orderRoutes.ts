@@ -13,7 +13,11 @@ import type { AuthedRequest } from '../types/auth';
 import { validateE164Phone } from '../utils/phone';
 import { serialize, serializeMany, toId } from '../utils/mongo';
 import { hasBookingConflict, hasBookingConflictForQuantity } from '../services/bookingService';
+import { notifyAdmins, notifyOrderCustomer, notifyStoreOwner, notifyUser } from '../services/notificationService';
+import { formatOrderRef } from '../utils/orderRef';
 import { getRentalDayCount } from '../utils/rentalPricing';
+
+const formatPeso = (amount: number) => `₱${Number(amount || 0).toLocaleString('en-PH')}`;
 
 export const orderRoutes = Router();
 const normalizeComparable = (value: unknown) => String(value || '').trim().toLowerCase();
@@ -204,6 +208,44 @@ orderRoutes.post('/orders', authenticate, async (req: AuthedRequest, res) => {
     req.app.locals.io?.emit('calendar:update', { store_id });
     if (fraudMatch) req.app.locals.io?.emit('fraud:match_detected', { store_id, orderId: order._id.toString() });
 
+    const orderId = order._id.toString();
+    const orderRef = formatOrderRef(orderId);
+    const notificationData = { order_id: orderId, store_id: String(store_id) };
+    await notifyStoreOwner(String(store_id), {
+      type: 'booking_submitted',
+      title: 'New booking request',
+      body: `${renter_name} scheduled a booking ${orderRef} · ${items.length} gear · ${formatPeso(adjustedTotal)}. Review it in your dashboard.`,
+      data: notificationData,
+    });
+    await notifyAdmins({
+      type: 'booking_submitted',
+      title: 'New booking on the platform',
+      body: `${renter_name} booked at ${(store as any).name || 'a store'} ${orderRef} · ${formatPeso(adjustedTotal)}.`,
+      data: notificationData,
+    });
+    if (req.user?.id) {
+      await notifyUser(req.user.id, {
+        type: 'booking_received',
+        title: 'Booking request submitted',
+        body: `Your booking ${orderRef} at ${(store as any).name || 'the store'} was sent for review. We'll notify you once the store responds.`,
+        data: notificationData,
+      });
+    }
+    if (fraudMatch) {
+      await notifyStoreOwner(String(store_id), {
+        type: 'fraud_alert',
+        title: 'Fraud watchlist match',
+        body: `Booking ${orderRef} from ${renter_name} matches a fraud list entry. Review the application carefully before approving.`,
+        data: notificationData,
+      });
+      await notifyAdmins({
+        type: 'fraud_alert',
+        title: 'Fraud watchlist match on new booking',
+        body: `Booking ${orderRef} at ${(store as any).name || 'a store'} matches fraud list entry for ${renter_name}.`,
+        data: notificationData,
+      });
+    }
+
     res.json({ id: order._id.toString() });
   } catch (error: any) {
     res.status(400).json({ error: error.message || 'Failed to create order' });
@@ -306,6 +348,14 @@ orderRoutes.post('/account/orders/:id/cancel', authenticate, requireAuth, checkR
 
   req.app.locals.io?.emit('booking:cancelled', { orderId: order._id.toString(), store_id: order.store_id.toString() });
   req.app.locals.io?.emit('calendar:update', { store_id: order.store_id.toString() });
+
+  await notifyStoreOwner(order.store_id.toString(), {
+    type: 'booking_cancelled',
+    title: 'Booking cancelled by customer',
+    body: `${order.renter_name} cancelled booking ${formatOrderRef(order._id.toString())}. Reason: ${reason}`,
+    data: { order_id: order._id.toString(), store_id: order.store_id.toString() },
+  });
+
   res.json({ success: true });
 });
 
@@ -358,6 +408,15 @@ orderRoutes.post('/orders/:id/approve', authenticate, checkRole(['owner']), asyn
 
   req.app.locals.io?.emit('rental:approved', { orderId: order._id.toString(), store_id: order.store_id.toString() });
   req.app.locals.io?.emit('calendar:update', { store_id: order.store_id.toString() });
+
+  const approvedStart = orderItems.map((item) => item.start_date).sort()[0] || '';
+  await notifyOrderCustomer(order, {
+    type: 'booking_approved',
+    title: 'Booking approved 🎉',
+    body: `Your booking ${formatOrderRef(order._id.toString())} was approved${approvedStart ? `. Pickup/delivery starts ${approvedStart}` : ''}. See your account orders for details.`,
+    data: { order_id: order._id.toString(), store_id: order.store_id.toString() },
+  });
+
   res.json({ success: true });
 });
 
@@ -373,6 +432,37 @@ orderRoutes.post('/orders/:id/reject', authenticate, checkRole(['owner']), async
 
   req.app.locals.io?.emit('rental:rejected', { orderId: order._id.toString(), store_id: order.store_id.toString() });
   req.app.locals.io?.emit('calendar:update', { store_id: order.store_id.toString() });
+
+  await notifyOrderCustomer(order, {
+    type: 'booking_rejected',
+    title: 'Booking declined',
+    body: `Your booking ${formatOrderRef(order._id.toString())} was declined${reason ? `: ${reason}` : '.'}`,
+    data: { order_id: order._id.toString(), store_id: order.store_id.toString() },
+  });
+
+  res.json({ success: true });
+});
+
+orderRoutes.post('/orders/:id/complete', authenticate, checkRole(['owner']), async (req, res) => {
+  const order = await Order.findById(req.params.id);
+  if (!order) return res.status(404).json({ error: 'Order not found' });
+  if (!['APPROVED', 'ONGOING'].includes(order.status)) {
+    return res.status(400).json({ error: 'Only approved or ongoing bookings can be marked as returned' });
+  }
+
+  order.status = 'COMPLETED';
+  await order.save();
+
+  req.app.locals.io?.emit('rental:completed', { orderId: order._id.toString(), store_id: order.store_id.toString() });
+  req.app.locals.io?.emit('calendar:update', { store_id: order.store_id.toString() });
+
+  await notifyOrderCustomer(order, {
+    type: 'booking_completed',
+    title: 'Rental completed — thank you!',
+    body: `Booking ${formatOrderRef(order._id.toString())} is marked as returned. How was your experience? Leave the store a review!`,
+    data: { order_id: order._id.toString(), store_id: order.store_id.toString() },
+  });
+
   res.json({ success: true });
 });
 
@@ -409,6 +499,14 @@ orderRoutes.post('/orders/:id/report-fraud', authenticate, checkRole(['owner', '
   });
 
   req.app.locals.io?.emit('fraud:reported', { orderId: order._id.toString(), store_id: order.store_id.toString() });
+
+  await notifyAdmins({
+    type: 'fraud_reported',
+    title: 'Fraud reported on a booking',
+    body: `Booking ${formatOrderRef(order._id.toString())} by ${order.renter_name} was reported for fraud${reason ? `: ${reason}` : '.'}`,
+    data: { order_id: order._id.toString(), store_id: order.store_id.toString() },
+  });
+
   res.json({ success: true });
 });
 
@@ -424,6 +522,14 @@ orderRoutes.post('/orders/:id/cancel', authenticate, checkRole(['owner']), async
 
   req.app.locals.io?.emit('booking:cancelled', { orderId: order._id.toString(), store_id: order.store_id.toString() });
   req.app.locals.io?.emit('calendar:update', { store_id: order.store_id.toString() });
+
+  await notifyOrderCustomer(order, {
+    type: 'booking_cancelled',
+    title: 'Booking cancelled by the store',
+    body: `Your booking ${formatOrderRef(order._id.toString())} was cancelled by the store${reason ? `: ${reason}` : '.'}`,
+    data: { order_id: order._id.toString(), store_id: order.store_id.toString() },
+  });
+
   res.json({ success: true });
 });
 
