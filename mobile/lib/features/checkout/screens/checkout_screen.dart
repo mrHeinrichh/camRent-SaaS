@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../app/theme.dart';
@@ -27,6 +28,17 @@ const _idDocs = <String, String>{
   'selfie_id': 'Selfie with ID',
 };
 const _billingKey = 'proof_of_billing';
+
+String _philippinesMobileNational(String value) {
+  final digits = value.replaceAll(RegExp(r'\D'), '');
+  final national = digits.startsWith('63') ? digits.substring(2) : digits;
+  return national.startsWith('0') ? national.substring(1) : national;
+}
+
+String? _normalizePhilippinesMobile(String value) {
+  final national = _philippinesMobileNational(value);
+  return RegExp(r'^9\d{9}$').hasMatch(national) ? '+63$national' : null;
+}
 
 class CheckoutScreen extends StatelessWidget {
   const CheckoutScreen({super.key});
@@ -131,8 +143,8 @@ class _CheckoutViewState extends State<_CheckoutView> {
         err = 'A valid contact number is required';
       } else if (_emergencyName.text.trim().isEmpty) {
         err = 'Emergency contact name is required';
-      } else if (_emergency.text.trim().length < 7) {
-        err = 'A valid emergency contact number is required';
+      } else if (_normalizePhilippinesMobile(_emergency.text.trim()) == null) {
+        err = 'Emergency contact must be a valid Philippine mobile number';
       } else if (_address.text.trim().isEmpty) {
         err = 'Present address is required';
       }
@@ -183,13 +195,16 @@ class _CheckoutViewState extends State<_CheckoutView> {
     final total = cart.rentalSubtotal +
         store.securityDeposit -
         (state.appliedVoucher?.discountAmount ?? 0);
+    final emergencyContact =
+        _normalizePhilippinesMobile(_emergency.text.trim()) ??
+            _emergency.text.trim();
 
     final renterDetails = {
       'renter_name': _name.text.trim(),
       'renter_email': _email.text.trim(),
       'renter_phone': _phone.text.trim(),
       'renter_emergency_contact_name': _emergencyName.text.trim(),
-      'renter_emergency_contact': _emergency.text.trim(),
+      'renter_emergency_contact': emergencyContact,
       'renter_address': _address.text.trim(),
       'store_branch_id': _branchId,
       'store_branch_name': branch['name'],
@@ -296,8 +311,7 @@ class _CheckoutViewState extends State<_CheckoutView> {
         _field(_phone, 'Contact number (+639...)',
             keyboard: TextInputType.phone),
         _field(_emergencyName, 'Emergency contact name'),
-        _field(_emergency, 'Emergency contact number (+639...)',
-            keyboard: TextInputType.phone),
+        _philippinesMobileField(_emergency, 'Emergency contact number'),
         _field(_address, 'Present address', maxLines: 2),
       ],
     );
@@ -518,6 +532,36 @@ class _CheckoutViewState extends State<_CheckoutView> {
         maxLines: maxLines,
         onChanged: (_) => setState(() {}), // update progress bar live
         decoration: InputDecoration(labelText: label),
+      ),
+    );
+  }
+
+  Widget _philippinesMobileField(
+      TextEditingController controller, String label) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: TextField(
+        controller: controller,
+        keyboardType: TextInputType.phone,
+        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+        onChanged: (value) {
+          final national = _philippinesMobileNational(value);
+          final limited =
+              national.length > 10 ? national.substring(0, 10) : national;
+          if (controller.text != limited) {
+            controller.value = TextEditingValue(
+              text: limited,
+              selection: TextSelection.collapsed(offset: limited.length),
+            );
+          }
+          setState(() {});
+        },
+        decoration: InputDecoration(
+          labelText: label,
+          prefixText: '+63 ',
+          hintText: '9XXXXXXXXX',
+          helperText: 'Philippine mobile only',
+        ),
       ),
     );
   }

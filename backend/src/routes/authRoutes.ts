@@ -136,7 +136,7 @@ authRoutes.post('/register', async (req, res) => {
         payment_detail_images: Array.isArray(payment_detail_images) ? payment_detail_images.map((url: unknown) => String(url || '').trim()).filter(Boolean) : [],
         delivery_modes: Array.isArray(delivery_modes) ? delivery_modes.filter((mode) => typeof mode === 'string' && mode.trim()) : [],
         branches,
-        lease_agreement_file_url: lease_agreement_file_url || '',
+        lease_agreement_file_url: String(lease_agreement_file_url || '').trim() || null,
         security_deposit: Number.isFinite(Number(security_deposit)) ? Number(security_deposit) : 0,
         rental_billing_mode: rental_billing_mode === 'calendar_day' ? 'calendar_day' : 'twenty_four_hour',
       });

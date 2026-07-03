@@ -10,7 +10,7 @@ import { OrderItem } from '../models/OrderItem';
 import { Store } from '../models/Store';
 import { Voucher } from '../models/Voucher';
 import type { AuthedRequest } from '../types/auth';
-import { validateE164Phone } from '../utils/phone';
+import { validateE164Phone, validatePhilippinesMobilePhone } from '../utils/phone';
 import { serialize, serializeMany, toId } from '../utils/mongo';
 import { hasBookingConflict, hasBookingConflictForQuantity } from '../services/bookingService';
 import { notifyAdmins, notifyOrderCustomer, notifyStoreOwner, notifyUser } from '../services/notificationService';
@@ -62,8 +62,9 @@ orderRoutes.post('/orders', authenticate, async (req: AuthedRequest, res) => {
   }
   const phoneCheck = validateE164Phone(renter_phone);
   if (!phoneCheck.valid) return res.status(400).json({ error: phoneCheck.error });
-  const emergencyCheck = validateE164Phone(renter_emergency_contact);
+  const emergencyCheck = validatePhilippinesMobilePhone(renter_emergency_contact, 'Emergency contact number');
   if (!emergencyCheck.valid) return res.status(400).json({ error: emergencyCheck.error });
+  const normalizedEmergencyContact = emergencyCheck.normalized;
   if (!Array.isArray(items) || items.length === 0) return res.status(400).json({ error: 'At least one gear is required' });
 
   const store = await Store.findById(store_id).lean();
@@ -79,9 +80,6 @@ orderRoutes.post('/orders', authenticate, async (req: AuthedRequest, res) => {
     : null;
   const branchToUse = matchedBranch || fallbackMainBranch;
   if (!branchToUse) return res.status(400).json({ error: 'Please select a valid store branch' });
-  if (store.lease_agreement_file_url && (!lease_agreement_submission_url || !String(lease_agreement_submission_url).trim())) {
-    return res.status(400).json({ error: 'Completed lease agreement file is required' });
-  }
   const rentalFormFields = sanitizeRentalFormFields((store as any).rental_form_schema?.fields);
   const customAnswerValidation = validateRentalCustomAnswers(rentalFormFields, custom_answers);
   if (!customAnswerValidation.valid) {
@@ -149,7 +147,7 @@ orderRoutes.post('/orders', authenticate, async (req: AuthedRequest, res) => {
       renter_email: normalizedEmail,
       renter_phone,
       renter_emergency_contact_name,
-      renter_emergency_contact,
+      renter_emergency_contact: normalizedEmergencyContact,
       renter_address,
       store_branch_id: String(branchToUse._id),
       store_branch_name: String(branchToUse.name || '').trim(),
@@ -157,7 +155,7 @@ orderRoutes.post('/orders', authenticate, async (req: AuthedRequest, res) => {
       delivery_mode,
       delivery_address,
       payment_mode,
-      lease_agreement_submission_url: lease_agreement_submission_url ? String(lease_agreement_submission_url).trim() : '',
+      lease_agreement_submission_url: lease_agreement_submission_url ? String(lease_agreement_submission_url).trim() : null,
       custom_answers: custom_answers && typeof custom_answers === 'object' ? custom_answers : {},
       form_schema_version: (store as any).rental_form_schema?.version || STANDARD_RENTAL_FORM_VERSION,
       total_amount: adjustedTotal,
