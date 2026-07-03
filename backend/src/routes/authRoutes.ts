@@ -320,6 +320,23 @@ authRoutes.post('/google', async (req, res) => {
   // on first Google sign-in instead of rejecting unknown emails.
   const allowCreate = req.body?.allow_create === true;
 
+  // Logging-only peek at the unverified token so misconfigured audiences are
+  // visible in the logs (verification below is what actually gates access).
+  const unsafeClaims = (() => {
+    try {
+      return JSON.parse(Buffer.from(credential.split('.')[1], 'base64url').toString('utf8'));
+    } catch {
+      return null;
+    }
+  })();
+  console.log('[auth] google credential received', {
+    allowCreate,
+    tokenAud: unsafeClaims?.aud,
+    tokenIss: unsafeClaims?.iss,
+    tokenEmail: unsafeClaims?.email,
+    acceptedAudiences: env.googleClientIds,
+  });
+
   try {
     const ticket = await googleClient.verifyIdToken({
       idToken: credential,
@@ -370,7 +387,12 @@ authRoutes.post('/google', async (req, res) => {
     const token = jwt.sign({ id: user._id.toString(), role: user.role, email: user.email }, env.jwtSecret);
     res.json({ token, user: serialize(user) });
   } catch (error: any) {
-    console.error('[auth] google auth failed', { message: error?.message });
+    console.error('[auth] google auth failed', {
+      message: error?.message,
+      tokenAud: unsafeClaims?.aud,
+      acceptedAudiences: env.googleClientIds,
+      hint: 'If tokenAud is not in acceptedAudiences, add it to GOOGLE_CLIENT_IDS.',
+    });
     res.status(401).json({ error: 'Google authentication failed' });
   }
 });

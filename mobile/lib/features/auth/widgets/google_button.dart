@@ -45,11 +45,14 @@ class _GoogleButtonState extends State<GoogleButton> {
         // Surface the backend's reason (e.g. "No account exists for this
         // Google email…") instead of a generic failure.
         final message = authCubit.state.error;
+        debugPrint('[google-auth] backend rejected sign-in: $message');
         if (message != null && message.isNotEmpty) {
           showSnack(context, message, error: true);
         }
       }
-    } catch (e) {
+    } catch (e, stack) {
+      debugPrint('[google-auth] sign-in threw ${e.runtimeType}: $e');
+      debugPrint('[google-auth] $stack');
       if (!mounted) return;
       setState(() => _busy = false);
       final detail = e is StateError ? e.message : e.toString();
