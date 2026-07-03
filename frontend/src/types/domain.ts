@@ -38,7 +38,7 @@ export interface Store {
     location_lat?: number | null;
     location_lng?: number | null;
   }>;
-  lease_agreement_file_url?: string;
+  lease_agreement_file_url?: string | null;
   security_deposit?: number;
   rental_billing_mode?: RentalBillingMode;
   rating: number;
@@ -161,7 +161,7 @@ export interface OrderHistory {
   delivery_mode?: string;
   delivery_address?: string;
   payment_mode?: string;
-  lease_agreement_submission_url?: string;
+  lease_agreement_submission_url?: string | null;
   cancellation_reason?: string;
   custom_answers?: Record<string, string>;
   documents?: Array<{ type: string; url: string }>;
@@ -479,7 +479,7 @@ export interface SubmittedApplication {
   deliveryMode: string;
   deliveryAddress: string;
   paymentMode: string;
-  leaseAgreementSubmissionUrl: string;
+  leaseAgreementSubmissionUrl?: string | null;
   customAnswers?: Record<string, string>;
   items: Array<{ name: string; image_url?: string; startDate: string; endDate: string; startTime?: string; endTime?: string; daily_price: number; deposit_amount: number; quantity?: number; rentalBillingMode?: RentalBillingMode }>;
   totalAmount: number;

@@ -34,7 +34,7 @@ const storeSchema = new Schema(
       ],
       default: [],
     },
-    lease_agreement_file_url: { type: String, default: '' },
+    lease_agreement_file_url: { type: String, default: null },
     rental_form_schema: {
       type: {
         version: { type: String, default: 'v1' },

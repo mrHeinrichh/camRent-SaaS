@@ -5,6 +5,10 @@ export interface PhoneCountry {
   maxLength: number;
 }
 
+export const PHILIPPINES_DIAL_CODE = '63';
+export const PHILIPPINES_MOBILE_NATIONAL_LENGTH = 10;
+export const PHILIPPINES_MOBILE_LOCAL_LENGTH = 11;
+
 export const PHONE_COUNTRIES: PhoneCountry[] = [
   { name: 'Philippines (+63)', dial: '63', minLength: 10, maxLength: 10 },
   { name: 'United States (+1)', dial: '1', minLength: 10, maxLength: 10 },
@@ -19,6 +23,23 @@ export const PHONE_COUNTRIES: PhoneCountry[] = [
 ];
 
 export const normalizeDigits = (value: string) => String(value || '').replace(/\D/g, '');
+
+export const getPhilippinesMobileNational = (value: string) => {
+  const trimmed = String(value || '').trim();
+  const digits = normalizeDigits(trimmed);
+  let national = digits;
+  if (trimmed.startsWith('+') && digits.startsWith(PHILIPPINES_DIAL_CODE)) {
+    national = digits.slice(PHILIPPINES_DIAL_CODE.length);
+  } else if (digits.startsWith(PHILIPPINES_DIAL_CODE)) {
+    national = digits.slice(PHILIPPINES_DIAL_CODE.length);
+  }
+  return national.startsWith('0') ? national.slice(1) : national;
+};
+
+export const normalizePhilippinesMobilePhone = (value: string) => {
+  const national = getPhilippinesMobileNational(value);
+  return /^9\d{9}$/.test(national) ? `+${PHILIPPINES_DIAL_CODE}${national}` : '';
+};
 
 export const parseE164 = (value: string) => {
   const trimmed = String(value || '').trim();
@@ -35,6 +56,18 @@ export const buildE164 = (dial: string, national: string) => {
   const digits = normalizeDigits(national);
   if (!digits) return '';
   return `+${dial}${digits}`;
+};
+
+export const validatePhilippinesMobilePhone = (value: string, label = 'Contact number') => {
+  const normalized = normalizePhilippinesMobilePhone(value);
+  if (!String(value || '').trim()) return { valid: false, error: `${label} is required` };
+  if (!normalized) {
+    return {
+      valid: false,
+      error: `${label} must be a valid Philippine mobile number (${PHILIPPINES_MOBILE_LOCAL_LENGTH} digits, e.g. 09171234567)`,
+    };
+  }
+  return { valid: true, normalized };
 };
 
 export const validatePhone = (value: string) => {

@@ -10,7 +10,7 @@ import type { RentalFormField, RentalFormSchemaResponse, Store, SubmittedApplica
 import { Button, Card, Input } from '@/src/components/ui';
 import { FileUpload } from '@/src/components/FileUpload';
 import { PhoneInput } from '@/src/components/PhoneInput';
-import { validatePhone } from '@/src/lib/phone';
+import { normalizePhilippinesMobilePhone, validatePhilippinesMobilePhone, validatePhone } from '@/src/lib/phone';
 
 interface CheckoutPageProps {
   onComplete: () => void;
@@ -126,7 +126,6 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
       Boolean(documentFiles.id2_front),
       Boolean(documentFiles.id2_back),
       Boolean(documentFiles.selfie_id),
-      store?.lease_agreement_file_url ? Boolean(leaseAgreementSubmissionFile) : true,
       Boolean(formData.agree),
     ];
     const completed = checks.filter(Boolean).length;
@@ -240,10 +239,13 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
         setFieldErrors({ phone: phoneCheck.error || 'Invalid phone number' });
         return;
       }
-      const emergencyCheck = validatePhone(formData.emergencyContact);
+      const emergencyCheck = validatePhilippinesMobilePhone(formData.emergencyContact, 'Emergency Contact Number');
       if (!emergencyCheck.valid) {
         setFieldErrors({ emergencyContact: emergencyCheck.error || 'Invalid phone number' });
         return;
+      }
+      if (emergencyCheck.normalized && emergencyCheck.normalized !== formData.emergencyContact) {
+        setFormData((prev) => ({ ...prev, emergencyContact: emergencyCheck.normalized }));
       }
 
       setCurrentStep(2);
@@ -276,9 +278,6 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
     if (!documentFiles.id2_back) errors.id2_back = 'Required';
     if (!documentFiles.selfie_id) errors.selfie_id = 'Required';
 
-    if (store.lease_agreement_file_url && !leaseAgreementSubmissionFile) {
-      errors.leaseAgreementSubmissionFile = 'Completed lease agreement is required';
-    }
     if (!formData.agree) {
       errors.agree = 'You must agree to the terms to proceed';
     }
@@ -292,10 +291,11 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
       setSubmittingApplication(true);
       const effectiveStoreBranchId = formData.storeBranchId || String(store.branches?.[0]?._id || 'main');
 
-      let leaseAgreementSubmissionUrl = '';
+      let leaseAgreementSubmissionUrl: string | null = null;
       if (leaseAgreementSubmissionFile) {
         leaseAgreementSubmissionUrl = await uploadPublicFile(leaseAgreementSubmissionFile);
       }
+      const emergencyContact = normalizePhilippinesMobilePhone(formData.emergencyContact) || formData.emergencyContact;
 
       const billingAddressFileUrl = billingAddressFile ? await uploadPublicFile(billingAddressFile) : '';
       if (!billingAddressFileUrl) {
@@ -320,7 +320,7 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
           renter_email: formData.email,
           renter_phone: formData.phone,
           renter_emergency_contact_name: formData.emergencyContactName,
-          renter_emergency_contact: formData.emergencyContact,
+          renter_emergency_contact: emergencyContact,
           renter_address: formData.presentAddress,
           store_branch_id: effectiveStoreBranchId,
           delivery_mode: formData.deliveryMode,
@@ -345,7 +345,7 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
         customerEmail: formData.email,
         customerPhone: formData.phone,
         customerEmergencyContactName: formData.emergencyContactName,
-        customerEmergencyContact: formData.emergencyContact,
+        customerEmergencyContact: emergencyContact,
         customerAddress: formData.presentAddress,
         billingAddressFileUrl,
         storeBranchId: effectiveStoreBranchId,
@@ -488,7 +488,7 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
                     <Input label="Emergency Contact Name" icon={<User2 className="h-4 w-4" />} required value={formData.emergencyContactName} onChange={(e) => { setFormData({ ...formData, emergencyContactName: e.target.value }); clearFieldError('emergencyContactName'); }} placeholder="Jane Doe" error={fieldErrors.emergencyContactName} />
                   </div>
                   <div className="space-y-2">
-                    <PhoneInput label="Emergency Contact Number" value={formData.emergencyContact} required onChange={(val) => { setFormData({ ...formData, emergencyContact: val }); clearFieldError('emergencyContact'); }} error={fieldErrors.emergencyContact} />
+                    <PhoneInput label="Emergency Contact Number" value={formData.emergencyContact} required philippinesMobileOnly onChange={(val) => { setFormData({ ...formData, emergencyContact: val }); clearFieldError('emergencyContact'); }} error={fieldErrors.emergencyContact} />
                   </div>
                 </div>
 
@@ -622,7 +622,7 @@ export function CheckoutPage({ onComplete, onNavigate }: CheckoutPageProps) {
                   <FileUpload compact label="Billing Address Document" accept="image/*,.pdf" required file={billingAddressFile} onChange={(files) => { setBillingAddressFile(files?.[0] ?? null); clearFieldError('billingAddressFile'); }} helperText="Recent utility bill for address verification." error={fieldErrors.billingAddressFile} />
 
                   {store?.lease_agreement_file_url && (
-                    <FileUpload compact label="Completed Lease Agreement" accept=".pdf,.doc,.docx,.png,.jpg" required file={leaseAgreementSubmissionFile} onChange={(files) => { setLeaseAgreementSubmissionFile(files?.[0] ?? null); clearFieldError('leaseAgreementSubmissionFile'); }} helperText="Fill the store template, then upload it here." error={fieldErrors.leaseAgreementSubmissionFile} />
+                    <FileUpload compact label="Completed Lease Agreement (optional)" accept=".pdf,.doc,.docx,.png,.jpg" file={leaseAgreementSubmissionFile} onChange={(files) => { setLeaseAgreementSubmissionFile(files?.[0] ?? null); clearFieldError('leaseAgreementSubmissionFile'); }} helperText="Upload only if the store asked for a signed copy." error={fieldErrors.leaseAgreementSubmissionFile} />
                   )}
                 </div>
               </Card>

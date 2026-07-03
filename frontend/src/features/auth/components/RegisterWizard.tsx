@@ -91,10 +91,6 @@ export function RegisterWizard({ submitting, cooldownSeconds = 0, initialEmail =
         setGeneralError('Please add at least one delivery mode.');
         return false;
       }
-      if (!leaseAgreementFile) {
-        setGeneralError('Lease agreement file is required.');
-        return false;
-      }
     }
 
     if (Object.keys(errors).length > 0) {
@@ -540,7 +536,7 @@ export function RegisterWizard({ submitting, cooldownSeconds = 0, initialEmail =
           </div>
           <div className="grid gap-4 md:grid-cols-2">
             <FileUpload
-              label="Lease Agreement File"
+              label="Lease Agreement File (optional)"
               accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg"
               file={leaseAgreementFile}
               onChange={(files) => setLeaseAgreementFile(files?.[0] ?? null)}

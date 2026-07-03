@@ -18,7 +18,7 @@ const orderSchema = new Schema(
     delivery_fee: { type: Number, default: 0 },
     payment_mode: { type: String, default: 'cash' },
     payment_status: { type: String, default: 'pending' },
-    lease_agreement_submission_url: { type: String, default: '' },
+    lease_agreement_submission_url: { type: String, default: null },
     custom_answers: { type: Schema.Types.Mixed, default: {} },
     form_schema_version: { type: String, default: 'v1' },
     total_amount: { type: Number, required: true },

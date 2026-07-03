@@ -25,7 +25,8 @@ export function registerOwnerStoreProfileRoutes(router: Router) {
       if (body.logo_url !== undefined) store.logo_url = String(body.logo_url || '').trim();
       if (body.banner_url !== undefined) store.banner_url = String(body.banner_url || '').trim();
       if (body.lease_agreement_file_url !== undefined) {
-        (store as any).lease_agreement_file_url = String(body.lease_agreement_file_url || '').trim();
+        const leaseAgreementFileUrl = String(body.lease_agreement_file_url || '').trim();
+        (store as any).lease_agreement_file_url = leaseAgreementFileUrl || null;
       }
       if (body.facebook_url !== undefined) store.facebook_url = String(body.facebook_url || '').trim();
       if (body.instagram_url !== undefined) store.instagram_url = String(body.instagram_url || '').trim();
