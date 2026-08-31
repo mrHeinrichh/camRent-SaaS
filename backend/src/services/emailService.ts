@@ -13,10 +13,48 @@ export class EmailServiceError extends Error {
     public readonly publicMessage: string,
     public readonly statusCode = 500,
     public readonly details?: Record<string, unknown>,
+    public readonly publicCode = 'EMAIL_DELIVERY_FAILED',
+    public readonly provider?: 'gmail_api' | 'smtp',
   ) {
     super(message);
     this.name = 'EmailServiceError';
   }
+}
+
+function getSmtpFailure(error: any) {
+  if (error?.code === 'EAUTH' || error?.responseCode === 535) {
+    return {
+      publicCode: 'SMTP_AUTH_FAILED',
+      publicMessage:
+        'Gmail SMTP login failed. In Render, check SMTP_USER and use a valid Gmail app password for SMTP_PASS.',
+    };
+  }
+
+  if (error?.code === 'ETIMEDOUT') {
+    return {
+      publicCode: 'SMTP_CONNECTION_TIMEOUT',
+      publicMessage: 'The email server connection timed out. Check SMTP_HOST and SMTP_PORT in Render.',
+    };
+  }
+
+  if (['ECONNECTION', 'ECONNREFUSED', 'ESOCKET'].includes(error?.code)) {
+    return {
+      publicCode: 'SMTP_CONNECTION_FAILED',
+      publicMessage: 'The server could not connect to Gmail SMTP. Check SMTP_HOST and SMTP_PORT in Render.',
+    };
+  }
+
+  if ([550, 551, 552, 553, 554].includes(error?.responseCode)) {
+    return {
+      publicCode: 'SMTP_MESSAGE_REJECTED',
+      publicMessage: 'Gmail rejected the verification email. Check SMTP_FROM and the Gmail account status.',
+    };
+  }
+
+  return {
+    publicCode: 'SMTP_SEND_FAILED',
+    publicMessage: 'Email provider rejected the verification email. Check the Render email logs.',
+  };
 }
 
 function safeFingerprint(value?: string | null) {
@@ -73,6 +111,8 @@ function getTransporter() {
       'SMTP_PASS is a placeholder. Replace it with your real Gmail app password.',
       503,
       emailConfigSnapshot(),
+      'SMTP_PASSWORD_PLACEHOLDER',
+      'smtp',
     );
   }
   transporter = nodemailer.createTransport({
@@ -145,6 +185,8 @@ async function sendWithGmailApi(input: { to: string; subject: string; text: stri
       'Gmail API credentials are placeholders. Replace GMAIL_CLIENT_SECRET and GMAIL_REFRESH_TOKEN with real Google values.',
       503,
       configSnapshot,
+      'GMAIL_API_CREDENTIALS_PLACEHOLDER',
+      'gmail_api',
     );
   }
 
@@ -163,24 +205,45 @@ async function sendWithGmailApi(input: { to: string; subject: string; text: stri
       message: error?.message,
       config: configSnapshot,
     });
-    throw new EmailServiceError('Gmail API access token request failed', getGmailAuthorizationMessage(googleErrorCode), 502, {
-      code: error?.code,
-      status: error?.status,
-      responseStatus: error?.response?.status,
-      responseData,
-      message: error?.message,
-      config: configSnapshot,
-    });
+    throw new EmailServiceError(
+      'Gmail API access token request failed',
+      getGmailAuthorizationMessage(googleErrorCode),
+      502,
+      {
+        code: error?.code,
+        status: error?.status,
+        responseStatus: error?.response?.status,
+        responseData,
+        message: error?.message,
+        config: configSnapshot,
+      },
+      googleErrorCode === 'invalid_grant' ? 'GMAIL_REFRESH_TOKEN_INVALID' : 'GMAIL_API_AUTH_FAILED',
+      'gmail_api',
+    );
   }
   if (!accessToken.token) {
     console.error('[email] Gmail API did not return an access token', configSnapshot);
-    throw new EmailServiceError('Gmail API access token unavailable', 'Gmail API did not return an access token. Regenerate the Gmail refresh token in Render.', 503);
+    throw new EmailServiceError(
+      'Gmail API access token unavailable',
+      'Gmail API did not return an access token. Regenerate the Gmail refresh token in Render.',
+      503,
+      undefined,
+      'GMAIL_ACCESS_TOKEN_UNAVAILABLE',
+      'gmail_api',
+    );
   }
 
   const from = env.gmailFrom || env.smtpFrom || env.gmailUser || env.smtpUser;
   if (!from) {
     console.error('[email] Gmail API sender is not configured', configSnapshot);
-    throw new EmailServiceError('Gmail API sender is not configured', 'Email service is not configured on the server.', 503);
+    throw new EmailServiceError(
+      'Gmail API sender is not configured',
+      'Email service is not configured on the server.',
+      503,
+      undefined,
+      'EMAIL_SENDER_NOT_CONFIGURED',
+      'gmail_api',
+    );
   }
 
   console.info('[email] Gmail API send request start', {
@@ -210,11 +273,18 @@ async function sendWithGmailApi(input: { to: string; subject: string; text: stri
       status: response.status,
       details,
     });
-    throw new EmailServiceError('Gmail API send failed', 'Gmail API rejected the verification email. Check Gmail API settings.', 502, {
-      status: response.status,
-      details,
-      config: configSnapshot,
-    });
+    throw new EmailServiceError(
+      'Gmail API send failed',
+      'Gmail API rejected the verification email. Check Gmail API settings.',
+      502,
+      {
+        status: response.status,
+        details,
+        config: configSnapshot,
+      },
+      'GMAIL_API_SEND_FAILED',
+      'gmail_api',
+    );
   }
 
   console.info('[email] Gmail API send succeeded', { to: safeFingerprint(input.to), subject: input.subject });
@@ -246,7 +316,14 @@ export async function sendEmail(input: { to: string; subject: string; text: stri
     if (gmailApiFailure) {
       throw gmailApiFailure;
     }
-    throw new EmailServiceError('SMTP is not configured', 'Email service is not configured on the server.', 503);
+    throw new EmailServiceError(
+      'SMTP is not configured',
+      'Email service is not configured on the server.',
+      503,
+      emailConfigSnapshot(),
+      'SMTP_NOT_CONFIGURED',
+      'smtp',
+    );
   }
 
   const from = env.smtpFrom || env.smtpUser;
@@ -267,6 +344,7 @@ export async function sendEmail(input: { to: string; subject: string; text: stri
     });
     console.info('[email] SMTP send succeeded', { to: safeFingerprint(input.to), subject: input.subject });
   } catch (error: any) {
+    const smtpFailure = getSmtpFailure(error);
     console.error('[email] SMTP send failed', {
       code: error?.code,
       command: error?.command,
@@ -274,13 +352,27 @@ export async function sendEmail(input: { to: string; subject: string; text: stri
       response: error?.response,
       config: emailConfigSnapshot(),
     });
-    throw new EmailServiceError('SMTP send failed', 'Email provider rejected the verification email. Check SMTP settings.', 502, {
-      code: error?.code,
-      command: error?.command,
-      responseCode: error?.responseCode,
-      response: error?.response,
-      config: emailConfigSnapshot(),
-    });
+    throw new EmailServiceError(
+      'SMTP send failed',
+      smtpFailure.publicMessage,
+      502,
+      {
+        code: error?.code,
+        command: error?.command,
+        responseCode: error?.responseCode,
+        response: error?.response,
+        config: emailConfigSnapshot(),
+        gmailApiFailure: gmailApiFailure
+          ? {
+              message: gmailApiFailure.message,
+              publicCode: gmailApiFailure.publicCode,
+              provider: gmailApiFailure.provider,
+            }
+          : null,
+      },
+      smtpFailure.publicCode,
+      'smtp',
+    );
   }
 }
 

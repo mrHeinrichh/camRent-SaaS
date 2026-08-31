@@ -2,6 +2,18 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+function normalizeEnvValue(value?: string) {
+  const trimmed = value?.trim() || '';
+  const hasMatchingQuotes =
+    (trimmed.startsWith('"') && trimmed.endsWith('"')) ||
+    (trimmed.startsWith("'") && trimmed.endsWith("'"));
+  return hasMatchingQuotes ? trimmed.slice(1, -1).trim() : trimmed;
+}
+
+function normalizeCompactSecret(value?: string) {
+  return normalizeEnvValue(value).replace(/\s/g, '');
+}
+
 const rawCloudinaryCloudName = process.env.CLOUDINARY_CLOUD_NAME?.trim();
 const normalizedCloudinaryCloudName = rawCloudinaryCloudName ? rawCloudinaryCloudName.toLowerCase() : undefined;
 if (rawCloudinaryCloudName && rawCloudinaryCloudName !== normalizedCloudinaryCloudName) {
@@ -31,15 +43,20 @@ export const env = {
         .filter(Boolean),
     ),
   ],
-  gmailClientId: process.env.GMAIL_CLIENT_ID?.trim() || process.env.GOOGLE_CLIENT_ID?.trim() || '',
-  gmailClientSecret: process.env.GMAIL_CLIENT_SECRET?.trim() || process.env.GOOGLE_CLIENT_SECRET?.trim() || '',
-  gmailRefreshToken: process.env.GMAIL_REFRESH_TOKEN?.trim() || process.env.GOOGLE_REFRESH_TOKEN?.trim() || '',
-  gmailUser: process.env.GMAIL_USER?.trim() || process.env.GOOGLE_EMAIL?.trim() || process.env.SMTP_USER?.trim() || '',
-  gmailFrom: process.env.GMAIL_FROM?.trim() || '',
+  gmailClientId: normalizeEnvValue(process.env.GMAIL_CLIENT_ID) || normalizeEnvValue(process.env.GOOGLE_CLIENT_ID),
+  gmailClientSecret:
+    normalizeEnvValue(process.env.GMAIL_CLIENT_SECRET) || normalizeEnvValue(process.env.GOOGLE_CLIENT_SECRET),
+  gmailRefreshToken:
+    normalizeEnvValue(process.env.GMAIL_REFRESH_TOKEN) || normalizeEnvValue(process.env.GOOGLE_REFRESH_TOKEN),
+  gmailUser:
+    normalizeEnvValue(process.env.GMAIL_USER) ||
+    normalizeEnvValue(process.env.GOOGLE_EMAIL) ||
+    normalizeEnvValue(process.env.SMTP_USER),
+  gmailFrom: normalizeEnvValue(process.env.GMAIL_FROM),
   adminNotificationEmail: process.env.ADMIN_NOTIFICATION_EMAIL?.trim() || 'mrheinrichhh@gmail.com',
-  smtpHost: process.env.SMTP_HOST?.trim() || 'smtp.gmail.com',
+  smtpHost: normalizeEnvValue(process.env.SMTP_HOST) || 'smtp.gmail.com',
   smtpPort: Number(process.env.SMTP_PORT || 465),
-  smtpUser: process.env.SMTP_USER?.trim() || '',
-  smtpPass: process.env.SMTP_PASS?.replace(/\s/g, '') || '',
-  smtpFrom: process.env.SMTP_FROM?.trim() || '',
+  smtpUser: normalizeEnvValue(process.env.SMTP_USER),
+  smtpPass: normalizeCompactSecret(process.env.SMTP_PASS),
+  smtpFrom: normalizeEnvValue(process.env.SMTP_FROM),
 };

@@ -261,7 +261,11 @@ const sendOtpHandler = async (req: any, res: any) => {
       details: error?.details,
     });
     await EmailOtp.deleteMany({ email });
-    return res.status(error?.statusCode || 500).json({ error: error?.publicMessage || 'Unable to send verification email' });
+    return res.status(error?.statusCode || 500).json({
+      error: error?.publicMessage || 'Unable to send verification email',
+      code: error?.publicCode || 'EMAIL_DELIVERY_FAILED',
+      provider: error?.provider,
+    });
   }
 
   res.json({ success: true, expires_in: OTP_EXPIRES_MINUTES * 60 });
